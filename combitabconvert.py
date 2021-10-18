@@ -1,10 +1,20 @@
 from datetime import timedelta
 import pandas as pd
+from dateutil import parser
 
 
 def get_dymo_time_index(df):
+    """
+    Return a list containing seconds since the beginning of the Year
+    Only use UTC datetime index
+    """
+    time_start = parser.parse(
+        f"{df.index[0].year}-01-01 00:00:00+00:00",
+    )
     new_index = df.index.to_frame().diff().squeeze()
-    new_index[0] = timedelta(seconds=0)
+    new_index[0] = timedelta(
+        seconds=df.index[0].timestamp() - time_start.timestamp()
+    )
     sec_dt = [elmt.total_seconds() for elmt in new_index]
     return list(pd.Series(sec_dt).cumsum())
 
