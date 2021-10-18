@@ -29,7 +29,7 @@ class OikolabWeatherData:
         self.data = None
 
     def _get_oikolab_json(self):
-        self.request_res = requests.get(
+        return requests.get(
             'https://api.oikolab.com/weather',
             params={
                 'param': [
