@@ -24,10 +24,10 @@ def df_to_combitimetable(df, filename):
     file = open(filename, "w")
     file.write("#1 \n")
     line = ""
-    line += f"double table1({df.shape[0]}, {df.shape[1] + 1})"
+    line += f"double table1({df.shape[0]}, {df.shape[1] + 1})\n"
     line += "\t# Time (s)"
     for i, col in enumerate(df.columns):
-        line += f"\t({i}){col}"
+        line += f"\t({i + 1}){col}"
     file.write(f"{line} \n")
 
     df.index = get_dymo_time_index(df)

@@ -1,4 +1,5 @@
 import numpy as np
+from .combitabconvert import df_to_combitimetable
 
 
 class MeasuredDats:
@@ -70,3 +71,13 @@ class MeasuredDats:
         inter = self.corrected_data.loc[:, cols].interpolate(method=method)
         self.corrected_data.loc[:, cols] = inter
         self.applied_corr.append("interpolate")
+
+    def generate_combitimetable_input(self, file_path, corrected_data=True):
+        if corrected_data:
+            if self.applied_corr:
+                df_to_combitimetable(self.corrected_data, file_path)
+            else:
+                raise ValueError('Connot compose from corrected_data.\
+                    No correction were applied')
+        else:
+            df_to_combitimetable(self.data, file_path)
