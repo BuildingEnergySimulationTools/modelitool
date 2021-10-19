@@ -232,10 +232,12 @@ class OikolabWeatherData:
         )
 
     def generate_tmy5(self, file_path):
+        tmy_df = self._format_wea_df()[TMY5_COLS]
+
         file = open(file_path, "w")
         file.write("#1 \n")
         file.write(
-            f"double table1({self.data.shape[0]}, {self.data.shape[1] + 1})\n"
+            f"double tab1({tmy_df.shape[0]}, {tmy_df.shape[1]})\n"
         )
         file.write(
             f"#LOCATION,{self.location_name},empty,empty,ERA5_NBK_Oikolab,666,"
@@ -243,11 +245,11 @@ class OikolabWeatherData:
         )
         file.write(
             f"#DATA PERIODS,1,1,Data,"
-            f"{self.data.index[0].day_name()},"
-            f"{self.data.index[0].month}/"
-            f"{self.data.index[0].day},"
-            f"{self.data.index[-1].month}/"
-            f"{self.data.index[-1].day}\n"
+            f"{tmy_df.index[0].day_name()},"
+            f"{tmy_df.index[0].month}/"
+            f"{tmy_df.index[0].day},"
+            f"{tmy_df.index[-1].month}/"
+            f"{tmy_df.index[-1].day}\n"
         )
         file.write(
             "#C1 Time in seconds. Beginning of a year is 0s.\n"
@@ -286,11 +288,10 @@ class OikolabWeatherData:
             "#C30 Liquid precipitation quantity\n"
         )
 
-        tmy_df = self._format_wea_df()[TMY5_COLS]
-
         file.write(tmy_df.to_csv(
             header=False,
             index=False,
+            sep='\t',
             line_terminator='\n'
         ))
         file.close()
