@@ -10,7 +10,7 @@ Use only UTC in datetime index.
 
 Handle time series of measured data with missing or incorrect values.
 
-Modelica <code>combitimetable</code> input file can be generated from raw data or corrected data.
+Modelica CombiTimeTable input file can be generated from raw data or corrected data.
  
  
 **Parameters:**
@@ -83,5 +83,59 @@ my_measures = MeasuredDats(
             }        
         }
     }
+)
+</code></pre>
+
+## modelitool.weather.OikolabWeatherData
+
+<span style="background-color: #ffe600">***class modelitool.weather.***<span style="color: #ff0040; font-size:1em">**OikolabWeatherData**</span>***(location_name=None,   location_lat=None,   location_long=None,    start=None,   end=None,   api_key=None)***</span>
+
+Get meteorological data from oikolab API. Transforms it to epw and TMY5 file
+Available data are:
+- Dry bulb temperatures [°C]
+- Dew point temperatures [°C]
+- Relative humidity [%]
+- Atmospheric pressure [Pa]
+- Global horizontal radiation [W/m²]
+- Direct normal radiation [W/m²]
+- Diffuse solar radiation [W/m²]
+- Wind direction [deg]
+- Wind speed [m/s]
+- Total cloud cover [0-1]
+- Snowfall [mm of water equivalent]
+- Total precipitation [mm of water]
+
+ 
+ 
+**Parameters:**
+>**location_name :** *String* Name of the meteo station.
+
+>**location_lat :** *Float* Meteo site location latitude
+
+>**location_long :** *Float* Meteo site location longitude
+
+>**start :** *String* starting point date time format : <code>"YYYY-MM-DDThh:mm:ss"</code> provite UTC
+
+>**end :** *String* ending point date time format : <code>"YYYY-MM-DDThh:mm:ss"</code> provite UTC
+
+>**api_key :** *String* Oikolab API key
+
+**Attributes**
+- **data :** DataFrame holding meteo data
+
+**Methods**
+- **get_data**_()_ : Fetch meteorological data from Oikolab API
+- **generate_tmy5**_(file_path)_ : generate  a TMY5 *.mos file compatible with Modelica Building library reader
+- **generate_epw**_(file_path)_ : generate a EPW *.epw file compatible with energyPlus 
+
+**Example**
+<pre><code>
+my_weather = OikolabWeatherData(
+    location_name="Anglet",
+    location_lat=43.47414153237001,
+    location_long=-1.5095114151032965,
+    start='2017-01-01T00:00:00',
+    end='2017-12-31T23:00:00',
+    api_key="d414d453fb0f496fb6dfa1c3xxxxxxxx"
 )
 </code></pre>
