@@ -25,19 +25,19 @@ class MeasuredDats:
 
         for type, cols in self.data_type.items():
             if "minmax" in corrections:
-                self.minmax_corr(
+                self._minmax_corr(
                     cols=cols,
                     **self.corr_dict[type]["minmax"]
                 )
 
             if "derivative" in corrections:
-                self.derivative_corr(
+                self._derivative_corr(
                     cols=cols,
                     **self.corr_dict[type]["derivative"]
                 )
 
             if "interpolate" in corrections:
-                self.interpolate(
+                self._interpolate(
                     cols=cols,
                     **self.corr_dict[type]["interpolate"]
                 )
@@ -52,7 +52,7 @@ class MeasuredDats:
                 self.corrected_data.loc[:, cols] = filled
                 self.applied_corr.append("bfill")
 
-    def minmax_corr(self, cols, upper, lower):
+    def _minmax_corr(self, cols, upper, lower):
         df = self.corrected_data.loc[:, cols]
         upper_mask = df > upper
         lower_mask = df < lower
@@ -60,14 +60,14 @@ class MeasuredDats:
         self.corrected_data[mask] = np.nan
         self.applied_corr.append("minmax")
 
-    def derivative_corr(self, cols, rate):
+    def _derivative_corr(self, cols, rate):
         df = self.corrected_data.loc[:, cols]
         der = df.diff()
         mask = abs(der) > rate
         self.corrected_data[mask] = np.nan
         self.applied_corr.append("derivative")
 
-    def interpolate(self, cols, method):
+    def _interpolate(self, cols, method):
         inter = self.corrected_data.loc[:, cols].interpolate(method=method)
         self.corrected_data.loc[:, cols] = inter
         self.applied_corr.append("interpolate")
