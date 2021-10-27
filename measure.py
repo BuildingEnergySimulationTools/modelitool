@@ -43,12 +43,16 @@ class MeasuredDats:
                 )
 
             if "ffill" in corrections:
-                filled = self.corrected_data.loc[:, cols].fillna("ffill")
+                filled = self.corrected_data.loc[:, cols].fillna(
+                    method="ffill"
+                )
                 self.corrected_data.loc[:, cols] = filled
                 self.applied_corr.append("ffill")
 
             if "bfill" in corrections:
-                filled = self.corrected_data.loc[:, cols].fillna("bfill")
+                filled = self.corrected_data.loc[:, cols].fillna(
+                    method="bfill"
+                )
                 self.corrected_data.loc[:, cols] = filled
                 self.applied_corr.append("bfill")
 
