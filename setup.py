@@ -29,7 +29,6 @@ setup(
     ],
     python_requires=">=3.7",
     install_requires=[
-        "python-dateutil>=2.8",
         "pandas>=1.2.3",
         "numpy>=1.17.3",
     ],
