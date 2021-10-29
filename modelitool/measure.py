@@ -62,7 +62,6 @@ class MeasuredDats:
         lower_mask = df < lower
         mask = np.logical_or(upper_mask, lower_mask)
         self.corrected_data[mask] = np.nan
-        self.applied_corr.append("minmax")
 
     def _derivative_corr(self, cols, rate):
         df = self.corrected_data.loc[:, cols]
