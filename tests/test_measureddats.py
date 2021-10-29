@@ -59,8 +59,8 @@ class TestMeasuredDats:
             corr_dict={},
         )
 
-        lower = 0 #[°C/s]
-        upper = 0.004 #[°C/s]
+        lower = 0  # [°C/s]
+        upper = 0.004  # [°C/s]
 
         tested_obj._derivative_corr("dumb_column", upper, lower)
 

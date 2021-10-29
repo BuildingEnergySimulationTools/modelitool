@@ -11,14 +11,14 @@ class MeasuredDats:
         self.applied_corr = []
 
     def get_corrected(
-        self,
-        corrections=[
-            "minmax",
-            "derivative",
-            "interpolate",
-            "ffill",
-            "bfill"
-        ]
+            self,
+            corrections=[
+                "minmax",
+                "derivative",
+                "interpolate",
+                "ffill",
+                "bfill"
+            ]
     ):
         self.corrected_data = self.data.copy()
         self.applied_corr.clear()
@@ -92,7 +92,6 @@ class MeasuredDats:
             method="bfill"
         )
         self.corrected_data.loc[:, cols] = filled
-
 
     def generate_combitimetable_input(self, file_path, corrected_data=True):
         if corrected_data:
