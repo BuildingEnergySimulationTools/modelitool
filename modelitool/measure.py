@@ -63,12 +63,20 @@ class MeasuredDats:
         mask = np.logical_or(upper_mask, lower_mask)
         self.corrected_data[mask] = np.nan
 
-    def _derivative_corr(self, cols, rate):
+    def _derivative_corr(self, cols, upper_rate, lower_rate):
         df = self.corrected_data.loc[:, cols]
-        der = df.diff()
-        mask = abs(der) > rate
-        self.corrected_data[mask] = np.nan
-        self.applied_corr.append("derivative")
+        time_delta = df.index.to_series().diff().dt.total_seconds()
+        abs_der = abs(df.diff() / time_delta)
+        abs_der_two = abs(df.diff(periods=2) / time_delta)
+
+        mask_constant = abs_der <= lower_rate
+        mask_der = abs_der >= upper_rate
+        mask_der_two = abs_der_two >= upper_rate
+
+        mask_to_remove = np.logical_and(mask_der, mask_der_two)
+        mask_to_remove = np.logical_or(mask_to_remove, mask_constant)
+
+        self.corrected_data[mask_to_remove] = np.nan
 
     def _interpolate(self, cols, method):
         inter = self.corrected_data.loc[:, cols].interpolate(method=method)
