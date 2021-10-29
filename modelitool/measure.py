@@ -47,14 +47,12 @@ class MeasuredDats:
                     method="ffill"
                 )
                 self.corrected_data.loc[:, cols] = filled
-                self.applied_corr.append("ffill")
 
             if "bfill" in corrections:
                 filled = self.corrected_data.loc[:, cols].fillna(
                     method="bfill"
                 )
                 self.corrected_data.loc[:, cols] = filled
-                self.applied_corr.append("bfill")
 
     def _minmax_corr(self, cols, upper, lower):
         df = self.corrected_data.loc[:, cols]
@@ -82,6 +80,19 @@ class MeasuredDats:
         inter = self.corrected_data.loc[:, cols].interpolate(method=method)
         self.corrected_data.loc[:, cols] = inter
         self.applied_corr.append("interpolate")
+
+    def _ffill(self, cols):
+        filled = self.corrected_data.loc[:, cols].fillna(
+            method="ffill"
+        )
+        self.corrected_data.loc[:, cols] = filled
+
+    def _bfill(self, cols):
+        filled = self.corrected_data.loc[:, cols].fillna(
+            method="bfill"
+        )
+        self.corrected_data.loc[:, cols] = filled
+
 
     def generate_combitimetable_input(self, file_path, corrected_data=True):
         if corrected_data:

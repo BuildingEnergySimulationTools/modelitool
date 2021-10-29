@@ -64,7 +64,46 @@ class TestMeasuredDats:
 
         tested_obj._derivative_corr("dumb_column", upper, lower)
 
-        print(tested_obj.corrected_data)
+        assert ref.equals(tested_obj.corrected_data)
+
+    def test_ffill(self):
+        df = pd.DataFrame(
+            {"dumb_column": [2.0, np.nan]},
+            index=[0, 1]
+        )
+
+        ref = pd.DataFrame(
+            {"dumb_column": [2.0, 2.0]},
+            index=[0, 1]
+        )
+
+        tested_obj = MeasuredDats(
+            data=df,
+            data_type={},
+            corr_dict={},
+        )
+
+        tested_obj._ffill("dumb_column")
 
         assert ref.equals(tested_obj.corrected_data)
 
+    def test_bfill(self):
+        df = pd.DataFrame(
+            {"dumb_column": [np.nan, 2.0]},
+            index=[0, 1]
+        )
+
+        ref = pd.DataFrame(
+            {"dumb_column": [2.0, 2.0]},
+            index=[0, 1]
+        )
+
+        tested_obj = MeasuredDats(
+            data=df,
+            data_type={},
+            corr_dict={},
+        )
+
+        tested_obj._bfill("dumb_column")
+
+        assert ref.equals(tested_obj.corrected_data)
