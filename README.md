@@ -45,7 +45,7 @@ Modelica CombiTimeTable input file can be generated from raw data or corrected d
 <pre><code>
 my_measures = MeasuredDats(
     data = my_dirty_measure_df,
-    data_type = {
+    data_type_dict = {
         "power": ["Power1", "Power2"],
         "temperatures": ["Temperature1", "Temperature2"]
     },
@@ -56,14 +56,11 @@ my_measures = MeasuredDats(
                 "lower": 0
             },
             "derivative": {
-                "rate": 5000
+                "upper_rate": 5000,
+		"lower_rate": 0,
             },
             "interpolate": {
                 "method": "linear"
-            },
-            "fillna": {
-                "bfill": True,
-                "ffill": True,
             }
         }
         "temperatures": {
@@ -72,15 +69,12 @@ my_measures = MeasuredDats(
                 "lower": -2
             },
             "derivative": {
-                "rate": 5
-            },
+                "upper_rate": 5,
+		"lower_rate": 0,
+			},
             "interpolate": {
                 "method": "linear"
-            },
-            "fillna": {
-                "bfill": True,
-                "ffill": True,
-            }        
+            }      
         }
     }
 )

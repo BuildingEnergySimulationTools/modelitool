@@ -2,57 +2,30 @@ import numpy as np
 from .combitabconvert import df_to_combitimetable
 
 
+# TODO Create auto_correct function
+# TODO Create a fill_nan function
+# TODO Add resample in some way
+
 class MeasuredDats:
-    def __init__(self, data, data_type, corr_dict):
+    def __init__(self, data, data_type_dict, corr_dict):
         self.data = data
-        self.data_type = data_type
+        self.data_type_dict = data_type_dict
         self.corr_dict = corr_dict
         self.corrected_data = data
-        self.applied_corr = []
+        self.correction_journal = []
 
-    def get_corrected(
-            self,
-            corrections=[
-                "minmax",
-                "derivative",
-                "interpolate",
-                "ffill",
-                "bfill"
-            ]
-    ):
-        self.corrected_data = self.data.copy()
-        self.applied_corr.clear()
+    def remove_anomalies(self):
+        for data_type, cols in self.data_type_dict.items():
+            self._minmax_corr(
+                cols=cols,
+                **self.corr_dict[type]["minmax"]
+            )
 
-        for type, cols in self.data_type.items():
-            if "minmax" in corrections:
-                self._minmax_corr(
-                    cols=cols,
-                    **self.corr_dict[type]["minmax"]
-                )
-
-            if "derivative" in corrections:
-                self._derivative_corr(
-                    cols=cols,
-                    **self.corr_dict[type]["derivative"]
-                )
-
-            if "interpolate" in corrections:
-                self._interpolate(
-                    cols=cols,
-                    **self.corr_dict[type]["interpolate"]
-                )
-
-            if "ffill" in corrections:
-                filled = self.corrected_data.loc[:, cols].fillna(
-                    method="ffill"
-                )
-                self.corrected_data.loc[:, cols] = filled
-
-            if "bfill" in corrections:
-                filled = self.corrected_data.loc[:, cols].fillna(
-                    method="bfill"
-                )
-                self.corrected_data.loc[:, cols] = filled
+            self._derivative_corr(
+                cols=cols,
+                **self.corr_dict[type]["derivative"]
+            )
+        self.correction_journal.append("remove_anomalies")
 
     def _minmax_corr(self, cols, upper, lower):
         df = self.corrected_data.loc[:, cols]
@@ -76,29 +49,31 @@ class MeasuredDats:
 
         self.corrected_data[mask_to_remove] = np.nan
 
-    def _interpolate(self, cols, method):
+    def interpolate(self, cols, method):
         inter = self.corrected_data.loc[:, cols].interpolate(method=method)
         self.corrected_data.loc[:, cols] = inter
-        self.applied_corr.append("interpolate")
+        self.correction_journal.append("interpolate")
 
-    def _ffill(self, cols):
+    def ffill(self, cols):
         filled = self.corrected_data.loc[:, cols].fillna(
             method="ffill"
         )
         self.corrected_data.loc[:, cols] = filled
+        self.correction_journal.append("ffill")
 
-    def _bfill(self, cols):
+    def bfill(self, cols):
         filled = self.corrected_data.loc[:, cols].fillna(
             method="bfill"
         )
         self.corrected_data.loc[:, cols] = filled
+        self.correction_journal.append("bfill")
 
     def generate_combitimetable_input(self, file_path, corrected_data=True):
         if corrected_data:
-            if self.applied_corr:
+            if self.correction_journal:
                 df_to_combitimetable(self.corrected_data, file_path)
             else:
-                raise ValueError('Connot compose from corrected_data.\
+                raise ValueError('Cannot compose from corrected_data.\
                     No correction were applied')
         else:
             df_to_combitimetable(self.data, file_path)

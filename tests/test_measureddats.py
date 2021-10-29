@@ -24,7 +24,7 @@ class TestMeasuredDats:
 
         tested_obj = MeasuredDats(
             data=df,
-            data_type={},
+            data_type_dict={},
             corr_dict={},
         )
 
@@ -55,7 +55,7 @@ class TestMeasuredDats:
 
         tested_obj = MeasuredDats(
             data=df,
-            data_type={},
+            data_type_dict={},
             corr_dict={},
         )
 
@@ -79,11 +79,11 @@ class TestMeasuredDats:
 
         tested_obj = MeasuredDats(
             data=df,
-            data_type={},
+            data_type_dict={},
             corr_dict={},
         )
 
-        tested_obj._ffill("dumb_column")
+        tested_obj.ffill("dumb_column")
 
         assert ref.equals(tested_obj.corrected_data)
 
@@ -100,10 +100,10 @@ class TestMeasuredDats:
 
         tested_obj = MeasuredDats(
             data=df,
-            data_type={},
+            data_type_dict={},
             corr_dict={},
         )
 
-        tested_obj._bfill("dumb_column")
+        tested_obj.bfill("dumb_column")
 
         assert ref.equals(tested_obj.corrected_data)
