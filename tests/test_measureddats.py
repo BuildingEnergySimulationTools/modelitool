@@ -107,3 +107,69 @@ class TestMeasuredDats:
         tested_obj.bfill("dumb_column")
 
         assert ref.equals(tested_obj.corrected_data)
+
+    def test_remove_anomalies(self):
+        time_index = pd.date_range(
+            "2021-01-01 00:00:00",
+            freq="H",
+            periods=11
+        )
+
+        df = pd.DataFrame(
+            {
+                "dumb_column": [-1, 5, 100, 5, 5.1, 5.1, 6, 7, 22, 6, 5],
+                "dumb_column2": [
+                    -10, 50, 1000, 50, 50.1, 50.1, 60, 70, 220, 60, 50
+                ]
+            },
+            index=time_index
+        )
+
+        ref = pd.DataFrame(
+            {
+                "dumb_column": [
+                    np.nan, 5, np.nan, 5, 5.1, np.nan, 6, 7, np.nan, 6, 5
+                ],
+                "dumb_column2": [
+                    np.nan, 50, np.nan, 50, 50.1, np.nan, 60, 70, np.nan, 60, 50
+                ]
+            },
+            index=time_index
+        )
+
+        tested_obj = MeasuredDats(
+            data=df,
+            data_type_dict={
+                "col_1": ["dumb_column"],
+                "col_2": ["dumb_column2"],
+            },
+            corr_dict={
+                "col_1": {
+                    "minmax": {
+                        "upper": 50,
+                        "lower": 0
+                    },
+                    "derivative": {
+                        "lower_rate": 0,
+                        "upper_rate": 0.004
+                    }
+                },
+                "col_2": {
+                    "minmax": {
+                        "upper": 500,
+                        "lower": 0
+                    },
+                    "derivative": {
+                        "lower_rate": 0,
+                        "upper_rate": 0.04
+                    }
+                }
+            }
+        )
+        print("before_rm")
+        tested_obj.remove_anomalies()
+        print("after_rm")
+
+        print(tested_obj.corrected_data)
+
+        assert ref.equals(tested_obj.corrected_data)

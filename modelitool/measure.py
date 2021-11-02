@@ -18,12 +18,12 @@ class MeasuredDats:
         for data_type, cols in self.data_type_dict.items():
             self._minmax_corr(
                 cols=cols,
-                **self.corr_dict[type]["minmax"]
+                **self.corr_dict[data_type]["minmax"]
             )
 
             self._derivative_corr(
                 cols=cols,
-                **self.corr_dict[type]["derivative"]
+                **self.corr_dict[data_type]["derivative"]
             )
         self.correction_journal.append("remove_anomalies")
 
@@ -37,12 +37,18 @@ class MeasuredDats:
     def _derivative_corr(self, cols, upper_rate, lower_rate):
         df = self.corrected_data.loc[:, cols]
         time_delta = df.index.to_series().diff().dt.total_seconds()
-        abs_der = abs(df.diff() / time_delta)
-        abs_der_two = abs(df.diff(periods=2) / time_delta)
+        abs_der = abs(
+            df.diff().divide(time_delta, axis=0)
+        )
+        abs_der_two = abs(
+            df.diff(periods=2).divide(time_delta, axis=0)
+        )
 
         mask_constant = abs_der <= lower_rate
         mask_der = abs_der >= upper_rate
         mask_der_two = abs_der_two >= upper_rate
+
+        print(abs_der)
 
         mask_to_remove = np.logical_and(mask_der, mask_der_two)
         mask_to_remove = np.logical_or(mask_to_remove, mask_constant)
