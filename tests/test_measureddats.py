@@ -166,10 +166,137 @@ class TestMeasuredDats:
                 }
             }
         )
-        print("before_rm")
+
         tested_obj.remove_anomalies()
-        print("after_rm")
+
+        assert ref.equals(tested_obj.corrected_data)
+
+    def test_fill_nan(self):
+        time_index = pd.date_range(
+            "2021-01-01 00:00:00",
+            freq="H",
+            periods=5
+        )
+
+        df = pd.DataFrame(
+            {
+                "dumb_column": [
+                    np.nan, 5, np.nan, 7, np.nan
+                ],
+                "dumb_column2": [
+                    np.nan, 5, np.nan, 7, np.nan
+                ],
+                "dumb_column3": [
+                    np.nan, 5, np.nan, 7, np.nan
+                ],
+            },
+            index=time_index
+        )
+
+        ref = pd.DataFrame(
+            {
+                "dumb_column": [
+                    5.0, 5.0, 6.0, 7.0, 7.0
+                ],
+                "dumb_column2": [
+                    5.0, 5.0, 7.0, 7.0, 7.0
+                ],
+                "dumb_column3": [
+                    5.0, 5.0, 5.0, 7.0, 7.0
+                ],
+            },
+            index=time_index
+        )
+
+        tested_obj = MeasuredDats(
+            data=df,
+            data_type_dict={
+                "col_1": ["dumb_column"],
+                "col_2": ["dumb_column2"],
+                "col_3": ["dumb_column3"],
+            },
+            corr_dict={
+                "col_1": {
+                    "fill_nan": [
+                        "linear_interpolation",
+                        "bfill",
+                        "ffill"
+                    ]
+                },
+                "col_2": {
+                    "fill_nan": [
+                        "bfill",
+                        "ffill"
+                    ]
+                },
+                "col_3": {
+                    "fill_nan": [
+                        "ffill",
+                        "bfill"
+                    ]
+                }
+            }
+        )
+
+        tested_obj.fill_nan()
 
         print(tested_obj.corrected_data)
+
+        assert ref.equals(tested_obj.corrected_data)
+
+    def test_resample(self):
+        time_index_df = pd.date_range(
+            "2021-01-01 00:00:00",
+            freq="30T",
+            periods=4
+        )
+
+        df = pd.DataFrame(
+            {
+                "dumb_column": [
+                    5.0, 5.0, 6.0, 6.0
+                ],
+                "dumb_column2": [
+                    5.0, 5.0, 6.0, 6.0
+                ],
+            },
+            index=time_index_df
+        )
+
+        time_index_res = pd.date_range(
+            "2021-01-01 00:00:00",
+            freq="H",
+            periods=2
+        )
+
+        ref = pd.DataFrame(
+            {
+                "dumb_column": [
+                    5.0, 6.0
+                ],
+                "dumb_column2": [
+                    10.0, 12.0
+                ],
+            },
+            index=time_index_res
+        )
+
+        tested_obj = MeasuredDats(
+            data=df,
+            data_type_dict={
+                "col_1": ["dumb_column"],
+                "col_2": ["dumb_column2"],
+            },
+            corr_dict={
+                "col_1": {
+                    "resample": np.mean
+                },
+                "col_2": {
+                    "resample": np.sum
+                },
+            }
+        )
+
+        tested_obj.resample("H")
 
         assert ref.equals(tested_obj.corrected_data)

@@ -3,8 +3,6 @@ from .combitabconvert import df_to_combitimetable
 
 
 # TODO Create auto_correct function
-# TODO Create a fill_nan function
-# TODO Add resample in some way
 
 class MeasuredDats:
     def __init__(self, data, data_type_dict, corr_dict):
@@ -27,6 +25,26 @@ class MeasuredDats:
             )
         self.correction_journal.append("remove_anomalies")
 
+    def fill_nan(self):
+        for data_type, cols in self.data_type_dict.items():
+            function_map = {
+                "linear_interpolation": self.linear_interpolation,
+                "bfill": self.bfill,
+                "ffill": self.ffill
+            }
+
+            for func in self.corr_dict[data_type]["fill_nan"]:
+                function_map[func](cols)
+
+    def resample(self, timestep):
+        agg_arguments = {}
+        for data_type, cols in self.data_type_dict.items():
+            for col in cols:
+                agg_arguments[col] = self.corr_dict[data_type]["resample"]
+
+        resampled = self.corrected_data.resample(timestep).agg(agg_arguments)
+        self.corrected_data = resampled
+
     def _minmax_corr(self, cols, upper, lower):
         df = self.corrected_data.loc[:, cols]
         upper_mask = df > upper
@@ -48,8 +66,6 @@ class MeasuredDats:
         mask_der = abs_der >= upper_rate
         mask_der_two = abs_der_two >= upper_rate
 
-        print(abs_der)
-
         mask_to_remove = np.logical_and(mask_der, mask_der_two)
         mask_to_remove = np.logical_or(mask_to_remove, mask_constant)
 
@@ -59,6 +75,9 @@ class MeasuredDats:
         inter = self.corrected_data.loc[:, cols].interpolate(method=method)
         self.corrected_data.loc[:, cols] = inter
         self.correction_journal.append("interpolate")
+
+    def linear_interpolation(self, cols):
+        self.interpolate(cols, method='linear')
 
     def ffill(self, cols):
         filled = self.corrected_data.loc[:, cols].fillna(
