@@ -44,39 +44,45 @@ Modelica CombiTimeTable input file can be generated from raw data or corrected d
 
 <pre><code>
 my_measures = MeasuredDats(
-    data = my_dirty_measure_df,
-    data_type_dict = {
-        "power": ["Power1", "Power2"],
-        "temperatures": ["Temperature1", "Temperature2"]
-    },
-    corr_dict = {
-        "power": {
-            "minmax": {
-                "upper": 40000,
-                "lower": 0
-            },
-            "derivative": {
-                "upper_rate": 5000,
-		"lower_rate": 0,
-            },
-            "interpolate": {
-                "method": "linear"
-            }
-        }
-        "temperatures": {
-            "minmax": {
-                "upper": 50,
-                "lower": -2
-            },
-            "derivative": {
-                "upper_rate": 5,
-		"lower_rate": 0,
+	data = my_dirty_measure_df,
+	data_type_dict = {
+		"power": ["Power1", "Power2"],
+		"temperatures": ["Temperature1", "Temperature2"]
+	},
+	corr_dict = {
+		"power": {
+			"minmax": {
+				"upper": 40000,
+				"lower": 0
 			},
-            "interpolate": {
-                "method": "linear"
-            }      
-        }
-    }
+			"derivative": {
+				"upper_rate": 5000,
+				"lower_rate": 0,
+			},
+			"fill_nan": [
+				"linear_interpolation",
+				"bfill",
+				"ffill"
+			],
+			"resample": np.mean,
+		}
+		"temperatures": {
+			"minmax": {
+				"upper": 50,
+				"lower": -2
+			},
+			"derivative": {
+				"upper_rate": 5,
+				"lower_rate": 0,
+			},
+			"fill_nan": [
+				"linear_interpolation",
+				"bfill",
+				"ffill"
+			],
+			"resample": np.sum,
+		}
+	}
 )
 </code></pre>
 
