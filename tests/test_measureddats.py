@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from modelitool.measure import MeasuredDats
+from modelitool.measure import missing_values_dict
 
 
 class TestMeasuredDats:
@@ -83,7 +84,7 @@ class TestMeasuredDats:
             corr_dict={},
         )
 
-        tested_obj.ffill("dumb_column")
+        tested_obj._ffill("dumb_column")
 
         assert ref.equals(tested_obj.corrected_data)
 
@@ -104,7 +105,7 @@ class TestMeasuredDats:
             corr_dict={},
         )
 
-        tested_obj.bfill("dumb_column")
+        tested_obj._bfill("dumb_column")
 
         assert ref.equals(tested_obj.corrected_data)
 
@@ -300,3 +301,32 @@ class TestMeasuredDats:
         tested_obj.resample("H")
 
         assert ref.equals(tested_obj.corrected_data)
+
+    def test_missing_values_dict(self):
+        time_index_df = pd.date_range(
+            "2021-01-01 00:00:00",
+            freq="30T",
+            periods=4
+        )
+
+        df = pd.DataFrame(
+            {
+                "dumb_column": [
+                    5.0, np.nan, 6.0, 6.0
+                ],
+                "dumb_column2": [
+                    5.0, 5.0, np.nan, np.nan
+                ],
+            },
+            index=time_index_df
+        )
+
+        res = {
+            "Number_of_missing": pd.Series([3, 2], index=df.columns),
+            "Percent_of_missing": pd.Series([25.0, 50.0], index=df.columns),
+        }
+
+        to_test = missing_values_dict(df)
+
+        assert res["Number_of_missing"].equals(to_test["Number_of_missing"])
+        assert res["Percent_of_missing"].equals(to_test["Percent_of_missing"])
