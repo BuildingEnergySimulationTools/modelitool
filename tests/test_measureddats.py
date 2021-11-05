@@ -3,6 +3,7 @@ import pandas as pd
 
 from modelitool.measure import MeasuredDats
 from modelitool.measure import missing_values_dict
+from modelitool.measure import gaps_describe
 
 
 class TestMeasuredDats:
@@ -132,7 +133,8 @@ class TestMeasuredDats:
                     np.nan, 5, np.nan, 5, 5.1, np.nan, 6, 7, np.nan, 6, 5
                 ],
                 "dumb_column2": [
-                    np.nan, 50, np.nan, 50, 50.1, np.nan, 60, 70, np.nan, 60, 50
+                    np.nan, 50, np.nan, 50, 50.1, np.nan,
+                    60, 70, np.nan, 60, 50
                 ]
             },
             index=time_index
@@ -330,3 +332,75 @@ class TestMeasuredDats:
 
         assert res["Number_of_missing"].equals(to_test["Number_of_missing"])
         assert res["Percent_of_missing"].equals(to_test["Percent_of_missing"])
+
+    def test_find_gaps(self):
+        time_index_df = pd.date_range(
+            "2021-01-01 00:00:00",
+            freq="H",
+            periods=3
+        )
+
+        df = pd.DataFrame(
+            {
+                "dumb_column1": [np.nan, 5, 5],
+                "dumb_column2": [5, np.nan, 5],
+                "dumb_column3": [5, np.nan, np.nan],
+            },
+            index=time_index_df
+        )
+
+    def test_gaps_describe(self):
+        time_index_df = pd.date_range(
+            "2021-01-01 00:00:00",
+            freq="H",
+            periods=5
+        )
+
+        df = pd.DataFrame(
+            {
+                "dumb_column1": [np.nan, 5, 5, 5, 5],
+                "dumb_column2": [5, np.nan, 5, 5, 5],
+                "dumb_column3": [5, np.nan, np.nan, 5, 5],
+                "dumb_column4": [5, 5, 5, 5, np.nan],
+            },
+            index=time_index_df
+        )
+
+        one_hour_dt = pd.to_timedelta("1H")
+        one_n_half = pd.to_timedelta("1H30min")
+        two_hour_dt = pd.to_timedelta("2H")
+        two_n_half = pd.to_timedelta("2H30min")
+        three_hour = pd.to_timedelta("3H")
+        spec_std = pd.to_timedelta('0 days 01:24:51.168824543')
+        nat = pd.NaT
+
+        ref = pd.DataFrame(
+            {
+                "dumb_column1": [
+                    1, one_hour_dt, nat, one_hour_dt, one_hour_dt,
+                    one_hour_dt, one_hour_dt, one_hour_dt
+                ],
+                "dumb_column2": [
+                    1, one_hour_dt, nat, one_hour_dt, one_hour_dt,
+                    one_hour_dt, one_hour_dt, one_hour_dt
+                ],
+                "dumb_column3": [
+                    1, two_hour_dt, nat, two_hour_dt, two_hour_dt,
+                    two_hour_dt, two_hour_dt, two_hour_dt
+                ],
+                "dumb_column4": [
+                    1, one_hour_dt, nat, one_hour_dt, one_hour_dt,
+                    one_hour_dt, one_hour_dt, one_hour_dt
+                ],
+                "combination": [
+                    2, two_hour_dt, spec_std, one_hour_dt, one_n_half,
+                    two_hour_dt, two_n_half, three_hour
+                ],
+            },
+            index=['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']
+        )
+
+        print(ref)
+        print(gaps_describe(df))
+
+        assert ref.equals(gaps_describe(df))

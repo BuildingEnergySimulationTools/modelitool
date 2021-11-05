@@ -3,13 +3,46 @@ import pandas as pd
 from .combitabconvert import df_to_combitimetable
 
 
-# TODO Create auto_correct function
-
 def missing_values_dict(df):
     return {
         "Number_of_missing": df.count(),
         "Percent_of_missing": (1 - df.count() / df.shape[0]) * 100
     }
+
+
+def gaps_describe(df_in, cols=None, timestep=None):
+    if not cols:
+        cols = df_in.columns
+
+    if not timestep:
+        timestep = auto_timestep(df_in)
+
+    # Aggregate in a single columns to know overall quality
+    df = df_in.copy()
+    df = ~df.isnull()
+    df["combination"] = df.all(axis=1)
+
+    # Index are added at the beginning and at the end to account for
+    # missing values and each side of the dataset
+    first_index = df.index[0] - (df.index[1] - df.index[0])
+    last_index = df.index[-1] - (df.index[-2] - df.index[-1])
+
+    df.loc[first_index] = np.ones(df.shape[1], dtype=bool)
+    df.loc[last_index] = np.ones(df.shape[1], dtype=bool)
+    df.sort_index(inplace=True)
+
+    # Compute gaps duration
+    res = pd.DataFrame()
+    for col in list(cols) + ["combination"]:
+        time_der = df[col].loc[df[col]].index.to_series().diff()
+        t = time_der[time_der > timestep] - timestep
+        res[col] = t.describe()
+
+    return res
+
+
+def auto_timestep(df):
+    return df.index.to_frame().diff().mean()[0]
 
 
 class MeasuredDats:
@@ -22,6 +55,11 @@ class MeasuredDats:
             "Entries": data.shape[0],
             "Init": missing_values_dict(data)
         }
+
+    def auto_correct(self):
+        self.remove_anomalies()
+        self.fill_nan()
+        self.resample()
 
     def remove_anomalies(self):
         for data_type, cols in self.data_type_dict.items():
@@ -55,7 +93,7 @@ class MeasuredDats:
 
     def resample(self, timestep=None):
         if not timestep:
-            timestep = self._auto_timestep()
+            timestep = auto_timestep(self.corrected_data)
 
         agg_arguments = {}
         for data_type, cols in self.data_type_dict.items():
@@ -111,9 +149,6 @@ class MeasuredDats:
             method="bfill"
         )
         self.corrected_data.loc[:, cols] = filled
-
-    def _auto_timestep(self):
-        return self.corrected_data.index.to_frame().diff().mean()[0]
 
     def generate_combitimetable_input(self, file_path, corrected_data=True):
         if corrected_data:
