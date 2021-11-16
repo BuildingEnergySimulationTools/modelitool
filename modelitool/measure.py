@@ -72,9 +72,10 @@ class MeasuredDats:
                 cols=cols,
                 **self.corr_dict[data_type]["derivative"]
             )
-        self.correction_journal["remove_anomalies"] = missing_values_dict(
-            self.corrected_data
-        )
+        self.correction_journal["remove_anomalies"] = [
+            missing_values_dict(self.corrected_data),
+            gaps_describe(self.corrected_data)
+        ]
 
     def fill_nan(self):
         for data_type, cols in self.data_type_dict.items():
@@ -87,9 +88,10 @@ class MeasuredDats:
             for func in self.corr_dict[data_type]["fill_nan"]:
                 function_map[func](cols)
 
-        self.correction_journal["fill_nan"] = missing_values_dict(
-            self.corrected_data
-        )
+        self.correction_journal["fill_nan"] = [
+            missing_values_dict(self.corrected_data),
+            gaps_describe(self.corrected_data)
+        ]
 
     def resample(self, timestep=None):
         if not timestep:
