@@ -23,22 +23,26 @@ Modelica CombiTimeTable input file can be generated from raw data or corrected d
 
 >**Available corrections :**
 - <code>minmax</code> : Remove values beyond or below specific threshold. Arguments : <code>upper, lower</code>
-- <code>derivative</code> : Remove values when absolute variation between to timstep is beyond defined threshold. Arguments : <code>rate</code>
-- <code>interpolate</code>: Interpolate <code>nan</code> value with specified method (default is <code>linear</code>). Arguments : <code>method</code>
-- <code>fillna</code> : Fill <code>nan</code> values. Arguments :
-	- <code>bfill</code> : Back propagates the next not nan value
-	- <code>ffill</code> : Front propagates the last not nan value
+- <code>derivative</code> : Remove values when absolute variation between to timstep is beyond defined threshold. Arguments : <code>lower_rate, upper_rate</code>
+- <code>fill_nan</code> : Fill <code>nan</code> values. Argument is a list of method :
+    - <code>bfill</code> : Back propagates the next not nan value
+    - <code>ffill</code> : Front propagates the last not nan value
+- <code>linear_interpolation</code>: Interpolate value with <code>linear</code> method.
 
 **Attributes**
 - **data :** copy of raw data
-- **data_type :** dictionary of data_type
+- **data_type_dict  :** dictionary of data_type
 - **corrected_data :** corrected data. Copy of data if no correction is applied
 - **corr_dict :** dictionary of corrections
-- **applied_corr :** ordered list of applied correction
+- **correction_journal :** History of measures properties. Gaps and missing values
 
 **Methods**
-- **get_corrected**_()_ : apply corrections described in <code>corr_dict</code>
+- **remove_anomalies**_()_ : apply minmax and derivative corrections described in <code>corr_dict</code>. Update correction journal with dict of missing values and measure gaps resume
+- **fill_nan**_()_ : apply <code>fill_nan</code> corrections described in <code>corr_dict</code>. Update correction journal with dict of missing values and measure gaps resume
+- **resample**_(timestep)_ : resample <code>corrected_data</code> to specify timestep. If no timestep is specified, the function uses the DataFrame mean difference of its time index.
 - **generate_combitimetable_input**_(file_path, corrected_data=True)_ : generate a modelica CombiTimeTable input file based on <code>data</code> or <code>corrected_data</code>
+- **auto_correct**_()_ : apply <code>remove_anomalies(), fill_nan(), resample()</code> in that order, using default arguments
+
 
 **Example**
 
@@ -65,7 +69,7 @@ my_measures = MeasuredDats(
 				"ffill"
 			],
 			"resample": np.mean,
-		}
+		},
 		"temperatures": {
 			"minmax": {
 				"upper": 50,
