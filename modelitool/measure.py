@@ -47,10 +47,15 @@ def auto_timestep(df):
 
 class MeasuredDats:
     def __init__(self, data, data_type_dict, corr_dict):
-        self.data = data.copy()
+        self.data = data.apply(
+            pd.to_numeric, args=('coerce',)
+        ).copy()
+        self.corrected_data = data.apply(
+            pd.to_numeric, args=('coerce',)
+        ).copy()
+
         self.data_type_dict = data_type_dict
         self.corr_dict = corr_dict
-        self.corrected_data = data.copy()
         self.correction_journal = {
             "Entries": data.shape[0],
             "Init": missing_values_dict(data)
