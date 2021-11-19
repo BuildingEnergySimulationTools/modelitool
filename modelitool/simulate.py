@@ -58,7 +58,9 @@ class Simulator:
         # Manipulations are done to resample the index and provide seconds
         sol_list = self.model.getSolutions(["time"] + self.output_list).T
         res = pd.DataFrame(
-            sol_list[:, 1:], index=sol_list[:, 0].flatten()
+            sol_list[:, 1:],
+            index=sol_list[:, 0].flatten(),
+            columns=self.output_list
         )
         res.index = pd.to_timedelta(res.index, unit='second')
         res = res.resample(
