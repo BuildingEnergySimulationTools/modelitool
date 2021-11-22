@@ -5,10 +5,11 @@ import pytest
 from modelitool.simulate import Simulator
 import pandas as pd
 
+from time import time
 
 @pytest.fixture(scope="session")
 def simul(tmp_path_factory):
-    curr_mod_path = Path(__file__).parent / "modelica/rosen.mo"
+    curr_mod_path = Path(__file__).parent / "modelica/rosen_out_txt.mo"
 
     test_run_path = tmp_path_factory.mktemp("run")
     simulation_opt = {
@@ -44,6 +45,7 @@ class TestSimulator:
             )
 
     def test_simulate_get_results(self, simul):
+
         simul.simulate()
 
         res = simul.get_results()
@@ -53,4 +55,3 @@ class TestSimulator:
         })
 
         assert ref.equals(res)
-
