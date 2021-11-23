@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from OMPython import ModelicaSystem
 from OMPython import OMCSessionZMQ
-from pathlib import Path
+from time import time
 
 
 class Simulator:
@@ -46,18 +46,24 @@ class Simulator:
         )
 
     def set_param_dict(self, param_dict):
+        t1 = time()
         self.model.setParameters(
             [f"{item}={val}" for item, val in param_dict.items()]
         )
+        t2 = time()
+        print(f"Setting new parameters took {t2-t1}s")
 
     def simulate(self):
+        t1 = time()
         self.model.simulate()
+        t2 = time()
+        print(f"Simulating took {t2-t1}s")
 
     def get_results(self):
         # Modelica solver can provide several results for one timestep
         # Moreover variable timestep solver can provide messy result
         # Manipulations are done to resample the index and provide seconds
-
+        t1 = time()
         sol_list = self.model.getSolutions(["time"] + self.output_list).T
 
         res = pd.DataFrame(
@@ -74,5 +80,7 @@ class Simulator:
         ).mean()
         res.index = res.index.to_series().dt.total_seconds()
         res.index = res.index.astype('int')
+        t2 = time()
+        print(f"Getting results took {t2-t1}s")
 
         return res
