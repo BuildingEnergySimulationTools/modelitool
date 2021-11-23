@@ -17,10 +17,6 @@ class Simulator:
         if not os.path.exists(simulation_path):
             os.mkdir(simulation_path)
 
-        # TODO its hardcoded for test
-        self.output_txt_path = Path(
-            r"C:\Users\bdurandestebe\Documents\45_MODELITOOL\output.txt")
-
         self.omc = OMCSessionZMQ()
         self.omc.sendExpression(
             f'cd("{simulation_path.as_posix()}")'
@@ -55,11 +51,6 @@ class Simulator:
         )
 
     def simulate(self):
-        try:
-            os.remove(self.output_txt_path)
-        except OSError:
-            pass
-
         self.model.simulate()
 
     def get_results(self):
@@ -67,18 +58,12 @@ class Simulator:
         # Moreover variable timestep solver can provide messy result
         # Manipulations are done to resample the index and provide seconds
 
-        # sol_list = self.model.getSolutions(["time"] + self.output_list).T
-        # res = pd.DataFrame(
-        #     sol_list[:, 1:],
-        #     index=sol_list[:, 0].flatten(),
-        #     columns=self.output_list
-        # )
+        sol_list = self.model.getSolutions(["time"] + self.output_list).T
 
-        res = pd.read_csv(
-            filepath_or_buffer=Path(r"C:\Users\bdurandestebe\Documents\45_MODELITOOL\output.txt"),
-            sep=";",
-            index_col=0,
-            header=None
+        res = pd.DataFrame(
+            sol_list[:, 1:],
+            index=sol_list[:, 0].flatten(),
+            columns=self.output_list
         )
 
         res.columns = self.output_list
