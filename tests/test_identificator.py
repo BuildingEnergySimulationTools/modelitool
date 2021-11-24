@@ -1,9 +1,10 @@
 from pathlib import Path
 
 import pytest
+import numpy as np
 
 from modelitool.simulate import Simulator
-import pandas as pd
+from modelitool.identify import Identificator
 
 
 @pytest.fixture(scope="session")
@@ -28,27 +29,27 @@ def simul(tmp_path_factory):
     return simu
 
 
-class TestSimulator:
-    def test_set_param_dict(self, simul):
-        test_dict = {
-            "x.k": 2.0,
-            "y.k": 2.0,
+class TestIdentificator:
+    def test_simulate_get_results(self, simul):
+        id_params = {
+            'x.k': {
+                "init": 5,
+                "interval": (-5, 5)
+            },
+            'y.k': {
+                "init": 5,
+                "interval": (-5, 5)
+            },
         }
 
-        simul.set_param_dict(test_dict)
+        ident = Identificator(
+            simulator=simul,
+            parameters=id_params,
+            y_train=np.array([0, 0, 0])
+        )
 
-        for key in test_dict.keys():
-            assert float(test_dict[key]) == float(
-                simul.model.getParameters()[key]
-            )
+        res = ident.fit()
 
-    def test_simulate_get_results(self, simul):
-        simul.simulate()
-
-        res = simul.get_results()
-
-        ref = pd.DataFrame({
-            "res.showNumber": [401.0, 401.0, 401.0]
-        })
-
-        assert ref.equals(res)
+        np.testing.assert_allclose(
+            res.x, np.array([1., 1.]), rtol=0.01
+        )

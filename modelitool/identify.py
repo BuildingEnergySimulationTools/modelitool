@@ -6,15 +6,17 @@ class Identificator:
     def __init__(self,
                  simulator,
                  parameters,
-                 x_train,
-                 y_train):
+                 y_train,
+                 x_train=None):
+
+        # First dirty version x_train is not used
         self.simulator = simulator
         self.param_init = {
-            item : parameters[item]["init"]
+            item: parameters[item]["init"]
             for item, val in parameters.items()
         }
         self.param_interval = {
-            item : parameters[item]["interval"]
+            item: parameters[item]["interval"]
             for item, val in parameters.items()
         }
         self.x_train = x_train
@@ -45,5 +47,7 @@ class Identificator:
         return res
 
     def _optimization_callback(self, xk, convergence):
-        print(pd.Series(xk, index=self.param_init.keys()))
+        print({
+            it: val for it, val in zip(xk, self.param_init.keys())
+        })
         print(f'convergence = {convergence}')
