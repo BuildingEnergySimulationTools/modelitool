@@ -46,7 +46,7 @@ class SAnalysis:
         if sensitivity_method not in self.meth_samp_map.keys():
             raise ValueError('Specified sensitivity method is not valid')
         else:
-            self.sensitivity_method = sensitivity_method
+            self._sensitivity_method = sensitivity_method
 
         self.salib_problem = modelitool_to_salib_problem(
             self.parameters_config)
@@ -63,7 +63,7 @@ class SAnalysis:
         if arguments is None:
             arguments = {}
 
-        sampler = self.meth_samp_map[self.sensitivity_method]['sampling']
+        sampler = self.meth_samp_map[self._sensitivity_method]['sampling']
         self.sample = sampler.sample(
             N=n,
             problem=self.salib_problem,
@@ -88,6 +88,9 @@ class SAnalysis:
         # output shape and simulation time estimation
         t1 = time.time()
 
+        print("first simulation simulating")
+        print(simu_list[0])
+
         self.simulator.set_param_dict(simu_list[0])
         self.simulator.simulate()
         results = self.simulator.get_results()
@@ -103,19 +106,24 @@ class SAnalysis:
 
         self.simulation_results[0] = results.to_numpy()
 
+        print("Simulation results after first simulation")
+        print(self.simulation_results)
+
         # Run remaining run_simulations
         for idx, sim in enumerate(simu_list[1:]):
             print(f"Running simulation {idx + 2}/{len(simu_list)}")
-            remaining_sec = sim_duration * (len(simu_list) - idx)
+            remaining_sec = sim_duration * (len(simu_list) - idx + 1)
             rem_days = remaining_sec.days
             rem_hours, rem = divmod(remaining_sec.seconds, 3600)
             rem_minutes, rem_seconds = divmod(rem, 60)
             print(
                 f"Remaining: {rem_days} days {rem_hours}h{rem_minutes}′{rem_seconds}″"
             )
+
             self.simulator.set_param_dict(sim)
+            self.simulator.simulate()
             results = self.simulator.get_results()
-            self.simulation_results[idx] = results.to_numpy()
+            self.simulation_results[idx + 1] = results.to_numpy()
 
     def get_indicator_from_simulation_results(
             self, aggregation_method, indicator, ref=None):
@@ -147,7 +155,7 @@ class SAnalysis:
 
         print(y_array.shape)
 
-        analyser = self.meth_samp_map[self.sensitivity_method]["method"]
+        analyser = self.meth_samp_map[self._sensitivity_method]["method"]
 
         self.sensitivity_results = analyser.analyze(
             problem=self.salib_problem,
