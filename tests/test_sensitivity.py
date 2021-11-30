@@ -30,76 +30,70 @@ def simul(tmp_path_factory):
     return simu
 
 
+@pytest.fixture()
+def sa_param_config():
+    return {
+        "x.k": [1.0, 3.0],
+        "y.k": [1.0, 3.0],
+        "z.k": [1.0, 3.0],
+    }
+
+
+@pytest.fixture()
+def expected_res():
+    return np.array([
+        [
+            [5.88213201, 4.80257357],
+            [5.88213201, 4.80257357],
+            [5.88213201, 4.80257357],
+        ],
+        [
+            [8.15192598, 12.31778589],
+            [8.15192598, 12.31778589],
+            [8.15192598, 12.31778589],
+        ],
+        [
+            [1.42359607, 5.95605462],
+            [1.42359607, 5.95605462],
+            [1.42359607, 5.95605462],
+        ]
+    ])
+
+
 class TestSensitivity:
-    def test_modelitool_to_salib_problem(self):
+    def test_modelitool_to_salib_problem(self, sa_param_config):
         sa_problem = {
-            'num_vars': 5,
+            'num_vars': 3,
             'names': [
-                'f_stegos.k',
-                'R_stegos.R',
-                'alpha_alu',
-                'R_al21',
-                'C_al',
+                'x.k',
+                'y.k',
+                'z.k',
             ],
             'bounds': [
-                [0, 0.2],
-                [0.023 - 0.023 * 0.3, 0.023 + 0.023 * 0.3],
-                [0.2 - 0.2 * 0.3, 0.2 + 0.2 * 0.3],
-                [0.00005 - 0.00005 * 0.3, 0.00005 + 0.00005 * 0.3],
-                [2700 - 2700 * 0.3, 2700 + 2700 * 0.3]
+                [1.0, 3.0],
+                [1.0, 3.0],
+                [1.0, 3.0],
             ]
         }
 
-        as_config = {
-            'f_stegos.k': [0, 0.2],
-            'R_stegos.R': [0.023 - 0.023 * 0.3, 0.023 + 0.023 * 0.3],
-            'alpha_alu': [0.2 - 0.2 * 0.3, 0.2 + 0.2 * 0.3],
-            'R_al21': [0.00005 - 0.00005 * 0.3, 0.00005 + 0.00005 * 0.3],
-            'C_al': [2700 - 2700 * 0.3, 2700 + 2700 * 0.3],
-        }
+        print(modelitool_to_salib_problem(sa_param_config))
 
-        assert modelitool_to_salib_problem(as_config) == sa_problem
+        assert modelitool_to_salib_problem(sa_param_config) == sa_problem
 
-    def test_run_simulation(self, simul):
-        params = {
-            "x.k": [1.0, 3.0],
-            "y.k": [1.0, 3.0],
-            "z.k": [1.0, 3.0],
-        }
-
-        sample = np.array([[1.0, 1.0, 1.0],
-                           [2.0, 2.0, 2.0],
-                           [3.0, 3.0, 3.0]])
-
-        expected_res = np.array([
-            [
-                [5.88213201, 4.80257357],
-                [5.88213201, 4.80257357],
-                [5.88213201, 4.80257357],
-            ],
-            [
-                [8.15192598, 12.31778589],
-                [8.15192598, 12.31778589],
-                [8.15192598, 12.31778589],
-            ],
-            [
-                [1.42359607, 5.95605462],
-                [1.42359607, 5.95605462],
-                [1.42359607, 5.95605462],
-            ]
-        ])
+    def test_run_simulation(self, simul, sa_param_config, expected_res):
+        test_sample = np.array([[1.0, 1.0, 1.0],
+                                [2.0, 2.0, 2.0],
+                                [3.0, 3.0, 3.0]])
 
         sa_object = SAnalysis(
             simulator=simul,
             sensitivity_method="Sobol",
-            parameters_config=params
+            parameters_config=sa_param_config
         )
 
-        sa_object.sample = sample
+        sa_object.sample = test_sample
 
         sa_object.run_simulations()
-
-        print(sa_object.simulation_results)
 
         np.testing.assert_array_almost_equal(
             sa_object.simulation_results,
@@ -107,3 +101,35 @@ class TestSensitivity:
             decimal=6
         )
 
+    def test_get_indicator_from_simulation_results(
+            self, simul, expected_res, sa_param_config):
+
+        sa_object = SAnalysis(
+            simulator=simul,
+            sensitivity_method="Sobol",
+            parameters_config=sa_param_config
+        )
+
+        sa_object.simulation_results = expected_res
+
+        res1 = sa_object.get_indicator_from_simulation_results(
+            aggregation_method=np.mean,
+            indicator="res1.showNumber"
+        )
+
+        res2 = sa_object.get_indicator_from_simulation_results(
+            aggregation_method=np.mean,
+            indicator="res2.showNumber"
+        )
+
+        np.testing.assert_array_almost_equal(
+            res1,
+            np.array([5.88213201, 8.15192598, 1.42359607]),
+            decimal=6
+        )
+
+        np.testing.assert_array_almost_equal(
+            res2,
+            np.array([4.802573569, 12.31778589, 5.956054618]),
+            decimal=6
+        )
