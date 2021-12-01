@@ -59,7 +59,7 @@ class SAnalysis:
     def simulator_outputs(self):
         return self.simulator.output_list
 
-    def get_sample(self, n, arguments=None):
+    def draw_sample(self, n, arguments=None):
         if arguments is None:
             arguments = {}
 
@@ -73,7 +73,7 @@ class SAnalysis:
     def run_simulations(self):
         if self.sample.size == 0:
             raise ValueError(
-                'No sample available. Generate sample using get_sample()'
+                'No sample available. Generate sample using draw_sample()'
             )
 
         simu_list = []
@@ -87,9 +87,6 @@ class SAnalysis:
         # A bit dirty but perform first simulation to get
         # output shape and simulation time estimation
         t1 = time.time()
-
-        print("first simulation simulating")
-        print(simu_list[0])
 
         self.simulator.set_param_dict(simu_list[0])
         self.simulator.simulate()
@@ -105,9 +102,6 @@ class SAnalysis:
         ))
 
         self.simulation_results[0] = results.to_numpy()
-
-        print("Simulation results after first simulation")
-        print(self.simulation_results)
 
         # Run remaining run_simulations
         for idx, sim in enumerate(simu_list[1:]):
@@ -152,8 +146,6 @@ class SAnalysis:
 
         y_array = self.get_indicator_from_simulation_results(
             aggregation_method, indicator, reference)
-
-        print(y_array.shape)
 
         analyser = self.meth_samp_map[self._sensitivity_method]["method"]
 

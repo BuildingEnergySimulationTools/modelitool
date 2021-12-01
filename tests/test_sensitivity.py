@@ -8,6 +8,10 @@ from modelitool.sensitivity import SAnalysis
 from modelitool.simulate import Simulator
 
 
+def mean_error(res, ref):
+    return np.mean(ref - res)
+
+
 @pytest.fixture(scope="session")
 def simul(tmp_path_factory):
     curr_mod_path = Path(__file__).parent / "modelica/ishigami_two_outputs.mo"
@@ -103,7 +107,6 @@ class TestSensitivity:
 
     def test_get_indicator_from_simulation_results(
             self, simul, expected_res, sa_param_config):
-
         sa_object = SAnalysis(
             simulator=simul,
             sensitivity_method="Sobol",
@@ -122,6 +125,12 @@ class TestSensitivity:
             indicator="res2.showNumber"
         )
 
+        res_ref = sa_object.get_indicator_from_simulation_results(
+            aggregation_method=mean_error,
+            indicator="res1.showNumber",
+            ref=np.array([5.152551355, 5.152551355, 5.152551355])
+        )
+
         np.testing.assert_array_almost_equal(
             res1,
             np.array([5.88213201, 8.15192598, 1.42359607]),
@@ -133,3 +142,37 @@ class TestSensitivity:
             np.array([4.802573569, 12.31778589, 5.956054618]),
             decimal=6
         )
+
+        np.testing.assert_array_almost_equal(
+            res_ref,
+            np.array([-0.729580657, -2.999374628, 3.728955285]),
+            decimal=6
+        )
+
+    def test_analyse(self, simul):
+        modelitool_problem = {
+            "x.k": [-3.14159265359, 3.14159265359],
+            "y.k": [-3.14159265359, 3.14159265359],
+            "z.k": [-3.14159265359, 3.14159265359]
+        }
+
+        sa = SAnalysis(
+            simulator=simul,
+            sensitivity_method="Sobol",
+            parameters_config=modelitool_problem
+        )
+
+        sa.draw_sample(n=1)
+
+        sa.run_simulations()
+
+        sa.analyze(indicator='res1.showNumber',
+                   aggregation_method=np.mean,
+                   arguments={"print_to_console": True})
+
+        np.testing.assert_almost_equal(
+            sa.sensitivity_results['S1'],
+            np.array([0.26933607, 1.255609 ,-0.81162613]),
+            decimal=3
+        )
+
