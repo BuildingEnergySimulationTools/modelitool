@@ -18,6 +18,8 @@ class Simulator:
                  init_parameters=None,
                  simulation_path=None,
                  ):
+        if type(model_path) == str:
+            model_path = Path(model_path)
 
         if simulation_path is None:
             simulation_path = tempfile.mkdtemp()
