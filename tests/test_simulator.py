@@ -6,25 +6,35 @@ from modelitool.simulate import Simulator
 import pandas as pd
 
 
+MODEL_PATH = Path(__file__).parent / "modelica/rosen.mo"
+
+SIMULATION_OPTIONS = {
+    "startTime": 0,
+    "stopTime": 2,
+    "stepSize": 1,
+    "tolerance": 1e-06,
+    "solver": "dassl"
+}
+
+OUTPUTS = ["res.showNumber"]
+
+
 @pytest.fixture(scope="session")
 def simul(tmp_path_factory):
-    curr_mod_path = Path(__file__).parent / "modelica/rosen.mo"
-
     test_run_path = tmp_path_factory.mktemp("run")
-    simulation_opt = {
-        "startTime": 0,
-        "stopTime": 2,
-        "stepSize": 1,
-        "tolerance": 1e-06,
-        "solver": "dassl"
-    }
+    simu = Simulator(model_path=MODEL_PATH,
+                     simulation_options=SIMULATION_OPTIONS,
+                     output_list=OUTPUTS,
+                     simulation_path=test_run_path)
+    return simu
 
-    outputs = ["res.showNumber"]
 
-    simu = Simulator(model_path=curr_mod_path,
-                     simulation_path=test_run_path,
-                     simulation_options=simulation_opt,
-                     output_list=outputs)
+@pytest.fixture(scope="session")
+def simul_none_run_path():
+    simu = Simulator(model_path=MODEL_PATH,
+                     simulation_options=SIMULATION_OPTIONS,
+                     output_list=OUTPUTS,
+                     simulation_path=None)
     return simu
 
 
@@ -52,3 +62,11 @@ class TestSimulator:
         })
 
         assert ref.equals(res)
+
+    def test_run_in_temp_dir(self, simul_none_run_path):
+        # TODO Test do not remove created tempdir
+        ref_path = simul_none_run_path._simulation_path.as_posix()
+        sim_path = simul_none_run_path.omc.sendExpression('cd()')
+
+        assert ref_path == sim_path
+

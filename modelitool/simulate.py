@@ -2,6 +2,8 @@ import os
 import pandas as pd
 from OMPython import ModelicaSystem
 from OMPython import OMCSessionZMQ
+import tempfile
+from pathlib import Path
 from time import time
 
 
@@ -11,11 +13,15 @@ from time import time
 class Simulator:
     def __init__(self,
                  model_path,
-                 simulation_path,
                  simulation_options,
                  output_list,
                  init_parameters=None,
+                 simulation_path=None,
                  ):
+
+        if simulation_path is None:
+            simulation_path = tempfile.mkdtemp()
+            simulation_path = Path(simulation_path)
 
         if not os.path.exists(simulation_path):
             os.mkdir(simulation_path)
@@ -33,6 +39,7 @@ class Simulator:
             modelName=model_path.stem,
         )
 
+        self._simulation_path = simulation_path
         self.output_list = output_list
 
         if init_parameters:
