@@ -56,7 +56,7 @@ model etics_v0
     Placement(visible = true, transformation(origin = {110, -10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Sources.PrescribedTemperature T_in annotation(
     Placement(visible = true, transformation(origin = {150, -10}, extent = {{10, -10}, {-10, 10}}, rotation = 0)));
-  Modelica.Blocks.Sources.CombiTimeTable Boundaries(columns = 2:7, fileName = "C:/Users/bdurandestebe/PycharmProjects/modelitool/tutorials/boundary_temp.txt", tableName = "table1", tableOnFile = true) annotation(
+  Modelica.Blocks.Sources.CombiTimeTable Boundaries(columns = 2:7, fileName = "C:/Users/bdurandestebe/Documents/45_MODELITOOL/Tutorial/boundaries.txt", tableName = "table1", tableOnFile = true) annotation(
     Placement(visible = true, transformation(origin = {-170, 90}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Celsius.ToKelvin Kelvin_Ext annotation(
     Placement(visible = true, transformation(origin = {-130, 110}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
