@@ -71,6 +71,7 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 *.ipynb
+!etics_tutorial.ipynb
 
 # pyenv
 .python-version
