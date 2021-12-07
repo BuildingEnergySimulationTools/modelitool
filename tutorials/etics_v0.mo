@@ -1,4 +1,8 @@
 model etics_v0
+  parameter Real Twall_init = 19+273.15;
+  parameter Real Tins1_init = 19+273.15;
+  parameter Real Tins2_init = 19+273.15;
+  parameter Real Tcoat_init = 19+273.15;
   parameter Real lambda_concrete = 1;
   parameter Real lambda_coating = 1;
   parameter Real capa_concrete = 1000;
@@ -18,25 +22,25 @@ model etics_v0
     Placement(visible = true, transformation(origin = {70, -10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Components.ThermalResistor R_w_out(R = ep_concrete / (lambda_concrete * 2)) annotation(
     Placement(visible = true, transformation(origin = {30, -10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
-  Modelica.Thermal.HeatTransfer.Components.HeatCapacitor C_w(C = ep_concrete * rho_concrete * capa_concrete, T(displayUnit = "K", start = 273.15 + 25)) annotation(
-    Placement(visible = true, transformation(origin = {50, -30}, extent = {{-10, 10}, {10, -10}}, rotation = 0)));
-  Modelica.Thermal.HeatTransfer.Components.ThermalResistor R_ins1_out(R = ep_ins / (Lambda_ins.k * 2)) annotation(
+  Modelica.Thermal.HeatTransfer.Components.ThermalResistor R_ins1_out(R = ep_ins / (Lambda_ins.k * 2)) annotation( 
     Placement(visible = true, transformation(origin = {-50, -10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
-  Modelica.Thermal.HeatTransfer.Components.HeatCapacitor C_ins1(C = ep_ins * rho_ins * capa_ins) annotation(
-    Placement(visible = true, transformation(origin = {-30, -30}, extent = {{-10, 10}, {10, -10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Components.ThermalResistor R_ins1_in(R = ep_ins / (Lambda_ins.k * 2)) annotation(
     Placement(visible = true, transformation(origin = {-10, -10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Components.ThermalResistor R_ins2_in(R = ep_ins / (Lambda_ins.k * 2)) annotation(
-    Placement(visible = true, transformation(origin = {-90, -10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
-  Modelica.Thermal.HeatTransfer.Components.HeatCapacitor C_ins2(C = ep_ins * rho_ins * capa_ins) annotation(
-    Placement(visible = true, transformation(origin = {-110, -30}, extent = {{-10, 10}, {10, -10}}, rotation = 0)));
+    Placement(visible = true, transformation(origin = {-90, -10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));  
   Modelica.Thermal.HeatTransfer.Components.ThermalResistor R_ins2_out(R = ep_ins / (Lambda_ins.k * 2)) annotation(
     Placement(visible = true, transformation(origin = {-130, -10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Components.ThermalResistor R_c_in(R = ep_coating / (lambda_coating * 2)) annotation(
     Placement(visible = true, transformation(origin = {-170, -10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Components.ThermalResistor R_c_out(R = ep_coating / (lambda_coating * 2)) annotation(
-    Placement(visible = true, transformation(origin = {-210, -10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
-  Modelica.Thermal.HeatTransfer.Components.HeatCapacitor C_c(C = ep_coating * rho_coating * capa_coating) annotation(
+    Placement(visible = true, transformation(origin = {-210, -10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));      
+  Modelica.Thermal.HeatTransfer.Components.HeatCapacitor C_w(C = ep_concrete * rho_concrete * capa_concrete, T(start = Twall_init)) annotation(
+    Placement(visible = true, transformation(origin = {50, -30}, extent = {{-10, 10}, {10, -10}}, rotation = 0)));
+  Modelica.Thermal.HeatTransfer.Components.HeatCapacitor C_ins1(C = ep_ins * rho_ins * capa_ins, T(start = Tins1_init)) annotation(
+    Placement(visible = true, transformation(origin = {-30, -30}, extent = {{-10, 10}, {10, -10}}, rotation = 0)));
+  Modelica.Thermal.HeatTransfer.Components.HeatCapacitor C_ins2(C = ep_ins * rho_ins * capa_ins, T(start = Tins2_init)) annotation(
+    Placement(visible = true, transformation(origin = {-110, -30}, extent = {{-10, 10}, {10, -10}}, rotation = 0)));
+  Modelica.Thermal.HeatTransfer.Components.HeatCapacitor C_c(C = ep_coating * rho_coating * capa_coating, T(start = Tcoat_init)) annotation(
     Placement(visible = true, transformation(origin = {-190, -30}, extent = {{-10, 10}, {10, -10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Components.HeatCapacitor Fictive_in(C = 42, T(displayUnit = "K")) annotation(
     Placement(visible = true, transformation(origin = {130, -30}, extent = {{-10, 10}, {10, -10}}, rotation = 0)));
@@ -68,8 +72,6 @@ model etics_v0
     Placement(visible = true, transformation(origin = {-130, 170}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Celsius.ToKelvin Kelvin_Int annotation(
     Placement(visible = true, transformation(origin = {-130, 192}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
-  Modelica.Thermal.HeatTransfer.Celsius.ToKelvin Kelvin_sky annotation(
-    Placement(visible = true, transformation(origin = {-350, 50}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Sensors.TemperatureSensor Tw_out annotation(
     Placement(visible = true, transformation(origin = {30, 30}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Sensors.TemperatureSensor T_ins_ins annotation(
@@ -78,7 +80,7 @@ model etics_v0
     Placement(visible = true, transformation(origin = {-130, 30}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
 equation
   Solar_rad.Q_flow = Boundaries.y[2] * Alpha_clo.k;
-  Kelvin_sky.Kelvin = 0.0552 * Kelvin_Ext.Kelvin^1.5;
+  T_sky.T = 0.0552 * Kelvin_Ext.Kelvin ^ 1.5;
   connect(Kelvin_Ext.Kelvin, T_ext.T);
   connect(Kelvin_Int.Kelvin, T_in.T);
   connect(Conv_ext.Rc, R_conv_ext.y);
@@ -135,8 +137,6 @@ equation
     Line(points = {{-159, 90}, {-153, 90}, {-153, 170}, {-143, 170}}, color = {0, 0, 127}));
   connect(Boundaries.y[6], Kelvin_Int.Celsius) annotation(
     Line(points = {{-159, 90}, {-153, 90}, {-153, 192}, {-143, 192}}, color = {0, 0, 127}));
-  connect(Kelvin_sky.Kelvin, T_sky.T) annotation(
-    Line(points = {{-338, 50}, {-322, 50}}, color = {0, 0, 127}));
   connect(R_ins1_in.port_b, Tw_out.port) annotation(
     Line(points = {{0, -10}, {8, -10}, {8, 30}, {20, 30}}, color = {191, 0, 0}));
   connect(R_ins2_in.port_b, T_ins_ins.port) annotation(
