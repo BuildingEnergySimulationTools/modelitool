@@ -6,10 +6,20 @@ from SALib.analyze import fast
 from SALib.analyze import morris
 from SALib.analyze import sobol
 
+import plotly.graph_objects as go
+
 import numpy as np
 import datetime as dt
 
 import time
+
+
+def check_arguments(res, param, result):
+    if not result in res:
+        raise ValueError(f"{result} not found in results")
+
+    if res[result].shape[0] != len(param):
+        raise ValueError("Parameters name and index length mismatch")
 
 
 def modelitool_to_salib_problem(modelitool_problem):
@@ -155,3 +165,39 @@ class SAnalysis:
             Y=y_array,
             **arguments
         )
+
+    def plot(self, kind="bar"):
+        if self.sensitivity_results is None:
+            raise ValueError("No result to plot")
+
+        if self._sensitivity_method == "Sobol":
+            if kind == "bar":
+                plot_sobol_st_bar(
+                    self.sensitivity_results,
+                    self.parameters_config.keys()
+                )
+
+
+def plot_sobol_st_bar(salib_res, param_names):
+    check_arguments(salib_res, param_names, "ST")
+
+    sobol_ind = salib_res.to_df()[0]
+    sobol_ind.sort_values(by="ST", ascending=True, inplace=True)
+
+    figure = go.Figure()
+    figure.add_trace(go.Bar(
+        x=sobol_ind.index,
+        y=sobol_ind.ST,
+        name="Sobol Total Indices",
+        marker_color='orange',
+        error_y=dict(type="data", array=sobol_ind.ST_conf.to_numpy()),
+        yaxis="y1"
+    ))
+
+    figure.update_layout(
+        title='Sobol Total indices',
+        xaxis_title='Parameters',
+        yaxis_title='Sobol total index value [0-1]'
+    )
+
+    figure.show()
