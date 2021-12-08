@@ -70,7 +70,7 @@ class SAnalysis:
             **arguments
         )
 
-    def run_simulations(self):
+    def run_simulations(self, verbose_step=10):
         if self.sample.size == 0:
             raise ValueError(
                 'No sample available. Generate sample using draw_sample()'
@@ -105,14 +105,15 @@ class SAnalysis:
 
         # Run remaining run_simulations
         for idx, sim in enumerate(simu_list[1:]):
-            print(f"Running simulation {idx + 2}/{len(simu_list)}")
-            remaining_sec = sim_duration * (len(simu_list) - idx + 1)
-            rem_days = remaining_sec.days
-            rem_hours, rem = divmod(remaining_sec.seconds, 3600)
-            rem_minutes, rem_seconds = divmod(rem, 60)
-            print(
-                f"Remaining: {rem_days} days {rem_hours}h{rem_minutes}′{rem_seconds}″"
-            )
+            if not idx % verbose_step:
+                print(f"Running simulation {idx + 2}/{len(simu_list)}")
+                remaining_sec = sim_duration * (len(simu_list) - idx + 1)
+                rem_days = remaining_sec.days
+                rem_hours, rem = divmod(remaining_sec.seconds, 3600)
+                rem_minutes, rem_seconds = divmod(rem, 60)
+                print(
+                    f"Remaining: {rem_days} days {rem_hours}h{rem_minutes}′{rem_seconds}″"
+                )
 
             self.simulator.set_param_dict(sim)
             self.simulator.simulate()
