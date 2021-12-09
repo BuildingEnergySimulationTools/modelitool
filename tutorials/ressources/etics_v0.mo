@@ -49,7 +49,7 @@ model etics_v0
   Modelica.Thermal.HeatTransfer.Components.BodyRadiation IR_sky(Gr = 0.4) annotation(
     Placement(visible = true, transformation(origin = {-250, 50}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Components.ConvectiveResistor Conv_ext annotation(
-    Placement(visible = true, transformation(origin = {-250, -30}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
+    Placement(visible = true, transformation(origin = {-250, -30}, extent = {{10, -10}, {-10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Components.BodyRadiation IR_Amb(Gr = 0.6) annotation(
     Placement(visible = true, transformation(origin = {-250, 10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Sources.PrescribedTemperature T_ext annotation(
@@ -107,10 +107,6 @@ equation
     Line(points = {{-40, -10}, {-30, -10}, {-30, -20}}, color = {191, 0, 0}));
   connect(R_w_out.port_b, C_w.port) annotation(
     Line(points = {{40, -10}, {50, -10}, {50, -20}}, color = {191, 0, 0}));
-  connect(T_ext.port, Conv_ext.solid) annotation(
-    Line(points = {{-300, -30}, {-260, -30}}, color = {191, 0, 0}));
-  connect(Conv_ext.fluid, R_c_out.port_a) annotation(
-    Line(points = {{-240, -30}, {-230, -30}, {-230, -10}, {-220, -10}}, color = {191, 0, 0}));
   connect(IR_Amb.port_b, R_c_out.port_a) annotation(
     Line(points = {{-240, 10}, {-230, 10}, {-230, -10}, {-220, -10}}, color = {191, 0, 0}));
   connect(IR_sky.port_b, R_c_out.port_a) annotation(
@@ -143,6 +139,10 @@ equation
     Line(points = {{-80, -10}, {-70, -10}, {-70, 30}, {-60, 30}}, color = {191, 0, 0}));
   connect(R_c_in.port_b, T_coat_ins.port) annotation(
     Line(points = {{-160, -10}, {-150, -10}, {-150, 30}, {-140, 30}}, color = {191, 0, 0}));
+  connect(Conv_ext.solid, R_c_out.port_a) annotation(
+    Line(points = {{-240, -30}, {-230, -30}, {-230, -10}, {-220, -10}}, color = {191, 0, 0}));
+  connect(T_ext.port, Conv_ext.fluid) annotation(
+    Line(points = {{-300, -30}, {-260, -30}}, color = {191, 0, 0}));
   annotation(
     uses(Modelica(version = "3.2.3")),
     Diagram(coordinateSystem(extent = {{-360, 160}, {180, -80}})),
