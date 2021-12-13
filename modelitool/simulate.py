@@ -1,13 +1,19 @@
 import os
 import pandas as pd
+import datetime as dt
+
 from OMPython import ModelicaSystem
 from OMPython import OMCSessionZMQ
 import tempfile
 from pathlib import Path
-from time import time
 
 
 # TODO Create a debug mode to print time
+
+def seconds_to_datetime(index_second, ref_year):
+    since = dt.datetime(ref_year, 1, 1, tzinfo=dt.timezone.utc)
+    diff_seconds = index_second + since.timestamp()
+    return pd.DatetimeIndex(pd.to_datetime(diff_seconds, unit='s'))
 
 
 class Simulator:
@@ -58,13 +64,12 @@ class Simulator:
         )
 
     def get_available_outputs(self):
-        res = self.model.getSolutions()
-        if res is None:
+        if self.model.getSolutions() is None:
             # A bit dirty but simulation must be run once
             # getSolutions() can access results
             self.simulate()
-        else:
-            return res
+
+        return self.model.getSolutions()
 
     def set_param_dict(self, param_dict):
         # t1 = time()
@@ -80,7 +85,7 @@ class Simulator:
         # t2 = time()
         # print(f"Simulating took {t2-t1}s")
 
-    def get_results(self):
+    def get_results(self, index_datetime=False, ref_year=2009):
         # Modelica solver can provide several results for one timestep
         # Moreover variable timestep solver can provide messy result
         # Manipulations are done to resample the index and provide seconds
@@ -100,8 +105,11 @@ class Simulator:
             f"{int(self.model.getSimulationOptions()['stepSize'])}S"
         ).mean()
         res.index = res.index.to_series().dt.total_seconds()
-        res.index = res.index.astype('int')
+
+        if not index_datetime:
+            res.index = res.index.astype('int')
+        else:
+            res.index = seconds_to_datetime(res.index, ref_year)
         # t2 = time()
         # print(f"Getting results took {t2-t1}s")
-
         return res
