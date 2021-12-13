@@ -57,6 +57,15 @@ class Simulator:
             ]
         )
 
+    def get_available_outputs(self):
+        res = self.model.getSolutions()
+        if res is None:
+            # A bit dirty but simulation must be run once
+            # getSolutions() can access results
+            self.simulate()
+        else:
+            return res
+
     def set_param_dict(self, param_dict):
         # t1 = time()
         self.model.setParameters(
