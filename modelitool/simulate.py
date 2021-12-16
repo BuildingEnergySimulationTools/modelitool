@@ -23,7 +23,9 @@ class Simulator:
                  output_list,
                  init_parameters=None,
                  simulation_path=None,
-                 boundary_df=None
+                 boundary_df=None,
+                 package_path=None,
+                 lmodel=[]
                  ):
         if type(model_path) == str:
             model_path = Path(model_path)
@@ -43,10 +45,22 @@ class Simulator:
         # A bit dirty but the only way I found to change the simulation dir
         # ModelicaSystem take cwd as currDirectory
         os.chdir(simulation_path)
-        self.model = ModelicaSystem(
-            fileName=model_path.as_posix(),
-            modelName=model_path.stem,
-        )
+        if package_path is None:
+            model_system_args = {
+                'fileName': model_path.as_posix(),
+                'modelName': model_path.stem,
+                'lmodel': lmodel
+            }
+        else:
+            print(package_path.as_posix())
+            print(model_path)
+            model_system_args = {
+                'fileName': package_path.as_posix(),
+                'modelName': model_path,
+                'lmodel': lmodel
+            }
+
+        self.model = ModelicaSystem(**model_system_args)
 
         self._simulation_path = simulation_path
         self.output_list = output_list
@@ -87,7 +101,7 @@ class Simulator:
 
     def simulate(self):
         # t1 = time()
-        self.model.simulate()
+        self.model.simulate(resultfile='res.mat')
         # t2 = time()
         # print(f"Simulating took {t2-t1}s")
 
@@ -96,7 +110,10 @@ class Simulator:
         # Moreover variable timestep solver can provide messy result
         # Manipulations are done to resample the index and provide seconds
         # t1 = time()
-        sol_list = self.model.getSolutions(["time"] + self.output_list).T
+        sol_list = self.model.getSolutions(
+            ["time"] + self.output_list,
+            resultfile='res.mat'
+        ).T
 
         res = pd.DataFrame(
             sol_list[:, 1:],
