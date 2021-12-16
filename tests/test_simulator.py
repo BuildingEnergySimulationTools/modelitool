@@ -9,8 +9,7 @@ from datetime import timedelta
 
 import pandas as pd
 
-
-MODEL_PATH = Path(__file__).parent / "modelica/rosen.mo"
+MODEL_DIR = Path(__file__).parent / "modelica"
 
 SIMULATION_OPTIONS = {
     "startTime": 0,
@@ -26,7 +25,7 @@ OUTPUTS = ["res.showNumber"]
 @pytest.fixture(scope="session")
 def simul(tmp_path_factory):
     test_run_path = tmp_path_factory.mktemp("run")
-    simu = Simulator(model_path=MODEL_PATH,
+    simu = Simulator(model_path=MODEL_DIR / "rosen.mo",
                      simulation_options=SIMULATION_OPTIONS,
                      output_list=OUTPUTS,
                      simulation_path=test_run_path)
@@ -35,9 +34,18 @@ def simul(tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def simul_none_run_path():
-    simu = Simulator(model_path=MODEL_PATH,
+    simu = Simulator(model_path=MODEL_DIR / "rosen.mo",
                      simulation_options=SIMULATION_OPTIONS,
                      output_list=OUTPUTS,
+                     simulation_path=None)
+    return simu
+
+
+@pytest.fixture(scope="session")
+def simul_boundaries():
+    simu = Simulator(model_path=MODEL_DIR / "boundary_test.mo",
+                     simulation_options=SIMULATION_OPTIONS,
+                     output_list=["Boundaries.y[1]", "Boundaries.y[2]"],
                      simulation_path=None)
     return simu
 
@@ -89,4 +97,3 @@ class TestSimulator:
         sim_path = simul_none_run_path.omc.sendExpression('cd()')
 
         assert ref_path == sim_path
-

@@ -23,6 +23,7 @@ class Simulator:
                  output_list,
                  init_parameters=None,
                  simulation_path=None,
+                 boundary_df=None
                  ):
         if type(model_path) == str:
             model_path = Path(model_path)
@@ -50,6 +51,11 @@ class Simulator:
         self._simulation_path = simulation_path
         self.output_list = output_list
 
+        if boundary_df is not None:
+            # Your DataFrame columns order must match the order
+            # defined in the modelica file. This cannot be checked
+            print("hi")
+
         if init_parameters:
             self.set_param_dict(init_parameters)
 
@@ -65,7 +71,7 @@ class Simulator:
 
     def get_available_outputs(self):
         if self.model.getSolutions() is None:
-            # A bit dirty but simulation must be run once
+            # A bit dirty but simulation must be run once so
             # getSolutions() can access results
             self.simulate()
 
