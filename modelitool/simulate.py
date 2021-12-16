@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 # TODO Create a debug mode to print time
+# TODO Code boundary df
 
 def seconds_to_datetime(index_second, ref_year):
     since = dt.datetime(ref_year, 1, 1, tzinfo=dt.timezone.utc)
@@ -52,8 +53,6 @@ class Simulator:
                 'lmodel': lmodel
             }
         else:
-            print(package_path.as_posix())
-            print(model_path)
             model_system_args = {
                 'fileName': package_path.as_posix(),
                 'modelName': model_path,
