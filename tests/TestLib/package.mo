@@ -1,4 +1,5 @@
 within ;
-package TestLib "Library with models for modelitool tests"
 
-package TestLib;
+package TestLib "Test library for modelitool"
+
+end TestLib;

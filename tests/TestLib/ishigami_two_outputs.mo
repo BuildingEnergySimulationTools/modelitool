@@ -1,3 +1,4 @@
+within TestLib;
 model ishigami_two_outputs
   Modelica.Blocks.Sources.Constant x(k = 2);
   Modelica.Blocks.Sources.Constant y(k = 2);

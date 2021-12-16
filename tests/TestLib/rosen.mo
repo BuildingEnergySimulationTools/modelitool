@@ -1,3 +1,4 @@
+within TestLib;
 model rosen
   Modelica.Blocks.Sources.Constant x(k = 2)  annotation(
     Placement(visible = true, transformation(origin = {-56, 46}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
