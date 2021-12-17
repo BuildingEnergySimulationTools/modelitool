@@ -7,6 +7,8 @@ from OMPython import OMCSessionZMQ
 import tempfile
 from pathlib import Path
 
+from modelitool.combitabconvert import df_to_combitimetable
+
 
 # TODO Create a debug mode to print time
 # TODO Code boundary df
@@ -65,9 +67,7 @@ class Simulator:
         self.output_list = output_list
 
         if boundary_df is not None:
-            # Your DataFrame columns order must match the order
-            # defined in the modelica file. This cannot be checked
-            print("hi")
+            self.set_boundaries_df(boundary_df)
 
         if init_parameters:
             self.set_param_dict(init_parameters)
@@ -89,6 +89,17 @@ class Simulator:
             self.simulate()
 
         return self.model.getSolutions()
+
+    def set_boundaries_df(self, df):
+        # DataFrame columns order must match the order
+        # defined in the modelica file. This cannot be checked
+        # Modelica file must contain a combiTimetable named Boundaries
+
+        new_bounds_path = self._simulation_path / "bounds.txt"
+        df_to_combitimetable(df, new_bounds_path)
+        self.model.setParameters(
+            f'Boundaries.fileName="{new_bounds_path.as_posix()}"'
+        )
 
     def set_param_dict(self, param_dict):
         # t1 = time()

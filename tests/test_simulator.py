@@ -45,13 +45,23 @@ def simul_none_run_path():
     return simu
 
 
-# @pytest.fixture(scope="session")
-# def simul_boundaries():
-#     simu = Simulator(model_path=MODEL_DIR / "boundary_test.mo",
-#                      simulation_options=SIMULATION_OPTIONS,
-#                      output_list=["Boundaries.y[1]", "Boundaries.y[2]"],
-#                      simulation_path=None)
-#     return simu
+@pytest.fixture(scope="session")
+def simul_boundaries():
+    simul_options = {
+        "startTime": 16675200,
+        "stopTime": 16682400,
+        "stepSize": 1 * 3600,
+        "tolerance": 1e-06,
+        "solver": "dassl"
+    }
+
+    simu = Simulator(model_path="TestLib.boundary_test",
+                     package_path=PACKAGE_DIR / "package.mo",
+                     simulation_options=simul_options,
+                     output_list=["Boundaries.y[1]", "Boundaries.y[2]"],
+                     simulation_path=None,
+                     lmodel=["Modelica"])
+    return simu
 
 
 class TestSimulator:
@@ -101,3 +111,22 @@ class TestSimulator:
         sim_path = simul_none_run_path.omc.sendExpression('cd()')
 
         assert ref_path == sim_path
+
+    def test_set_boundaries_df(self, simul_boundaries):
+        new_bounds = pd.DataFrame(
+            {
+                'Boundaries.y[1]': [10, 20, 30],
+                'Boundaries.y[2]': [3, 4, 5]
+            },
+            index=pd.date_range(
+                '2009-07-13 00:00:00', periods=3, freq="H"
+            )
+        )
+        new_bounds.index.freq = None
+        new_bounds = new_bounds.astype(float)
+
+        simul_boundaries.set_boundaries_df(new_bounds)
+        simul_boundaries.simulate()
+        res = simul_boundaries.get_results(index_datetime=True, ref_year=2009)
+
+        pd.testing.assert_frame_equal(new_bounds, res)
