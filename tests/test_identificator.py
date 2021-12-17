@@ -9,9 +9,8 @@ from modelitool.identify import Identificator
 
 @pytest.fixture(scope="session")
 def simul(tmp_path_factory):
-    curr_mod_path = Path(__file__).parent / "modelica/rosen.mo"
+    package_path = Path(__file__).parent / "TestLib/package.mo"
 
-    test_run_path = tmp_path_factory.mktemp("run")
     simulation_opt = {
         "startTime": 0,
         "stopTime": 2,
@@ -22,8 +21,9 @@ def simul(tmp_path_factory):
 
     outputs = ["res.showNumber"]
 
-    simu = Simulator(model_path=curr_mod_path,
-                     simulation_path=test_run_path,
+    simu = Simulator(model_path="TestLib.rosen",
+                     package_path=package_path,
+                     lmodel=["Modelica"],
                      simulation_options=simulation_opt,
                      output_list=outputs)
     return simu

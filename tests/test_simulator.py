@@ -9,7 +9,7 @@ from datetime import timedelta
 
 import pandas as pd
 
-MODEL_DIR = Path(__file__).parent / "modelica"
+PACKAGE_DIR = Path(__file__).parent / "TestLib"
 
 SIMULATION_OPTIONS = {
     "startTime": 0,
@@ -25,29 +25,33 @@ OUTPUTS = ["res.showNumber"]
 @pytest.fixture(scope="session")
 def simul(tmp_path_factory):
     test_run_path = tmp_path_factory.mktemp("run")
-    simu = Simulator(model_path=MODEL_DIR / "rosen.mo",
+    simu = Simulator(model_path="TestLib.rosen",
+                     package_path=PACKAGE_DIR / "package.mo",
                      simulation_options=SIMULATION_OPTIONS,
                      output_list=OUTPUTS,
-                     simulation_path=test_run_path)
+                     simulation_path=test_run_path,
+                     lmodel=["Modelica"])
     return simu
 
 
 @pytest.fixture(scope="session")
 def simul_none_run_path():
-    simu = Simulator(model_path=MODEL_DIR / "rosen.mo",
+    simu = Simulator(model_path="TestLib.rosen",
+                     package_path=PACKAGE_DIR / "package.mo",
                      simulation_options=SIMULATION_OPTIONS,
                      output_list=OUTPUTS,
-                     simulation_path=None)
+                     simulation_path=None,
+                     lmodel=["Modelica"])
     return simu
 
 
-@pytest.fixture(scope="session")
-def simul_boundaries():
-    simu = Simulator(model_path=MODEL_DIR / "boundary_test.mo",
-                     simulation_options=SIMULATION_OPTIONS,
-                     output_list=["Boundaries.y[1]", "Boundaries.y[2]"],
-                     simulation_path=None)
-    return simu
+# @pytest.fixture(scope="session")
+# def simul_boundaries():
+#     simu = Simulator(model_path=MODEL_DIR / "boundary_test.mo",
+#                      simulation_options=SIMULATION_OPTIONS,
+#                      output_list=["Boundaries.y[1]", "Boundaries.y[2]"],
+#                      simulation_path=None)
+#     return simu
 
 
 class TestSimulator:
