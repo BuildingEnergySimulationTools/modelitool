@@ -31,23 +31,6 @@ class Identificator:
         else:
             self.error_function = error_function
 
-    def _objective_function(self, x, *args):
-        labels, = args
-        tempo_dict = {
-            item: x[i] for i, item in enumerate(self.param_init.keys())
-        }
-        self.simulator.set_param_dict(tempo_dict)
-        self.simulator.simulate()
-
-        print(self.simulator.get_results())
-        print("putain \n")
-        print(labels)
-        print("de merde\n")
-
-        return self.error_function(
-            self.simulator.get_results(), labels
-        )
-
     def fit(self, features, labels):
         print('Optimization started')
         print(self.param_interval)
@@ -61,8 +44,6 @@ class Identificator:
                     f'stopTime={dymo_index[-1]}',
                 ]
             )
-
-        print((labels, ))
 
         res = differential_evolution(
             self._objective_function,
@@ -79,8 +60,39 @@ class Identificator:
         else:
             raise ValueError("Identification failed to converge")
 
+    def predict(self, features):
+        if list(self.param_identified.values()) == \
+                [np.nan] * len(self.param_identified):
+            raise ValueError(
+                "Parameters have not been identified, please fit model"
+            )
+        else:
+            self.simulator.set_param_dict(self.param_identified)
+            self.simulator.set_boundaries_df(features)
+            dymo_index = datetime_to_seconds(features.index)
+            self.simulator.model.setSimulationOptions(
+                [
+                    f'startTime={dymo_index[0]}',
+                    f'stopTime={dymo_index[-1]}',
+                ]
+            )
+            self.simulator.simulate()
+            return self.simulator.get_results()
+
     def _optimization_callback(self, xk, convergence):
         print({
             it: val for it, val in zip(self.param_init.keys(), xk)
         })
         print(f'convergence = {convergence}')
+
+    def _objective_function(self, x, *args):
+        labels, = args
+        tempo_dict = {
+            item: x[i] for i, item in enumerate(self.param_init.keys())
+        }
+        self.simulator.set_param_dict(tempo_dict)
+        self.simulator.simulate()
+
+        return self.error_function(
+            self.simulator.get_results(), labels
+        )

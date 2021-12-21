@@ -111,8 +111,6 @@ class TestIdentificator:
             labels=DATASET[["y"]].head(3),
         )
 
-        print("hello")
-
         np.testing.assert_allclose(
             np.array(list(ident.param_identified.values())),
             np.array([2., 1.]), rtol=0.01
