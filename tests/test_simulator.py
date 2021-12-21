@@ -3,9 +3,7 @@ from pathlib import Path
 import pytest
 
 from modelitool.simulate import Simulator
-from modelitool.simulate import seconds_to_datetime
 
-from datetime import timedelta
 
 import pandas as pd
 
@@ -65,21 +63,6 @@ def simul_boundaries():
 
 
 class TestSimulator:
-
-    def test_seconds_to_datetime(self):
-        test_index = pd.Series([
-            timedelta(seconds=43200).total_seconds(),
-            timedelta(seconds=43500).total_seconds()
-        ])
-
-        expected_res = pd.to_datetime([
-            "2009-01-01 12:00:00",
-            "2009-01-01 12:05:00"
-        ])
-
-        res = seconds_to_datetime(test_index, 2009)
-
-        pd.testing.assert_index_equal(expected_res, res)
 
     def test_set_param_dict(self, simul):
         test_dict = {

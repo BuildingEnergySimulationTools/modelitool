@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.metrics import mean_squared_error
 from scipy.optimize import differential_evolution
+from modelitool.combitabconvert import datetime_to_seconds
 
 
 class Identificator:
@@ -31,12 +32,17 @@ class Identificator:
             self.error_function = error_function
 
     def _objective_function(self, x, *args):
-        labels = args
+        labels, = args
         tempo_dict = {
             item: x[i] for i, item in enumerate(self.param_init.keys())
         }
         self.simulator.set_param_dict(tempo_dict)
         self.simulator.simulate()
+
+        print(self.simulator.get_results())
+        print("putain \n")
+        print(labels)
+        print("de merde\n")
 
         return self.error_function(
             self.simulator.get_results(), labels
@@ -48,10 +54,19 @@ class Identificator:
 
         if features is not None:
             self.simulator.set_boundaries_df(features)
+            dymo_index = datetime_to_seconds(features.index)
+            self.simulator.model.setSimulationOptions(
+                [
+                    f'startTime={dymo_index[0]}',
+                    f'stopTime={dymo_index[-1]}',
+                ]
+            )
+
+        print((labels, ))
 
         res = differential_evolution(
             self._objective_function,
-            args=tuple(labels),
+            args=(labels, ),
             bounds=list(self.param_interval.values()),
             popsize=5,
             callback=self._optimization_callback

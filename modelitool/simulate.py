@@ -8,15 +8,10 @@ import tempfile
 from pathlib import Path
 
 from modelitool.combitabconvert import df_to_combitimetable
+from modelitool.combitabconvert import seconds_to_datetime
 
 
 # TODO Create a debug mode to print time
-# TODO Code boundary df
-
-def seconds_to_datetime(index_second, ref_year):
-    since = dt.datetime(ref_year, 1, 1, tzinfo=dt.timezone.utc)
-    diff_seconds = index_second + since.timestamp()
-    return pd.DatetimeIndex(pd.to_datetime(diff_seconds, unit='s'))
 
 
 class Simulator:
