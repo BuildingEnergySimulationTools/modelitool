@@ -30,7 +30,7 @@ def simul(tmp_path_factory):
 
 
 class TestIdentificator:
-    def test_simulate_get_results(self, simul):
+    def test_fit_default(self, simul):
         id_params = {
             'x.k': {
                 "init": 5,
@@ -45,11 +45,11 @@ class TestIdentificator:
         ident = Identificator(
             simulator=simul,
             parameters=id_params,
-            y_train=np.array([0, 0, 0])
         )
 
-        res = ident.fit()
+        ident.fit(features=None, labels=np.array([0, 0, 0]))
 
         np.testing.assert_allclose(
-            res.x, np.array([1., 1.]), rtol=0.01
+            np.array(list(ident.param_identified.values())),
+            np.array([1., 1.]), rtol=0.01
         )
