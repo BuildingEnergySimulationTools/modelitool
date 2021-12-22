@@ -13,7 +13,7 @@ class TestMetrics:
         np.testing.assert_allclose(
             nmbe(y_pred=y_pred, y_true=y_true),
             expected,
-            rtol=10-2
+            rtol=10-7
         )
 
     def test_cv_rmse(self):
@@ -25,5 +25,5 @@ class TestMetrics:
         np.testing.assert_allclose(
             cv_rmse(y_pred=y_pred, y_true=y_true),
             expected,
-            rtol=10-2
+            rtol=10-7
         )
