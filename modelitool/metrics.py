@@ -2,6 +2,13 @@ import numpy as np
 import pandas as pd
 
 
+def check_shape(ym, yt):
+    if ym.shape != yt.shape:
+        raise ValueError(
+            f"y_pred shape {ym.shape} doesn't match y_true shape {yt.shape}"
+        )
+
+
 def check_pd_flatten(*args):
     res = []
     for obj in args:
@@ -13,23 +20,19 @@ def check_pd_flatten(*args):
 
 
 def nmbe(y_pred, y_true):
+    check_shape(y_pred, y_true)
     y_pred, y_true = check_pd_flatten(y_pred, y_true)
 
-    if y_pred.shape[0] != y_true.shape[0]:
-        raise ValueError("x size error")
-
     return (
-        np.sum((y_pred - y_true)) /
-        np.sum(y_true) *
-        100
+            np.sum((y_pred - y_true)) /
+            np.sum(y_true) *
+            100
     )
 
 
 def cv_rmse(y_pred, y_true):
+    check_shape(y_pred, y_true)
     y_pred, y_true = check_pd_flatten(y_pred, y_true)
-
-    if y_pred.shape[0] != y_true.shape[0]:
-        raise ValueError("x size error")
 
     return (
             (1 / np.mean(y_true)) *
