@@ -15,7 +15,7 @@ import time
 
 
 def check_arguments(res, param, result):
-    if not result in res:
+    if result not in res:
         raise ValueError(f"{result} not found in results")
 
     if res[result].shape[0] != len(param):
@@ -166,16 +166,72 @@ class SAnalysis:
             **arguments
         )
 
-    def plot(self, kind="bar"):
-        if self.sensitivity_results is None:
-            raise ValueError("No result to plot")
+    def plot(self, kind="bar", arguments=None):
+        if kind == "bar":
+            if self.sensitivity_results is None:
+                raise ValueError("No result to plot")
 
-        if self._sensitivity_method == "Sobol":
-            if kind == "bar":
+            if self._sensitivity_method == "Sobol":
                 plot_sobol_st_bar(
                     self.sensitivity_results,
                     self.parameters_config.keys()
                 )
+
+        if kind == "parallel":
+            if arguments is None:
+                raise ValueError("Please provide list of dict to compute "
+                                 "indicators values")
+
+            ind_dict = {}
+            for ind in arguments["indicator_dict_list"]:
+                ind_dict[ind[
+                    "name"]] = self.get_indicator_from_simulation_results(
+                    **{
+                        k: ind[k]
+                        for k in ind.keys()
+                        if k in ["aggregation_method", "indicator", "ref"]
+                    }
+                )
+
+            param_dict = {
+                par: values
+                for par, values in zip(
+                    self.parameters_config, self.sample.T
+                )
+            }
+
+            if "plot_options" not in arguments.keys():
+                options = {"colorby": list(ind_dict.keys())[0]}
+            else:
+                options = arguments["plot_options"]
+
+            plot_parcoord(
+                data_dict={**ind_dict, **param_dict},
+                **options
+            )
+
+
+def plot_parcoord(data_dict, colorby=None, colorscale='Electric'):
+    fig = go.Figure(data=go.Parcoords(
+        line=dict(
+            color=data_dict[colorby],
+            colorscale=colorscale,
+            showscale=True,
+            cmin=data_dict[colorby].min(),
+            cmax=data_dict[colorby].max()
+        ),
+        dimensions=[
+            {
+                "range": [data_dict[par].min(),
+                          data_dict[par].max()],
+                "label": par,
+                "values": data_dict[par]
+            }
+            for par in data_dict.keys()
+        ]
+    ))
+
+    fig.show()
 
 
 def plot_sobol_st_bar(salib_res, param_names):
