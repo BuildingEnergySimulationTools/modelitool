@@ -9,6 +9,7 @@ from SALib.analyze import sobol
 import plotly.graph_objects as go
 
 import numpy as np
+import pandas as pd
 import datetime as dt
 
 import time
@@ -206,7 +207,21 @@ class SAnalysis:
                 options = arguments["plot_options"]
 
             plot_parcoord(
-                data_dict={**ind_dict, **param_dict},
+                data_dict={**param_dict, **ind_dict},
+                **options
+            )
+
+        if kind == "sample":
+            if arguments is None:
+                raise ValueError("Please specify at least model output name")
+
+            options = {key: val for key, val in arguments.items()
+                       if key != 'indicator'}
+
+            plot_sample(
+                sample_res=self.simulation_results[
+                    :, :, self.simulator_outputs.index(arguments['indicator'])
+                ],
                 **options
             )
 
@@ -257,3 +272,69 @@ def plot_sobol_st_bar(salib_res, param_names):
     )
 
     figure.show()
+
+
+def plot_sample(sample_res, ref=None, title=None, y_label=None, x_label=None,
+                x_axis=None):
+
+    n_sample = sample_res.shape[0]
+    x_to_plot = np.concatenate(
+        [np.arange(sample_res.shape[1])]*n_sample)
+    y_to_plot = sample_res.flatten()
+
+    if isinstance(ref, pd.Series) or isinstance(ref, pd.DataFrame):
+        x_to_plot = pd.concat([pd.Series(ref.index)] * n_sample)
+
+    elif x_axis is not None:
+        if isinstance(x_axis, np.array) or isinstance(x_axis, list):
+            x_to_plot = np.concatenate([x_axis] * n_sample)
+
+        elif isinstance(x_axis, pd.DatetimeIndex):
+            x_to_plot = pd.concat([pd.Series(x_axis)] * n_sample)
+
+        elif isinstance(x_axis, pd.Series):
+            x_to_plot = pd.concat([x_axis] * n_sample)
+
+        elif isinstance(x_axis, pd.DataFrame):
+            x_to_plot = pd.concat([x_axis.squeeze()] * n_sample)
+
+        else:
+            raise ValueError("x_axis has a wrong format. Please provide"
+                             "list, np.array, pd.Series, pd.DataFrame")
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scattergl(
+            name="Sample",
+            mode="markers",
+            x=x_to_plot,
+            y=y_to_plot,
+            marker=dict(
+                color='rgba(135, 135, 135, 0.02)',
+            )
+        )
+    )
+
+    if ref is not None:
+        fig.add_trace(
+            go.Scattergl(
+                name="Reference",
+                mode='lines',
+                x=ref.index,
+                y=ref,
+                line=dict(
+                    color='crimson',
+                    width=2
+                )
+            )
+        )
+
+    if title is not None:
+        fig.update_layout(title=title)
+    if y_label is not None:
+        fig.update_layout(yaxis_title=y_label)
+
+    if x_label is not None:
+        fig.update_layout(xaxis_title=x_label)
+
+    fig.show()
