@@ -6,6 +6,8 @@ from SALib.analyze import fast
 from SALib.analyze import morris
 from SALib.analyze import sobol
 
+from modelitool.simulate import run_batch
+
 import plotly.graph_objects as go
 
 import numpy as np
@@ -87,49 +89,12 @@ class SAnalysis:
                 'No sample available. Generate sample using draw_sample()'
             )
 
-        simu_list = []
-        for samp in self.sample:
-            simu_list.append({
-                param: val for param, val in zip(
-                    self.parameters_config.keys(), samp
-                )
-            })
-
-        # A bit dirty but perform first simulation to get
-        # output shape and simulation time estimation
-        t1 = time.time()
-
-        self.simulator.set_param_dict(simu_list[0])
-        self.simulator.simulate()
-        results = self.simulator.get_results()
-
-        t2 = time.time()
-        sim_duration = dt.timedelta(seconds=t2 - t1)
-
-        self.simulation_results = np.zeros((
-            self.sample.shape[0],
-            results.shape[0],
-            results.shape[1]
-        ))
-
-        self.simulation_results[0] = results.to_numpy()
-
-        # Run remaining run_simulations
-        for idx, sim in enumerate(simu_list[1:]):
-            if not idx % verbose_step:
-                print(f"Running simulation {idx + 2}/{len(simu_list)}")
-                remaining_sec = sim_duration * (len(simu_list) - idx + 1)
-                rem_days = remaining_sec.days
-                rem_hours, rem = divmod(remaining_sec.seconds, 3600)
-                rem_minutes, rem_seconds = divmod(rem, 60)
-                print(
-                    f"Remaining: {rem_days} days {rem_hours}h{rem_minutes}′{rem_seconds}″"
-                )
-
-            self.simulator.set_param_dict(sim)
-            self.simulator.simulate()
-            results = self.simulator.get_results()
-            self.simulation_results[idx + 1] = results.to_numpy()
+        self.simulation_results = run_batch(
+            simulator=self.simulator,
+            param_name_list=list(self.parameters_config.keys()),
+            sample=self.sample,
+            verbose_step=verbose_step
+        )
 
     def get_indicator_from_simulation_results(
             self, aggregation_method, indicator, ref=None):

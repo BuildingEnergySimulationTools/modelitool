@@ -1,6 +1,10 @@
 import os
 import pandas as pd
 import datetime as dt
+import time
+
+import numpy as np
+
 
 from OMPython import ModelicaSystem
 from OMPython import OMCSessionZMQ
@@ -141,3 +145,51 @@ class Simulator:
         # t2 = time()
         # print(f"Getting results took {t2-t1}s")
         return res
+
+
+def run_batch(simulator, param_name_list, sample, verbose_step=10):
+    simu_list = []
+    for samp in sample:
+        simu_list.append({
+            param: val for param, val in zip(
+                param_name_list, samp
+            )
+        })
+
+    # A bit dirty but perform first simulation to get
+    # output shape and simulation time estimation
+    t1 = time.time()
+
+    simulator.set_param_dict(simu_list[0])
+    simulator.simulate()
+    results = simulator.get_results()
+
+    t2 = time.time()
+    sim_duration = dt.timedelta(seconds=t2 - t1)
+
+    simulation_results = np.zeros((
+        sample.shape[0],
+        results.shape[0],
+        results.shape[1]
+    ))
+
+    simulation_results[0] = results.to_numpy()
+
+    # Run remaining run_simulations
+    for idx, sim in enumerate(simu_list[1:]):
+        if not idx % verbose_step:
+            print(f"Running simulation {idx + 2}/{len(simu_list)}")
+            remaining_sec = sim_duration * (len(simu_list) - idx + 1)
+            rem_days = remaining_sec.days
+            rem_hours, rem = divmod(remaining_sec.seconds, 3600)
+            rem_minutes, rem_seconds = divmod(rem, 60)
+            print(
+                f"Remaining: {rem_days} days {rem_hours}h{rem_minutes}′{rem_seconds}″"
+            )
+
+        simulator.set_param_dict(sim)
+        simulator.simulate()
+        results = simulator.get_results()
+        simulation_results[idx + 1] = results.to_numpy()
+
+    return simulation_results
