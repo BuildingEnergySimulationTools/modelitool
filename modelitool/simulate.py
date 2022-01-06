@@ -67,6 +67,9 @@ class Simulator:
 
         if boundary_df is not None:
             self.set_boundaries_df(boundary_df)
+            self.boundaries = boundary_df
+        else:
+            self.boundaries = None
 
         if init_parameters:
             self.set_param_dict(init_parameters)
