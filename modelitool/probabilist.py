@@ -11,6 +11,9 @@ import seaborn as sns
 
 import warnings
 
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
+
 
 class DCGenerator:
     def __init__(self,
@@ -25,6 +28,8 @@ class DCGenerator:
         self.sample_size = sample_size
         self.sample = self.draw_sample(seed=random_seed)
         self.simulation_results = np.array([])
+        self.eta_scaler = None
+        self.remain_scaler = None
 
         if isinstance(observable_inputs, str) and \
                 observable_inputs == "from_simulator":
@@ -40,15 +45,15 @@ class DCGenerator:
         else:
             warnings.warn("No observable input were specified")
 
-    def get_dc(self, indicator):
+    def get_dc(self, indicator, scaled=True):
         if self.simulation_results.size == 0:
             raise ValueError("Empty simulation results")
 
         if self.observable_inputs is not None:
-            simulated_outputs = self.simulation_results[
-                                    ...,
-                                    self.simulator.output_list.index(indicator)
-                                ].flatten()[:, np.newaxis]
+            eta = self.simulation_results[
+                ...,
+                self.simulator.output_list.index(indicator)
+                ].flatten()[:, np.newaxis]
 
             if isinstance(self.observable_inputs, pd.DataFrame):
                 np_observable = self.observable_inputs.to_numpy()
@@ -66,11 +71,19 @@ class DCGenerator:
                 for sim in self.sample
             ])
 
-            return np.concatenate([
-                simulated_outputs,
-                observable,
-                parameters
-            ], axis=1)
+            obs_param = np.concatenate([observable, parameters], axis=1)
+
+            self.eta_scaler = StandardScaler()
+            self.eta_scaler.fit(eta)
+            self.remain_scaler = MinMaxScaler()
+            self.remain_scaler.fit(obs_param)
+
+            if scaled:
+                scaled_eta = self.eta_scaler.transform(eta)
+                scaled_obs_param = self.remain_scaler.transform(obs_param)
+                return np.concatenate([scaled_eta, scaled_obs_param],  axis=1)
+            else:
+                return np.concatenate([eta, obs_param], axis=1)
 
     def draw_sample(self, seed=None):
         gather_list = []
