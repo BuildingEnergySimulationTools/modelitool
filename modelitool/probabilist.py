@@ -1,10 +1,10 @@
 from modelitool.simulate import run_batch
+from modelitool.sensitivity import modelitool_to_salib_problem
 
 import pandas as pd
 
 import numpy as np
-from numpy.random import MT19937
-from numpy.random import RandomState, SeedSequence
+from SALib.sample import latin
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -91,18 +91,8 @@ class DCGenerator:
                 return np.concatenate([eta, obs_param], axis=1)
 
     def draw_sample(self, seed=None):
-        gather_list = []
-        for val in self.params.values():
-            if seed is not None:
-                rs = RandomState(MT19937(SeedSequence(seed)))
-                uniform_pdf = rs.uniform
-            else:
-                uniform_pdf = np.random.uniform
-
-            gather_list.append(uniform_pdf(low=val[0], high=val[1],
-                                           size=self.sample_size))
-
-        return np.concatenate([gather_list], axis=1).T
+        salib_problem = modelitool_to_salib_problem(self.params)
+        return latin.sample(salib_problem, N=self.sample_size, seed=seed)
 
     def run_simulations(self, verbose_step=10):
         self.simulation_results = run_batch(

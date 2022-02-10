@@ -80,8 +80,6 @@ class TestSensitivity:
             ]
         }
 
-        print(modelitool_to_salib_problem(sa_param_config))
-
         assert modelitool_to_salib_problem(sa_param_config) == sa_problem
 
     def test_run_simulation(self, simul, sa_param_config, expected_res):
