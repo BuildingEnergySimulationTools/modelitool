@@ -43,7 +43,8 @@ class DCGenerator:
         self.sample = self.draw_sample(seed=random_seed)
         self.simulation_results = np.array([])
         self.eta_scaler = StandardScaler()
-        self.remain_scaler = MinMaxScaler()
+        self.x_scaler = MinMaxScaler()
+        self.t_scaler = MinMaxScaler()
 
         if isinstance(observable_inputs, str) and \
                 observable_inputs == "from_simulator":
@@ -85,17 +86,19 @@ class DCGenerator:
                 for sim in self.sample
             ])
 
-            obs_param = np.concatenate([observable, parameters], axis=1)
-
             self.eta_scaler.fit(eta)
-            self.remain_scaler.fit(obs_param)
+            self.x_scaler.fit(observable)
+            self.t_scaler.fit(parameters)
 
             if scaled:
                 scaled_eta = self.eta_scaler.transform(eta)
-                scaled_obs_param = self.remain_scaler.transform(obs_param)
-                return np.concatenate([scaled_eta, scaled_obs_param], axis=1)
+                scaled_obs = self.x_scaler.transform(observable)
+                scaled_params = self.t_scaler.transform(parameters)
+                return np.concatenate([
+                    scaled_eta, scaled_obs, scaled_params], axis=1)
             else:
-                return np.concatenate([eta, obs_param], axis=1)
+                return np.concatenate([
+                    eta, observable, parameters], axis=1)
 
     def draw_sample(self, seed=None):
         salib_problem = modelitool_to_salib_problem(self.params)
