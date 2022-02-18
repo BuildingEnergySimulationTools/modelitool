@@ -273,129 +273,124 @@ class TFGPTrainer:
         plt.ylabel("Log marginal likelihood")
         plt.show()
 
-    class PYMCGPTrainer:
-        def __init__(self,
-                     x_observed,
-                     y_observation,
-                     kernel=None):
-            self.x_observed = x_observed
-            self.y_observation = y_observation
-            if kernel is None:
-                self.kernel = pm.gp.cov.ExpQuad
-            self.map_values = None
-            self.fitting_trace = None
-            self.gp_fitting = None
-            self.gp_regression = None
 
-        def fit(self, id_method="MAP", trace_length=1000, tuning=500,
-                chains=2, cores=1):
-            """
-            Other choice for id_method is "trace",
-            If trace is used, user shall also specify "trace_length"
-            "tuning", number of chains to sample "chains", and number of
-            CPU to use "core". Note that "core" is set to 1 by default.
-            Trouble may arise when multiprocessing on Windows machine
-            """
+class PYMCGPTrainer:
+    def __init__(self,
+                 x_observed,
+                 y_observation,
+                 kernel=None):
+        self.x_observed = x_observed
+        self.y_observation = y_observation
+        if kernel is None:
+            self.kernel = pm.gp.cov.ExpQuad
+        self.map_values = None
+        self.fitting_trace = None
+        self.gp_fitting = None
+        self.gp_regression = None
 
-            self.gp_fitting = pm.Model()
+    def fit(self, id_method="MAP", trace_length=1000, tuning=500,
+            chains=2, cores=1):
+        """
+        Other choice for id_method is "trace",
+        If trace is used, user shall also specify "trace_length"
+        "tuning", number of chains to sample "chains", and number of
+        CPU to use "core". Note that "core" is set to 1 by default.
+        Trouble may arise when multiprocessing on Windows machine
+        """
 
+        self.gp_fitting = pm.Model()
+
+        with self.gp_fitting:
+            sigma_model = pm.HalfNormal('sigma_model', 0.1)
+            rho = pm.Lognormal('rho', mu=0, sigma=3)
+
+            k = self.kernel(input_dim=self.x_observed.shape[1], ls=rho)
+            model = pm.gp.Marginal(cov_func=k)
+
+            model.marginal_likelihood(
+                'mod_out',
+                X=self.x_observed,
+                y=self.y_observation,
+                noise=sigma_model
+            )
+
+        if id_method == "MAP":
             with self.gp_fitting:
-                sigma_model = pm.HalfNormal('sigma_model', 0.1)
-                rho = pm.Lognormal('rho', mu=0, sigma=3)
-
-                k = self.kernel(input_dim=self.x_observed.shape[1], ls=rho)
-                model = pm.gp.Marginal(cov_func=k)
-
-                model.marginal_likelihood(
-                    'mod_out',
-                    X=self.x_observed,
-                    y=self.y_observation,
-                    noise=sigma_model
+                map_estimate, optim_result = pm.find_MAP(
+                    progressbar=True,
+                    method="L-BFGS-B",
+                    return_raw=True,
                 )
 
-            if id_method == "MAP":
-                with self.gp_fitting:
-                    map_estimate, optim_result = pm.find_MAP(
-                        progressbar=True,
-                        method="L-BFGS-B",
-                        return_raw=True,
-                    )
+            self.map_values = map_estimate
 
-                self.map_values = map_estimate
+        elif id_method == "trace":
+            with self.gp_fitting:
+                self.fitting_trace = pm.sample(
+                    trace_length,
+                    chains=chains,
+                    tune=tuning,
+                    cores=cores,
+                    return_inferencedata=True
+                )
 
-            elif id_method == "trace":
-                with self.gp_fitting:
-                    self.fitting_trace = pm.sample(
-                        trace_length,
-                        chains=chains,
-                        tune=tuning,
-                        cores=cores,
-                        return_inferencedata=True
-                    )
+    def plot_fitting_trace(self):
+        if self.fitting_trace is not None:
+            with self.gp_fitting:
+                az.plot_trace(self.fitting_trace);
+        else:
+            raise ValueError("No fitting trace were found."
+                             "Use 'fit' method with id_method='trace' ")
 
-        def plot_fitting_trace(self):
-            if self.fitting_trace is not None:
-                with self.gp_fitting:
-                    az.plot_trace(self.fitting_trace);
+    def predict(self,
+                x_prediction,
+                method="MAP",
+                samples=100,
+                trace_length=100,
+                tuning=50,
+                chains=2,
+                cores=1):
+
+        self.gp_regression = pm.Model()
+
+        if method == "trace":
+            # TODO implement trace method
+            raise ValueError("Not yet implemented")
+
+        if method == "MAP":
+            if self.map_values is None:
+                raise ValueError("No MAP values were found for the GP"
+                                 " hyperparameters. Use 'fit' method with "
+                                 "id_method='MAP'")
             else:
-                raise ValueError("No fitting trace were found."
-                                 "Use 'fit' method with id_method='trace' ")
+                with self.gp_regression:
+                    # Things here are very questionable.
+                    # Model noise "sigma_model" is 0 centered with very
+                    # low 'sigma'.
+                    # MAP estimate for sigma probably 0
+                    # But later sampling doesn't like it
+                    # We juste set it with a very low half normal prior
 
-        def predict(self,
-                    x_prediction,
-                    method="MAP",
-                    samples=100,
-                    trace_length=100,
-                    tuning=50,
-                    chains=2,
-                    cores=1):
+                    sigma_model = pm.HalfNormal('sigma_model', 0.00001)
 
-            self.gp_regression = pm.Model()
+                    k = pm.gp.cov.ExpQuad(
+                        input_dim=x_prediction.shape[1],
+                        ls=self.map_values["rho"])
 
-            if method == "trace":
-                # TODO implement trace method
-                raise ValueError("Not yet implemented")
+                    reg_model = pm.gp.Marginal(cov_func=k)
 
-            if method == "MAP":
-                if self.map_values is None:
-                    raise ValueError("No MAP values were found for the GP"
-                                     " hyperparameters. Use 'fit' method with "
-                                     "id_method='MAP'")
-                else:
-                    with self.gp_regression:
-                        # Things here are very questionable.
-                        # Model noise "sigma_model" is 0 centered with very
-                        # low 'sigma'.
-                        # MAP estimate for sigma probably 0
-                        # But later sampling doesn't like it
-                        # We juste set it with a very low half normal prior
+                    reg_model.marginal_likelihood(
+                        'Tins',
+                        X=self.x_observed,
+                        y=self.y_observation,
+                        noise=sigma_model)
 
-                        sigma_model = pm.HalfNormal('sigma_model', 0.00001)
+        with self.gp_regression:
+            reg_out = reg_model.conditional('reg_out', x_prediction)
 
-                        k = pm.gp.cov.ExpQuad(
-                            input_dim=x_pred.shape[1],
-                            ls=self.map_values["rho"])
-
-                        reg_model = pm.gp.Marginal(cov_func=k)
-
-                        reg_model.marginal_likelihood(
-                            'Tins',
-                            X=self.x_observed,
-                            y=self.y_observation,
-                            noise=sigma_model)
-
-            with self.gp_regression:
-                trace = pm.sample(trace_length,
-                                  tune=tuning,
-                                  chains=chains,
-                                  cores=cores)
-
-            with self.gp_regression:
-                reg_out = reg_model.conditional('reg_out', x_prediction)
-
-            with self.gp_regression:
-                return pm.sample_posterior_predictive(
-                    trace,
-                    var_names=["reg_out"],
-                    samples=samples,
-                )
+        with self.gp_regression:
+            return pm.sample_posterior_predictive(
+                [self.map_values],
+                var_names=["reg_out"],
+                samples=samples,
+            )
