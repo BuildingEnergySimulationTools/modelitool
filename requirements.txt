@@ -4,3 +4,5 @@ modelitool~=0.1
 setuptools~=57.0.0
 OMPython~=3.3.0
 SALib~=1.4.5
+scipy~=1.7.2
+scikit-learn~=1.0.1
