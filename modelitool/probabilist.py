@@ -21,12 +21,36 @@ import arviz as az
 import theano.tensor as tt
 import theano
 
+from scipy.stats import truncnorm
+
 import tensorflow as tf
 import tensorflow_probability as tfp
 
 tfb = tfp.bijectors
 tfd = tfp.distributions
 tfk = tfp.math.psd_kernels
+
+
+class TruncatedNormal:
+    """Mimic PYMC TruncatedNormal"""
+    def __init__(self,
+                 name,
+                 mu,
+                 sigma,
+                 lower,
+                 upper):
+        self.name = name
+        self.mu = mu
+        self.sigma = sigma
+        self.lower = lower
+        self.upper = upper
+
+        # See scipy doc
+        self._a, self._b = (0 - mu) / sigma, (1 - mu) / sigma
+
+    def sample(self, size=1000):
+        return truncnorm.rvs(
+            self._a, self._b, loc=self.mu, scale=self.sigma, size=size)
 
 
 class DCGenerator:
