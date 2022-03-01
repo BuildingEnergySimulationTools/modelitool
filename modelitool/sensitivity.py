@@ -240,7 +240,7 @@ def plot_sobol_st_bar(salib_res, param_names):
 
 
 def plot_sample(sample_res, ref=None, title=None, y_label=None, x_label=None,
-                x_axis=None):
+                x_axis=None, alpha=0.5):
 
     n_sample = sample_res.shape[0]
     x_to_plot = np.concatenate(
@@ -275,7 +275,7 @@ def plot_sample(sample_res, ref=None, title=None, y_label=None, x_label=None,
             x=x_to_plot,
             y=y_to_plot,
             marker=dict(
-                color='rgba(135, 135, 135, 0.02)',
+                color=f'rgba(135, 135, 135, {alpha})',
             )
         )
     )
