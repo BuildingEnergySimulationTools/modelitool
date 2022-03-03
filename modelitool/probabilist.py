@@ -230,11 +230,16 @@ class PYMCGPTrainer:
                     # Things here are very questionable.
                     # Model noise "sigma_model" is 0 centered with very
                     # low 'sigma'.
-                    # MAP estimate for sigma probably 0
-                    # But later sampling doesn't like it
-                    # We juste set it with a very low half normal prior
+                    # MAP estimate for sigma probably very close 0
+                    # But later sampling doesn't like it when it's < 10E-5
+                    # So if map["sigma_model"] < 10E-6
+                    # We juste set it to 10E-6
 
-                    sigma_model = pm.HalfNormal('sigma_model', 0.00001)
+                    if self.map_values["sigma_model"] < 10E-6:
+                        sigma_model = pm.HalfNormal('sigma_model', 10E-6)
+                    else:
+                        sigma_model = pm.HalfNormal(
+                            'sigma_model', self.map_values["sigma_model"])
 
                     k = pm.gp.cov.ExpQuad(
                         input_dim=x_prediction.shape[1],
