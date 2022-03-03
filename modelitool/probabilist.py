@@ -22,10 +22,12 @@ import theano.tensor as tt
 import theano
 
 from scipy.stats import truncnorm
+from scipy.stats import halfnorm
 
 
 class TruncatedNormal:
     """Mimic PYMC TruncatedNormal"""
+
     def __init__(self,
                  name,
                  mu,
@@ -44,6 +46,17 @@ class TruncatedNormal:
     def sample(self, size=1000):
         return truncnorm.rvs(
             self._a, self._b, loc=self.mu, scale=self.sigma, size=size)
+
+
+class HalfNormal:
+    """Mimic PYMC HalfNormal"""
+
+    def __init__(self, name, sigma):
+        self.name = name
+        self.sigma = sigma
+
+    def sample(self, size=1000):
+        return halfnorm.rvs(loc=0, scale=self.sigma, size=size)
 
 
 class DCGenerator:
