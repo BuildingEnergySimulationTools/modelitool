@@ -80,7 +80,7 @@ class TestSimulator:
     def test_simulate_get_results(self, simul):
         simul.simulate()
 
-        res = simul.get_results()
+        res = simul.get_results(index_datetime=False)
 
         ref = pd.DataFrame({
             "res.showNumber": [401.0, 401.0, 401.0]
@@ -110,6 +110,6 @@ class TestSimulator:
 
         simul_boundaries.set_boundaries_df(new_bounds)
         simul_boundaries.simulate()
-        res = simul_boundaries.get_results(index_datetime=True, ref_year=2009)
+        res = simul_boundaries.get_results()
 
         pd.testing.assert_frame_equal(new_bounds, res)

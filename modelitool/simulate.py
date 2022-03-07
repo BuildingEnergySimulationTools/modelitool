@@ -63,6 +63,8 @@ class Simulator:
 
         if boundary_df is not None:
             self.set_boundaries_df(boundary_df)
+        else:
+            self.year = dt.date.today().year
 
         if init_parameters:
             self.set_param_dict(init_parameters)
@@ -95,6 +97,12 @@ class Simulator:
         self.model.setParameters(
             f'Boundaries.fileName="{new_bounds_path.as_posix()}"'
         )
+        try:
+            self.year = df.index[0].year
+        except:
+            raise ValueError(
+                "Could not read date from boundary condition. "
+                "Please verify that Dataframe index is a datetime")
 
     def set_param_dict(self, param_dict):
         # t1 = time()
@@ -110,7 +118,7 @@ class Simulator:
         # t2 = time()
         # print(f"Simulating took {t2-t1}s")
 
-    def get_results(self, index_datetime=False, ref_year=2009):
+    def get_results(self, index_datetime=True):
         # Modelica solver can provide several results for one timestep
         # Moreover variable timestep solver can provide messy result
         # Manipulations are done to resample the index and provide seconds
@@ -137,7 +145,7 @@ class Simulator:
         if not index_datetime:
             res.index = res.index.astype('int')
         else:
-            res.index = seconds_to_datetime(res.index, ref_year)
+            res.index = seconds_to_datetime(res.index, self.year)
         # t2 = time()
         # print(f"Getting results took {t2-t1}s")
         return res
