@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 import numpy as np
 import pandas as pd
 import datetime as dt
-
+import warnings
 import time
 
 
@@ -62,8 +62,9 @@ class SAnalysis:
         self.salib_problem = modelitool_to_salib_problem(
             self.parameters_config)
 
+        self.simulation_time_index = []
         self.sample = np.array([])
-        self.simulation_results = np.array([])
+        self.simulation_results = list()
         self.sensitivity_results = None
 
     @property
@@ -87,7 +88,9 @@ class SAnalysis:
                 'No sample available. Generate sample using draw_sample()'
             )
 
+        self.simulation_results = list()
         simu_list = []
+
         for samp in self.sample:
             simu_list.append({
                 param: val for param, val in zip(
@@ -106,13 +109,7 @@ class SAnalysis:
         t2 = time.time()
         sim_duration = dt.timedelta(seconds=t2 - t1)
 
-        self.simulation_results = np.zeros((
-            self.sample.shape[0],
-            results.shape[0],
-            results.shape[1]
-        ))
-
-        self.simulation_results[0] = results.to_numpy()
+        self.simulation_results.append(results)
 
         # Run remaining run_simulations
         for idx, sim in enumerate(simu_list[1:]):
@@ -129,18 +126,32 @@ class SAnalysis:
             self.simulator.set_param_dict(sim)
             self.simulator.simulate()
             results = self.simulator.get_results()
-            self.simulation_results[idx + 1] = results.to_numpy()
+            self.simulation_results.append(results)
 
     def get_indicator_from_simulation_results(
             self, aggregation_method, indicator, ref=None):
-        ind_res = np.zeros(self.simulation_results.shape[0])
-        for idx, res in enumerate(self.simulation_results[
-                                  :, :,
-                                  self.simulator_outputs.index(indicator)]):
-            if ref is None:
-                ind_res[idx] = aggregation_method(res)
+
+        ind_res = np.zeros(len(self.simulation_results))
+
+        print(self.simulation_results.__class__)
+        for idx, res in enumerate(self.simulation_results):
+            if res.shape[0] == 1 and ref is None:
+                warnings.warn("Time series has only one timestep."
+                              "Without a ref simulation output is used.")
+                ind_res[idx] = res[indicator]
+
+            if res.shape[0] == 1 and ref is not None:
+                warnings.warn("Time series has only one timestep."
+                              "No aggregation method is used. Output is "
+                              "simulation - ref")
+                ind_res[idx] = res[indicator] - ref
+
+            if res.shape[0] > 1 and ref is None:
+                ind_res[idx] = aggregation_method(res[indicator])
+
             else:
-                ind_res[idx] = aggregation_method(res, ref)
+                ind_res[idx] = aggregation_method(res[indicator], ref)
+
         return ind_res
 
     def analyze(
@@ -220,8 +231,9 @@ class SAnalysis:
 
             plot_sample(
                 sample_res=self.simulation_results[
-                    :, :, self.simulator_outputs.index(arguments['indicator'])
-                ],
+                           :, :,
+                           self.simulator_outputs.index(arguments['indicator'])
+                           ],
                 **options
             )
 
@@ -276,10 +288,9 @@ def plot_sobol_st_bar(salib_res, param_names):
 
 def plot_sample(sample_res, ref=None, title=None, y_label=None, x_label=None,
                 x_axis=None, alpha=0.5):
-
     n_sample = sample_res.shape[0]
     x_to_plot = np.concatenate(
-        [np.arange(sample_res.shape[1])]*n_sample)
+        [np.arange(sample_res.shape[1])] * n_sample)
     y_to_plot = sample_res.flatten()
 
     if isinstance(ref, pd.Series) or isinstance(ref, pd.DataFrame):

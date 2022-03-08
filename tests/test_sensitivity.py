@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 import pytest
 from modelitool.sensitivity import modelitool_to_salib_problem
@@ -31,6 +32,10 @@ def simul(tmp_path_factory):
                      lmodel=["Modelica"],
                      simulation_options=simulation_opt,
                      output_list=outputs)
+
+    # Hardcode year for tests
+    simu.year = 2009
+
     return simu
 
 
@@ -45,23 +50,27 @@ def sa_param_config():
 
 @pytest.fixture()
 def expected_res():
-    return np.array([
-        [
-            [5.88213201, 4.80257357],
-            [5.88213201, 4.80257357],
-            [5.88213201, 4.80257357],
-        ],
-        [
-            [8.15192598, 12.31778589],
-            [8.15192598, 12.31778589],
-            [8.15192598, 12.31778589],
-        ],
-        [
-            [1.42359607, 5.95605462],
-            [1.42359607, 5.95605462],
-            [1.42359607, 5.95605462],
-        ]
-    ])
+
+    common_index = pd.date_range(
+        '2009-01-01 00:00:00',
+        freq="s",
+        periods=3
+    )
+
+    return [
+        pd.DataFrame({
+            'res1.showNumber': [5.88213201]*3,
+            'res2.showNumber': [4.80257357]*3,
+        }, index=common_index),
+        pd.DataFrame({
+            'res1.showNumber': [8.15192598] * 3,
+            'res2.showNumber': [12.31778589] * 3,
+        }, index=common_index),
+        pd.DataFrame({
+            'res1.showNumber': [1.42359607] * 3,
+            'res2.showNumber': [5.95605462] * 3,
+        }, index=common_index),
+    ]
 
 
 class TestSensitivity:
@@ -172,7 +181,6 @@ class TestSensitivity:
 
         np.testing.assert_almost_equal(
             sa.sensitivity_results['S1'],
-            np.array([0.26933607, 1.255609 ,-0.81162613]),
+            np.array([0.26933607, 1.255609, -0.81162613]),
             decimal=3
         )
-
