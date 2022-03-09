@@ -128,31 +128,36 @@ class SAnalysis:
             results = self.simulator.get_results()
             self.simulation_results.append(results)
 
-    def get_indicator_from_simulation_results(
-            self, aggregation_method, indicator, ref=None):
+    def _compute_aggregated(
+            self, aggregation_method, indicator, ref=None, freq=None):
 
-        ind_res = np.zeros(len(self.simulation_results))
+        aggregated_list = []
 
-        print(self.simulation_results.__class__)
-        for idx, res in enumerate(self.simulation_results):
-            if res.shape[0] == 1 and ref is None:
-                warnings.warn("Time series has only one timestep."
-                              "Without a ref simulation output is used.")
-                ind_res[idx] = res[indicator]
+        if freq is None:
+            for res in self.simulation_results:
+                if ref is None:
+                    aggregated_list.append(aggregation_method(res[indicator]))
+                else:
+                    aggregated_list.append(
+                        aggregation_method(res[indicator], ref))
+        else:
+            grouper = pd.Grouper(freq=freq)
+            for res in self.simulation_results:
+                tempos = pd.Series()
+                simu_group = res[indicator].groupby(grouper)
 
-            if res.shape[0] == 1 and ref is not None:
-                warnings.warn("Time series has only one timestep."
-                              "No aggregation method is used. Output is "
-                              "simulation - ref")
-                ind_res[idx] = res[indicator] - ref
+                if ref is not None:
+                    ref_group = ref.groupby(grouper)
+                    for simu_gr, ref_gr in zip(simu_group, ref_group):
+                        tempos[simu_gr[0]] = aggregation_method(
+                            ref_gr[1], simu_gr[1])
+                else:
+                    for simu_gr in simu_group:
+                        tempos[simu_gr[0]] = aggregation_method(simu_gr[1])
 
-            if res.shape[0] > 1 and ref is None:
-                ind_res[idx] = aggregation_method(res[indicator])
+                aggregated_list.append(tempos)
 
-            else:
-                ind_res[idx] = aggregation_method(res[indicator], ref)
-
-        return ind_res
+        return aggregated_list
 
     def analyze(
             self,
@@ -167,8 +172,8 @@ class SAnalysis:
         if indicator not in self.simulator_outputs:
             raise ValueError('Specified indicator not in computed outputs')
 
-        y_array = self.get_indicator_from_simulation_results(
-            aggregation_method, indicator, reference)
+        y_array = np.array(self._compute_aggregated(
+            aggregation_method, indicator, reference))
 
         analyser = self.meth_samp_map[self._sensitivity_method]["method"]
 

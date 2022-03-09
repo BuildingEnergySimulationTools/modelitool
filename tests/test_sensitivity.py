@@ -12,6 +12,9 @@ from modelitool.simulate import Simulator
 def mean_error(res, ref):
     return np.mean(ref - res)
 
+def sum_error(res, ref):
+    return np.sum(ref - res)
+
 
 @pytest.fixture(scope="session")
 def simul(tmp_path_factory):
@@ -89,8 +92,6 @@ class TestSensitivity:
             ]
         }
 
-        print(modelitool_to_salib_problem(sa_param_config))
-
         assert modelitool_to_salib_problem(sa_param_config) == sa_problem
 
     def test_run_simulation(self, simul, sa_param_config, expected_res):
@@ -114,8 +115,14 @@ class TestSensitivity:
             decimal=6
         )
 
-    def test_get_indicator_from_simulation_results(
+    def test__compute_aggregated(
             self, simul, expected_res, sa_param_config):
+
+        ref_agg = pd.Series(
+            [5.152551355, 5.152551355, 5.152551355],
+            index=pd.date_range('2009-01-01 00:00:00', freq="s", periods=3)
+        )
+
         sa_object = SAnalysis(
             simulator=simul,
             sensitivity_method="Sobol",
@@ -124,20 +131,33 @@ class TestSensitivity:
 
         sa_object.simulation_results = expected_res
 
-        res1 = sa_object.get_indicator_from_simulation_results(
+        res1 = sa_object._compute_aggregated(
             aggregation_method=np.mean,
             indicator="res1.showNumber"
         )
 
-        res2 = sa_object.get_indicator_from_simulation_results(
+        res2 = sa_object._compute_aggregated(
             aggregation_method=np.mean,
             indicator="res2.showNumber"
         )
 
-        res_ref = sa_object.get_indicator_from_simulation_results(
+        res_mean = sa_object._compute_aggregated(
             aggregation_method=mean_error,
             indicator="res1.showNumber",
-            ref=np.array([5.152551355, 5.152551355, 5.152551355])
+            ref=ref_agg
+        )
+
+        res_freq = sa_object._compute_aggregated(
+            aggregation_method=np.mean,
+            indicator='res1.showNumber',
+            freq='2S'
+        )
+
+        res_freq_ref = sa_object._compute_aggregated(
+            aggregation_method=sum_error,
+            indicator='res1.showNumber',
+            ref=ref_agg,
+            freq='2S'
         )
 
         np.testing.assert_array_almost_equal(
@@ -153,8 +173,24 @@ class TestSensitivity:
         )
 
         np.testing.assert_array_almost_equal(
-            res_ref,
+            res_mean,
             np.array([-0.729580657, -2.999374628, 3.728955285]),
+            decimal=6
+        )
+
+        np.testing.assert_array_almost_equal(
+            res_freq_ref,
+            np.array([[1.45916131, 0.729580655],
+                      [5.99874924, 2.99937462],
+                      [-7.4579106, -3.7289552849]]),
+            decimal=6
+        )
+
+        np.testing.assert_array_almost_equal(
+            res_freq,
+            np.array([[5.88213201, 5.88213201],
+                      [8.15192598, 8.15192598],
+                      [1.42359607, 1.42359607]]),
             decimal=6
         )
 
