@@ -221,14 +221,14 @@ class SAnalysis:
 
             ind_dict = {}
             for ind in arguments["indicator_dict_list"]:
-                ind_dict[ind[
-                    "name"]] = self.get_indicator_from_simulation_results(
-                    **{
-                        k: ind[k]
-                        for k in ind.keys()
-                        if k in ["aggregation_method", "indicator", "ref"]
-                    }
-                )
+                arg_dict = {
+                    key: ind[key]
+                    for key in ind.keys()
+                    if key in ["aggregation_method", "indicator", "ref"]
+                }
+
+                ind_dict[ind["name"]] = np.array(self._compute_aggregated(
+                    **arg_dict))
 
             param_dict = {
                 par: values
@@ -255,10 +255,10 @@ class SAnalysis:
                        if key != 'indicator'}
 
             plot_sample(
-                sample_res=self.simulation_results[
-                           :, :,
-                           self.simulator_outputs.index(arguments['indicator'])
-                           ],
+                sample_res=np.array([
+                    res[arguments['indicator']]
+                    for res in self.simulation_results
+                ]),
                 **options
             )
 
