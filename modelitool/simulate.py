@@ -1,4 +1,6 @@
 import os
+import warnings
+
 import pandas as pd
 import datetime as dt
 
@@ -22,6 +24,7 @@ class Simulator:
                  init_parameters=None,
                  simulation_path=None,
                  boundary_df=None,
+                 year=None,
                  package_path=None,
                  lmodel=[]
                  ):
@@ -63,6 +66,11 @@ class Simulator:
 
         if boundary_df is not None:
             self.set_boundaries_df(boundary_df)
+            if year is not None:
+                warnings.warn("Simulator year is read from boundary"
+                              "DAtaFrame. Argument year is ignored")
+        elif year is not None:
+            self.year = year
         else:
             self.year = dt.date.today().year
 

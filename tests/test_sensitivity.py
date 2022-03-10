@@ -32,12 +32,10 @@ def simul(tmp_path_factory):
 
     simu = Simulator(model_path="TestLib.ishigami_two_outputs",
                      package_path=package_path,
+                     year=2009,
                      lmodel=["Modelica"],
                      simulation_options=simulation_opt,
                      output_list=outputs)
-
-    # Hardcode year for tests
-    simu.year = 2009
 
     return simu
 
