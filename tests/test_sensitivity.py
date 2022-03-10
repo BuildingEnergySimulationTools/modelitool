@@ -12,6 +12,7 @@ from modelitool.simulate import Simulator
 def mean_error(res, ref):
     return np.mean(ref - res)
 
+
 def sum_error(res, ref):
     return np.sum(ref - res)
 
@@ -51,7 +52,6 @@ def sa_param_config():
 
 @pytest.fixture()
 def expected_res():
-
     common_index = pd.date_range(
         '2009-01-01 00:00:00',
         freq="s",
@@ -60,8 +60,8 @@ def expected_res():
 
     return [
         pd.DataFrame({
-            'res1.showNumber': [5.88213201]*3,
-            'res2.showNumber': [4.80257357]*3,
+            'res1.showNumber': [5.88213201] * 3,
+            'res2.showNumber': [4.80257357] * 3,
         }, index=common_index),
         pd.DataFrame({
             'res1.showNumber': [8.15192598] * 3,
@@ -115,7 +115,6 @@ class TestSensitivity:
 
     def test__compute_aggregated(
             self, simul, expected_res, sa_param_config):
-
         ref_agg = pd.Series(
             [5.152551355, 5.152551355, 5.152551355],
             index=pd.date_range('2009-01-01 00:00:00', freq="s", periods=3)
@@ -211,10 +210,30 @@ class TestSensitivity:
 
         sa.analyze(indicator='res1.showNumber',
                    aggregation_method=np.mean,
+                   arguments={"print_to_console": False})
+
+        sa.analyze(indicator='res1.showNumber',
+                   aggregation_method=np.mean,
+                   freq="2S",
                    arguments={"print_to_console": True})
+
+        df_to_compare = pd.DataFrame({
+            key: res['S1']
+            for key, res in sa.sensitivity_dynamic_results.items()
+        }).T
 
         np.testing.assert_almost_equal(
             sa.sensitivity_results['S1'],
             np.array([0.26933607, 1.255609, -0.81162613]),
             decimal=3
         )
+
+        np.testing.assert_almost_equal(
+            df_to_compare.to_numpy(),
+            np.array([[0.26933607, 1.255609, -0.81162613],
+                      [0.26933607, 1.255609, -0.81162613]]),
+            decimal=3
+        )
+
+
+

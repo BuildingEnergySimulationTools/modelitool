@@ -66,6 +66,7 @@ class SAnalysis:
         self.sample = np.array([])
         self.simulation_results = list()
         self.sensitivity_results = None
+        self.sensitivity_dynamic_results = {}
 
     @property
     def simulator_outputs(self):
@@ -164,6 +165,7 @@ class SAnalysis:
             indicator,
             aggregation_method,
             reference=None,
+            freq=None,
             arguments=None):
 
         if arguments is None:
@@ -172,16 +174,34 @@ class SAnalysis:
         if indicator not in self.simulator_outputs:
             raise ValueError('Specified indicator not in computed outputs')
 
-        y_array = np.array(self._compute_aggregated(
-            aggregation_method, indicator, reference))
-
         analyser = self.meth_samp_map[self._sensitivity_method]["method"]
 
-        self.sensitivity_results = analyser.analyze(
-            problem=self.salib_problem,
-            Y=y_array,
-            **arguments
-        )
+        if freq is None:
+            y_array = np.array(self._compute_aggregated(
+                aggregation_method, indicator, reference))
+
+            self.sensitivity_results = analyser.analyze(
+                problem=self.salib_problem,
+                Y=y_array,
+                **arguments
+            )
+        else:
+            agg_list = self._compute_aggregated(
+                aggregation_method=aggregation_method,
+                indicator=indicator,
+                ref=reference,
+                freq=freq,
+            )
+
+            index = agg_list[0].index
+            numpy_res = np.array(agg_list).T
+
+            for idx, res in zip(index, numpy_res):
+                self.sensitivity_dynamic_results[idx] = analyser.analyze(
+                    problem=self.salib_problem,
+                    Y=res,
+                    **arguments
+                )
 
     def plot(self, kind="bar", arguments=None):
         if kind == "bar":
