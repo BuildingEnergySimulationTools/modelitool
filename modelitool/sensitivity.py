@@ -249,7 +249,8 @@ class SAnalysis:
 
         if kind == "sample":
             if arguments is None:
-                raise ValueError("Please specify at least model output name")
+                raise ValueError("Please specify at least model output"
+                                 " name as 'indicator")
 
             options = {key: val for key, val in arguments.items()
                        if key != 'indicator'}
@@ -261,6 +262,23 @@ class SAnalysis:
                 ]),
                 **options
             )
+
+        if kind == "dynamic_ST":
+            if arguments is None:
+                raise ValueError("Please specify at least model output"
+                                 " name as 'indicator")
+
+            df_to_plot = pd.DataFrame({
+                date: res['ST']
+                for date, res in self.sensitivity_dynamic_results.items()
+            }).T
+
+            df_to_plot.columns = list(self.parameters_config.keys())
+
+            options = {key: val for key, val in arguments.items()
+                       if key != 'indicator'}
+
+            plot_stacked_lines(df_to_plot, **options)
 
 
 def plot_parcoord(data_dict, colorby=None, colorscale='Electric'):
@@ -309,6 +327,27 @@ def plot_sobol_st_bar(salib_res, param_names):
     )
 
     figure.show()
+
+
+def plot_stacked_lines(
+        df, title=None, y_label=None, x_label=None, legend_title=None):
+    fig = go.Figure()
+    for ind in df.columns:
+        fig.add_trace(go.Scatter(
+            x=df.index,
+            y=df[ind],
+            name=ind,
+            mode='lines',
+            stackgroup='one'
+        ))
+
+    fig.update_layout(
+        title=title,
+        xaxis_title=x_label,
+        yaxis_title=y_label,
+        legend_title=legend_title,
+    )
+    fig.show()
 
 
 def plot_sample(sample_res, ref=None, title=None, y_label=None, x_label=None,
