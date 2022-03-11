@@ -77,10 +77,7 @@ class Identificator:
                 ]
             )
             self.simulator.simulate()
-            return self.simulator.get_results(
-                index_datetime=True,
-                ref_year=features.index[0].year
-            )
+            return self.simulator.get_results()
 
     def _optimization_callback(self, xk, convergence):
         print({
