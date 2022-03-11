@@ -115,3 +115,19 @@ class TestIdentificator:
             np.array(list(ident.param_identified.values())),
             np.array([2., 1.]), rtol=0.01
         )
+
+    def test_predict(self, simul_linear):
+
+        ident = Identificator(
+            simulator=simul_linear,
+            parameters=ID_PARAMS,
+        )
+
+        ident.param_identified ={'x.k': 2., 'y.k':1.}
+
+        res = ident.predict(DATASET[["x1", "x2"]].tail(3))
+
+        np.testing.assert_allclose(
+            np.array(res),
+            np.array(DATASET[["y"]].tail(3)), rtol=0.01
+        )
