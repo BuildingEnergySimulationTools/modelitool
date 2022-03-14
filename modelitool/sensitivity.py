@@ -104,31 +104,10 @@ class SAnalysis:
                 )
             })
 
-        # A bit dirty but perform first simulation to get
-        # output shape and simulation time estimation
-        t1 = time.time()
+        prog_bar = progress_bar(range(len(simu_list)))
 
-        self.simulator.set_param_dict(simu_list[0])
-        self.simulator.simulate()
-        results = self.simulator.get_results()
-
-        t2 = time.time()
-        sim_duration = dt.timedelta(seconds=t2 - t1)
-
-        self.simulation_results.append(results)
-
-        # Run remaining run_simulations
-        for idx, sim in enumerate(simu_list[1:]):
-            if not idx % verbose_step:
-                print(f"Running simulation {idx + 2}/{len(simu_list)}")
-                remaining_sec = sim_duration * (len(simu_list) - idx + 1)
-                rem_days = remaining_sec.days
-                rem_hours, rem = divmod(remaining_sec.seconds, 3600)
-                rem_minutes, rem_seconds = divmod(rem, 60)
-                print(
-                    f"Remaining: {rem_days} days {rem_hours}h{rem_minutes}′{rem_seconds}″"
-                )
-
+        for pb, sim in zip(prog_bar, simu_list):
+            prog_bar.comment = 'Simulations'
             self.simulator.set_param_dict(sim)
             self.simulator.simulate()
             results = self.simulator.get_results()

@@ -6,3 +6,4 @@ OMPython~=3.3.0
 SALib~=1.4.5
 scipy~=1.7.2
 scikit-learn~=1.0.1
+fastprogress~=1.0.0
