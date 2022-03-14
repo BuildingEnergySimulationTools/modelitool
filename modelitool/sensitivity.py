@@ -6,6 +6,9 @@ from SALib.analyze import fast
 from SALib.analyze import morris
 from SALib.analyze import sobol
 
+from fastprogress.fastprogress import master_bar, progress_bar
+from fastprogress.fastprogress import force_console_behavior
+
 import plotly.graph_objects as go
 
 import numpy as np
@@ -13,6 +16,8 @@ import pandas as pd
 import datetime as dt
 import warnings
 import time
+
+master_bar, progress_bar = force_console_behavior()
 
 
 def check_arguments(res, param, result):
@@ -143,9 +148,12 @@ class SAnalysis:
                         aggregation_method(res[indicator], ref))
         else:
             grouper = pd.Grouper(freq=freq)
-            for res in self.simulation_results:
+            prog_bar = progress_bar(range(len(self.simulation_results)))
+
+            for mb, res in zip(prog_bar, self.simulation_results):
                 tempos = pd.Series()
                 simu_group = res[indicator].groupby(grouper)
+                prog_bar.comment = 'Aggregation'
 
                 if ref is not None:
                     ref_group = ref.groupby(grouper)
@@ -195,8 +203,10 @@ class SAnalysis:
 
             index = agg_list[0].index
             numpy_res = np.array(agg_list).T
+            prog_bar = progress_bar(range(index.shape[0]))
 
-            for idx, res in zip(index, numpy_res):
+            for bar, idx, res in zip(prog_bar, index, numpy_res):
+                prog_bar.comment = 'Dynamic index'
                 self.sensitivity_dynamic_results[idx] = analyser.analyze(
                     problem=self.salib_problem,
                     Y=res,
