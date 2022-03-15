@@ -245,10 +245,8 @@ class SAnalysis:
                        if key != 'indicator'}
 
             plot_sample(
-                sample_res=np.array([
-                    res[arguments['indicator']]
-                    for res in self.simulation_results
-                ]),
+                sample_res=[res[arguments['indicator']]
+                            for res in self.simulation_results],
                 **options
             )
 
@@ -339,40 +337,27 @@ def plot_stacked_lines(
     fig.show()
 
 
-def plot_sample(sample_res, ref=None, title=None, y_label=None, x_label=None,
-                x_axis=None, alpha=0.5):
-    n_sample = sample_res.shape[0]
-    x_to_plot = np.concatenate(
-        [np.arange(sample_res.shape[1])] * n_sample)
-    y_to_plot = sample_res.flatten()
+def plot_sample(sample_res, ref=None, title=None,
+                y_label=None, x_label=None, alpha=0.5):
 
-    if isinstance(ref, pd.Series) or isinstance(ref, pd.DataFrame):
-        x_to_plot = pd.concat([pd.Series(ref.index)] * n_sample)
+    if ref is not None:
+        try:
+            to_plot = pd.concat(
+                [res.loc[ref.index] for res in sample_res]
+            )
+        except:
+            raise ValueError("Provide Pandas Series or DataFrame as ref")
 
-    elif x_axis is not None:
-        if isinstance(x_axis, np.array) or isinstance(x_axis, list):
-            x_to_plot = np.concatenate([x_axis] * n_sample)
-
-        elif isinstance(x_axis, pd.DatetimeIndex):
-            x_to_plot = pd.concat([pd.Series(x_axis)] * n_sample)
-
-        elif isinstance(x_axis, pd.Series):
-            x_to_plot = pd.concat([x_axis] * n_sample)
-
-        elif isinstance(x_axis, pd.DataFrame):
-            x_to_plot = pd.concat([x_axis.squeeze()] * n_sample)
-
-        else:
-            raise ValueError("x_axis has a wrong format. Please provide"
-                             "list, np.array, pd.Series, pd.DataFrame")
+    else:
+        to_plot = pd.concat([res for res in sample_res])
 
     fig = go.Figure()
     fig.add_trace(
         go.Scattergl(
             name="Sample",
             mode="markers",
-            x=x_to_plot,
-            y=y_to_plot,
+            x=to_plot.index,
+            y=np.array(to_plot),
             marker=dict(
                 color=f'rgba(135, 135, 135, {alpha})',
             )
