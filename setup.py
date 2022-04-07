@@ -31,6 +31,11 @@ setup(
     install_requires=[
         "pandas>=1.2.3",
         "numpy>=1.17.3",
+        "OMPython>=3.3.0",
+        "SALib>=1.4.5",
+        "scipy>=1.7.2",
+        "scikit-learn>=1.0.1",
+        "fastprogress>=1.0.0",
     ],
     packages=find_packages(exclude=["tests*"]),
     include_package_data=True,
