@@ -77,6 +77,17 @@ class Simulator:
         if init_parameters:
             self.set_param_dict(init_parameters)
 
+        self.set_simulation_options(simulation_options)
+
+    def get_available_outputs(self):
+        if self.model.getSolutions() is None:
+            # A bit dirty but simulation must be run once so
+            # getSolutions() can access results
+            self.simulate()
+
+        return self.model.getSolutions()
+
+    def set_simulation_options(self, simulation_options):
         self.model.setSimulationOptions(
             [
                 f'startTime={simulation_options["startTime"]}',
@@ -86,14 +97,6 @@ class Simulator:
                 f'solver={simulation_options["solver"]}'
             ]
         )
-
-    def get_available_outputs(self):
-        if self.model.getSolutions() is None:
-            # A bit dirty but simulation must be run once so
-            # getSolutions() can access results
-            self.simulate()
-
-        return self.model.getSolutions()
 
     def set_boundaries_df(self, df):
         # DataFrame columns order must match the order
