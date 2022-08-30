@@ -1,10 +1,12 @@
 from SALib.sample import fast_sampler
 from SALib.sample import saltelli
 from SALib.sample import morris as morris_sampler
+from SALib.sample import latin
 
 from SALib.analyze import fast
 from SALib.analyze import morris
 from SALib.analyze import sobol
+from SALib.analyse import rbd_fast
 
 from fastprogress.fastprogress import master_bar, progress_bar
 from fastprogress.fastprogress import force_console_behavior
@@ -55,6 +57,10 @@ class SAnalysis:
             "Sobol": {
                 "method": sobol,
                 "sampling": saltelli,
+            },
+            "RBD_fast": {
+                "method": rbd_fast,
+                "sampling": latin,
             }
         }
         self.simulator = simulator
