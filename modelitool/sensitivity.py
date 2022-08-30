@@ -6,7 +6,7 @@ from SALib.sample import latin
 from SALib.analyze import fast
 from SALib.analyze import morris
 from SALib.analyze import sobol
-from SALib.analyse import rbd_fast
+from SALib.analyze import rbd_fast
 
 from fastprogress.fastprogress import master_bar, progress_bar
 from fastprogress.fastprogress import force_console_behavior
@@ -172,12 +172,20 @@ class SAnalysis:
         if freq is None:
             y_array = np.array(self._compute_aggregated(
                 aggregation_method, indicator, reference))
-
-            self.sensitivity_results = analyser.analyze(
-                problem=self.salib_problem,
-                Y=y_array,
-                **arguments
-            )
+            
+            if self._sensitivity_method == "Sobol":
+                self.sensitivity_results = analyser.analyze(
+                    problem=self.salib_problem,
+                    Y=y_array,
+                    **arguments
+                )
+            elif self._sensitivity_method in ["Morris", "RBD_fast", "FAST"]:
+                self.sensitivity_results = analyser.analyze(
+                    problem=self.salib_problem,
+                    X=self.sample,
+                    Y=y_array,
+                    **arguments
+                )
         else:
             agg_list = self._compute_aggregated(
                 aggregation_method=aggregation_method,
