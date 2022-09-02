@@ -185,6 +185,53 @@ class SAnalysis:
                 **arguments
             )
 
+    def dynanalyze(
+            self,
+            indicator,
+            aggregation_method,
+            reference=None,
+            freq=None,
+            arguments=None,
+    ):
+
+        if arguments is None:
+            arguments = {}
+
+        if freq is None:
+            raise ValueError('Specify a frequency for dynamic analysis')
+
+        analyser = self.meth_samp_map[self._sensitivity_method]["method"]
+
+        agg_list = self._compute_aggregated(
+            aggregation_method=aggregation_method,
+            indicator=indicator,
+            ref=reference,
+            freq=freq,
+        )
+
+        index = agg_list[0].index
+        numpy_res = np.array(agg_list).T
+        prog_bar = progress_bar(range(index.shape[0]))
+
+        for bar, idx, res in zip(prog_bar, index, numpy_res):
+            prog_bar.comment = 'Dynamic index'
+
+            if self._sensitivity_method in ["Sobol", "FAST"]:
+                self.sensitivity_dynamic_results[idx] = analyser.analyze(
+                    problem=self.salib_problem,
+                    Y=res,
+                    **arguments
+                )
+
+            elif self._sensitivity_method in ["Morris", "RBD_fast"]:
+                self.sensitivity_dynamic_results[idx] = analyser.analyze(
+                    problem=self.salib_problem,
+                    X=self.sample,
+                    Y=res,
+                    **arguments
+                )
+
+
     def plot(self, kind="bar", arguments=None):
         if kind == "bar":
             if self.sensitivity_results is None:
