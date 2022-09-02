@@ -269,10 +269,17 @@ class SAnalysis:
                 raise ValueError("Please specify at least model output"
                                  " name as 'indicator")
 
-            df_to_plot = pd.DataFrame({
-                date: res['ST']
-                for date, res in self.sensitivity_dynamic_results.items()
-            }).T
+            if self._sensitivity_method == "RBD_fast":
+                df_to_plot = pd.DataFrame({
+                    date: res['S1']
+                    for date, res in self.sensitivity_dynamic_results.items()
+                }).T
+
+            if self._sensitivity_method == "Sobol":
+                df_to_plot = pd.DataFrame({
+                    date: res['ST']
+                    for date, res in self.sensitivity_dynamic_results.items()
+                }).T
 
             df_to_plot.columns = list(self.parameters_config.keys())
 
