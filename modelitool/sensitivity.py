@@ -173,13 +173,13 @@ class SAnalysis:
             y_array = np.array(self._compute_aggregated(
                 aggregation_method, indicator, reference))
             
-            if self._sensitivity_method == "Sobol":
+            if self._sensitivity_method in ["Sobol", "FAST"]:
                 self.sensitivity_results = analyser.analyze(
                     problem=self.salib_problem,
                     Y=y_array,
                     **arguments
                 )
-            elif self._sensitivity_method in ["Morris", "RBD_fast", "FAST"]:
+            elif self._sensitivity_method in ["Morris", "RBD_fast"]:
                 self.sensitivity_results = analyser.analyze(
                     problem=self.salib_problem,
                     X=self.sample,
