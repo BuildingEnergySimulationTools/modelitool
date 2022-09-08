@@ -191,6 +191,7 @@ class SAnalysis:
             aggregation_method,
             reference=None,
             freq=None,
+            absolute=False,
             arguments=None,
     ):
 
@@ -231,6 +232,24 @@ class SAnalysis:
                     **arguments
                 )
 
+            if absolute:
+                prog_bar.comment = 'Dynamic absolute index'
+                numpy_var = np.var(numpy_res, axis=0)
+                df_res_dict = {
+                  idx: it.to_df()
+                  for idx, it in self.sensitivity_dynamic_results.items()
+                }
+
+                for df_list, var in zip(df_res_dict.values(), numpy_var):
+                    if self._sensitivity_method in ["Sobol", "FAST"]: #ne fonctionne pas
+                        for list_idx, df in enumerate(df_list):
+                            df = df * var
+                            self.sensitivity_dynamic_results[idx][list_idx] = df.to_dict()
+
+                    else: #RBD_fast (differente structure des résultats)
+                        for list_idx, df in enumerate(df_list):
+                            df = df * var
+                            self.sensitivity_dynamic_results[idx][list_idx] = df.to_dict()
 
     def plot(self, kind="bar", arguments=None):
         if kind == "bar":
