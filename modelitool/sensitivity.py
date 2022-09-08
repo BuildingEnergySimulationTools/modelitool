@@ -18,6 +18,7 @@ import pandas as pd
 import datetime as dt
 import warnings
 import time
+from pprint import pprint
 
 master_bar, progress_bar = force_console_behavior()
 
@@ -232,24 +233,16 @@ class SAnalysis:
                     **arguments
                 )
 
-            if absolute:
-                prog_bar.comment = 'Dynamic absolute index'
-                numpy_var = np.var(numpy_res, axis=0)
-                df_res_dict = {
-                  idx: it.to_df()
-                  for idx, it in self.sensitivity_dynamic_results.items()
-                }
+        if absolute:
+            prog_bar.comment = 'Dynamic absolute index'
+            numpy_var = np.var(numpy_res, axis=0)
 
-                for df_list, var in zip(df_res_dict.values(), numpy_var):
-                    if self._sensitivity_method in ["Sobol", "FAST"]: #ne fonctionne pas
-                        for list_idx, df in enumerate(df_list):
-                            df = df * var
-                            self.sensitivity_dynamic_results[idx][list_idx] = df.to_dict()
-
-                    else: #RBD_fast (differente structure des résultats)
-                        for list_idx, df in enumerate(df_list):
-                            df = df * var
-                            self.sensitivity_dynamic_results[idx][list_idx] = df.to_dict()
+            for key, dict_res, var in zip(
+                    self.sensitivity_dynamic_results.keys(),
+                    self.sensitivity_dynamic_results.values(),
+                    numpy_var):
+                for idx in dict_res.keys():
+                    self.sensitivity_dynamic_results[key][idx] *= var
 
     def plot(self, kind="bar", arguments=None):
         if kind == "bar":
