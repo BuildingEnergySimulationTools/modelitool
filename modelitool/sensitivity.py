@@ -237,12 +237,30 @@ class SAnalysis:
             prog_bar.comment = 'Dynamic absolute index'
             numpy_var = np.var(numpy_res, axis=0)
 
-            for key, dict_res, var in zip(
-                    self.sensitivity_dynamic_results.keys(),
-                    self.sensitivity_dynamic_results.values(),
-                    numpy_var):
-                for idx in dict_res.keys():
-                    self.sensitivity_dynamic_results[key][idx] *= var
+            if self._sensitivity_method in ["Sobol", "FAST"]:
+                for key, dict_res, var in zip(
+                        self.sensitivity_dynamic_results.keys(),
+                        self.sensitivity_dynamic_results.values(),
+                        numpy_var):
+                    for idx in dict_res.keys():
+                        self.sensitivity_dynamic_results[key][idx] *= var
+
+            else:
+                for idx, it in self.sensitivity_dynamic_results.items():
+                    it.pop('names', None)
+
+                res_array = {
+                    idx: {idx_n: np.array(it_n) for idx_n, it_n in it.items()}
+                    for idx, it in self.sensitivity_dynamic_results.items()
+                }
+                for key, dict_res, var in zip(
+                        res_array.keys(),
+                        res_array.values(),
+                        numpy_var):
+                    for idx in dict_res.keys():
+                        res_array[key][idx] *= var
+                self.sensitivity_dynamic_results = res_array
+
 
     def plot(self, kind="bar", arguments=None):
         if kind == "bar":
