@@ -10,7 +10,7 @@ def missing_values_dict(df):
     }
 
 
-def gaps_describe(df_in, cols=None, timestep=None):
+def find_gaps(df_in, cols=None, timestep=None):
     if not cols:
         cols = df_in.columns
 
@@ -32,13 +32,19 @@ def gaps_describe(df_in, cols=None, timestep=None):
     df.sort_index(inplace=True)
 
     # Compute gaps duration
-    res = pd.DataFrame()
+    res = {}
     for col in list(cols) + ["combination"]:
         time_der = df[col].loc[df[col]].index.to_series().diff()
-        t = time_der[time_der > timestep] - timestep
-        res[col] = t.describe()
+        res[col] = time_der[time_der > timestep] - timestep
 
     return res
+
+
+def gaps_describe(df_in, cols=None, timestep=None):
+    res_find_gaps = find_gaps(df_in, cols, timestep)
+
+    return pd.DataFrame(
+        {k: val.describe() for k, val in res_find_gaps.items()})
 
 
 def auto_timestep(df):
@@ -46,7 +52,7 @@ def auto_timestep(df):
 
 
 class MeasuredDats:
-    def __init__(self, data, data_type_dict, corr_dict):
+    def __init__(self, data, data_type_dict, corr_dict, gaps_timedelta=None):
         self.data = data.apply(
             pd.to_numeric, args=('coerce',)
         ).copy()
@@ -60,6 +66,10 @@ class MeasuredDats:
             "Entries": data.shape[0],
             "Init": missing_values_dict(data)
         }
+        if gaps_timedelta is None:
+            self.gaps_timedelta = auto_timestep(self.data)
+        else:
+            self.gaps_timedelta = gaps_timedelta
 
     def auto_correct(self):
         self.remove_anomalies()
@@ -79,7 +89,8 @@ class MeasuredDats:
             )
         self.correction_journal["remove_anomalies"] = {
             "missing_values": missing_values_dict(self.corrected_data),
-            "gaps_stats": gaps_describe(self.corrected_data)
+            "gaps_stats": gaps_describe(
+                self.corrected_data, timestep=self.gaps_timedelta)
         }
 
     def fill_nan(self):
@@ -95,7 +106,8 @@ class MeasuredDats:
 
         self.correction_journal["fill_nan"] = {
             "missing_values": missing_values_dict(self.corrected_data),
-            "gaps_stats": gaps_describe(self.corrected_data)
+            "gaps_stats": gaps_describe(
+                self.corrected_data, timestep=self.gaps_timedelta)
         }
 
     def resample(self, timestep=None):

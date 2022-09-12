@@ -333,22 +333,6 @@ class TestMeasuredDats:
         assert res["Number_of_missing"].equals(to_test["Number_of_missing"])
         assert res["Percent_of_missing"].equals(to_test["Percent_of_missing"])
 
-    def test_find_gaps(self):
-        time_index_df = pd.date_range(
-            "2021-01-01 00:00:00",
-            freq="H",
-            periods=3
-        )
-
-        df = pd.DataFrame(
-            {
-                "dumb_column1": [np.nan, 5, 5],
-                "dumb_column2": [5, np.nan, 5],
-                "dumb_column3": [5, np.nan, np.nan],
-            },
-            index=time_index_df
-        )
-
     def test_gaps_describe(self):
         time_index_df = pd.date_range(
             "2021-01-01 00:00:00",
