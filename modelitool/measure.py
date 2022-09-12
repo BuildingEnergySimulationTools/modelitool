@@ -35,7 +35,7 @@ def find_gaps(df_in, cols=None, timestep=None):
     res = {}
     for col in list(cols) + ["combination"]:
         time_der = df[col].loc[df[col]].index.to_series().diff()
-        res[col] = time_der[time_der > timestep] - timestep
+        res[col] = time_der[time_der > timestep]
 
     return res
 

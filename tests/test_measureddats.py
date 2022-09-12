@@ -350,11 +350,11 @@ class TestMeasuredDats:
             index=time_index_df
         )
 
-        one_hour_dt = pd.to_timedelta("1H")
-        one_n_half = pd.to_timedelta("1H30min")
-        two_hour_dt = pd.to_timedelta("2H")
-        two_n_half = pd.to_timedelta("2H30min")
-        three_hour = pd.to_timedelta("3H")
+        one_hour_dt = pd.to_timedelta("2H")
+        one_n_half = pd.to_timedelta("2H30min")
+        two_hour_dt = pd.to_timedelta("3H")
+        two_n_half = pd.to_timedelta("3H30min")
+        three_hour = pd.to_timedelta("4H")
         spec_std = pd.to_timedelta('0 days 01:24:51.168824543')
         nat = pd.NaT
 
