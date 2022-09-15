@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from .combitabconvert import df_to_combitimetable
+import plotly.graph_objects as go
 
 
 def missing_values_dict(df):
@@ -49,6 +50,27 @@ def gaps_describe(df_in, cols=None, timestep=None):
 
 def auto_timestep(df):
     return df.index.to_frame().diff().mean()[0]
+
+
+def add_scatter_and_gaps(figure, series, gap_series, color_rgb, alpha, y_min,
+                         y_max):
+    figure.add_trace(go.Scatter(
+        x=series.index,
+        y=series.to_numpy().flatten(),
+        mode='lines+markers',
+        name=series.name,
+        line=dict(color=f'rgb{color_rgb}')
+    ))
+
+    for t_idx, gap in gap_series.iteritems():
+        figure.add_trace(go.Scatter(
+            x=[t_idx - gap, t_idx - gap, t_idx, t_idx],
+            y=[y_min, y_max, y_max, y_min],
+            mode='none',
+            fill='toself',
+            fillcolor=f"rgba({color_rgb[0]}, {color_rgb[1]},"
+                      f" {color_rgb[2]} , {alpha})",
+        ))
 
 
 class MeasuredDats:
