@@ -198,18 +198,33 @@ class MeasuredDats:
         else:
             df_to_combitimetable(self.data, file_path)
 
+    def get_scaled_data(self, cols=None, scaler=StandardScaler):
+        if cols is None:
+            cols = self.data.columns
+
+        df_raw = self.data[cols]
+        df_corr = self.corrected_data[cols]
+
+        scal = scaler()
+        scal.fit(df_raw)
+        df_raw[cols] = scal.transform(df_raw[cols])
+        df_corr[cols] = scal.transform(df_corr[cols])
+
+        return df_raw, df_corr
+
+    #
+    # def plot_gaps(self, cols, y_label=None, title="Corretion plot",
+    #         make_dimensionless=False):
+
     def plot_compare_correction(
             self, cols, y_label=None, title="Corretion plot",
-            make_dimensionless=False):
-
-        to_plot_raw = self.data[cols]
-        to_plot_corr = self.corrected_data[cols]
+            make_dimensionless=False, scaler=StandardScaler):
 
         if make_dimensionless:
-            scaler = StandardScaler()
-            scaler.fit(to_plot_raw)
-            to_plot_raw[cols] = scaler.transform(to_plot_raw[cols])
-            to_plot_corr[cols] = scaler.transform(to_plot_corr[cols])
+            to_plot_raw, to_plot_corr = self.get_scaled_data(cols, scaler)
+        else:
+            to_plot_raw = self.data[cols]
+            to_plot_corr = self.corrected_data[cols]
 
         fig = go.Figure()
 
