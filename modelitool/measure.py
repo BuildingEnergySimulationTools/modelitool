@@ -208,16 +208,8 @@ class MeasuredDats:
         if make_dimensionless:
             scaler = StandardScaler()
             scaler.fit(to_plot_raw)
-            to_plot_raw = pd.DataFrame(
-                data=scaler.transform(to_plot_raw),
-                index=to_plot_raw.index,
-                columns=to_plot_raw.columns
-            )
-            to_plot_corr = pd.DataFrame(
-                data=scaler.transform(to_plot_corr),
-                index=to_plot_corr.index,
-                columns=to_plot_corr.columns
-            )
+            to_plot_raw[cols] = scaler.transform(to_plot_raw[cols])
+            to_plot_corr[cols] = scaler.transform(to_plot_corr[cols])
 
         fig = go.Figure()
 
