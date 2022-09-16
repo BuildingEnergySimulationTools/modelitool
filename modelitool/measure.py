@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from .combitabconvert import df_to_combitimetable
+from modelitool.combitabconvert import df_to_combitimetable
+from sklearn.preprocessing import StandardScaler
 import plotly.graph_objects as go
 
 
@@ -196,3 +197,51 @@ class MeasuredDats:
             df_to_combitimetable(self.corrected_data, file_path)
         else:
             df_to_combitimetable(self.data, file_path)
+
+    def plot_compare_correction(
+            self, cols, y_label=None, title="Corretion plot",
+            make_dimensionless=False):
+
+        to_plot_raw = self.data[cols]
+        to_plot_corr = self.corrected_data[cols]
+
+        if make_dimensionless:
+            scaler = StandardScaler()
+            scaler.fit(to_plot_raw)
+            to_plot_raw = pd.DataFrame(
+                data=scaler.transform(to_plot_raw),
+                index=to_plot_raw.index,
+                columns=to_plot_raw.columns
+            )
+            to_plot_corr = pd.DataFrame(
+                data=scaler.transform(to_plot_corr),
+                index=to_plot_corr.index,
+                columns=to_plot_corr.columns
+            )
+
+        fig = go.Figure()
+
+        for col in cols:
+            fig.add_scatter(
+                x=to_plot_raw.index,
+                y=to_plot_raw[col],
+                name=f"{col}_raw",
+                mode='lines+markers',
+                # line=dict(color=f'rgb{color_rgb}')
+            )
+
+            fig.add_scatter(
+                x=to_plot_corr.index,
+                y=to_plot_corr[col],
+                name=f"{col}_corrected",
+                mode='lines+markers',
+                line=dict(color=f'rgb(216,79,86)'))
+
+        fig.update_layout(dict(
+            title=title,
+            yaxis_title=y_label
+        ))
+
+        fig.show()
+
+
