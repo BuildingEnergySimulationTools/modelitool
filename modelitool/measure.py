@@ -3,6 +3,7 @@ import pandas as pd
 from modelitool.combitabconvert import df_to_combitimetable
 from sklearn.preprocessing import StandardScaler
 import plotly.graph_objects as go
+import datetime as dt
 
 
 def missing_values_dict(df):
@@ -55,27 +56,33 @@ def auto_timestep(df):
 
 def add_scatter_and_gaps(figure, series, gap_series, color_rgb, alpha, y_min,
                          y_max):
-    figure.add_trace(go.Scatter(
+    figure.add_trace(go.Scattergl(
         x=series.index,
         y=series.to_numpy().flatten(),
         mode='lines+markers',
         name=series.name,
-        line=dict(color=f'rgb{color_rgb}')
+        # line=dict(color=f'rgb{color_rgb}')
     ))
 
     for t_idx, gap in gap_series.iteritems():
-        figure.add_trace(go.Scatter(
+        figure.add_trace(go.Scattergl(
             x=[t_idx - gap, t_idx - gap, t_idx, t_idx],
             y=[y_min, y_max, y_max, y_min],
             mode='none',
             fill='toself',
+            showlegend=False,
             fillcolor=f"rgba({color_rgb[0]}, {color_rgb[1]},"
                       f" {color_rgb[2]} , {alpha})",
         ))
 
 
 class MeasuredDats:
-    def __init__(self, data, data_type_dict, corr_dict, gaps_timedelta=None):
+    def __init__(self,
+                 data,
+                 data_type_dict=None,
+                 corr_dict=None,
+                 gaps_timedelta=None):
+
         self.data = data.apply(
             pd.to_numeric, args=('coerce',)
         ).copy()
@@ -93,6 +100,10 @@ class MeasuredDats:
             self.gaps_timedelta = auto_timestep(self.data)
         else:
             self.gaps_timedelta = gaps_timedelta
+
+    @property
+    def columns(self):
+        return self.data.columns
 
     def auto_correct(self):
         self.remove_anomalies()
@@ -212,15 +223,67 @@ class MeasuredDats:
 
         return df_raw, df_corr
 
-    #
-    # def plot_gaps(self, cols, y_label=None, title="Corretion plot",
-    #         make_dimensionless=False):
+    def plot_gaps(
+            self,
+            cols=None,
+            gaps_timestep=dt.timedelta(hours=5),
+            y_label=None,
+            title="Gaps plot",
+            scale_data=False,
+            scaler=StandardScaler,
+            raw_data=False,
+            color_rgb=(243, 132, 48),
+            alpha=0.5):
+
+        if cols is None:
+            cols = self.columns
+
+        if scale_data:
+            raw_scaled, corr_scaled = self.get_scaled_data(cols, scaler)
+            if raw_data:
+                to_plot = raw_scaled
+            else:
+                to_plot = corr_scaled
+        else:
+            if raw_data:
+                to_plot = self.data
+            else:
+                to_plot = self.corrected_data
+
+        if isinstance(to_plot, pd.Series):
+            to_plot = to_plot.to_frame()
+
+        y_min = to_plot.min().min()
+        y_max = to_plot.max().max()
+
+        fig = go.Figure()
+
+        for col in cols:
+            add_scatter_and_gaps(
+                figure=fig,
+                series=to_plot[col],
+                gap_series=find_gaps(
+                    df_in=to_plot, cols=[col], timestep=gaps_timestep)[col],
+                color_rgb=color_rgb,
+                alpha=alpha,
+                y_min=y_min,
+                y_max=y_max)
+
+        fig.update_layout(dict(
+            title=title,
+            yaxis_title=y_label
+        ))
+
+        fig.show()
 
     def plot_compare_correction(
-            self, cols, y_label=None, title="Corretion plot",
-            make_dimensionless=False, scaler=StandardScaler):
+            self, cols=None, y_label=None, title="Correction plot",
+            scale_data=False, scaler=StandardScaler):
 
-        if make_dimensionless:
+        if cols is None:
+            cols = self.columns
+
+        if scale_data:
             to_plot_raw, to_plot_corr = self.get_scaled_data(cols, scaler)
         else:
             to_plot_raw = self.data[cols]
@@ -229,7 +292,7 @@ class MeasuredDats:
         fig = go.Figure()
 
         for col in cols:
-            fig.add_scatter(
+            fig.add_scattergl(
                 x=to_plot_raw.index,
                 y=to_plot_raw[col],
                 name=f"{col}_raw",
@@ -237,7 +300,7 @@ class MeasuredDats:
                 # line=dict(color=f'rgb{color_rgb}')
             )
 
-            fig.add_scatter(
+            fig.add_scattergl(
                 x=to_plot_corr.index,
                 y=to_plot_corr[col],
                 name=f"{col}_corrected",
@@ -250,5 +313,3 @@ class MeasuredDats:
         ))
 
         fig.show()
-
-
