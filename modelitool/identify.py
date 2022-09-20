@@ -4,6 +4,7 @@ from scipy.optimize import differential_evolution
 from modelitool.combitabconvert import datetime_to_seconds
 import time
 
+
 class Identificator:
     def __init__(self,
                  simulator,
@@ -31,6 +32,8 @@ class Identificator:
         else:
             self.error_function = error_function
 
+        self.optimization_results = None
+
     def fit(self,
             features,
             labels,
@@ -56,7 +59,7 @@ class Identificator:
 
         res = differential_evolution(
             self._objective_function,
-            args=(labels, ),
+            args=(labels,),
             bounds=list(self.param_interval.values()),
             callback=self._optimization_callback,
             popsize=population_size,
@@ -70,6 +73,7 @@ class Identificator:
             print(f'Identification successful error function = {res["fun"]}')
             for key, val in zip(self.param_identified.keys(), res["x"]):
                 self.param_identified[key] = val
+            self.optimization_results = res
         else:
             raise ValueError("Identification failed to converge")
 
