@@ -8,17 +8,12 @@ from SALib.analyze import morris
 from SALib.analyze import sobol
 from SALib.analyze import rbd_fast
 
-from fastprogress.fastprogress import master_bar, progress_bar
 from fastprogress.fastprogress import force_console_behavior
 
 import plotly.graph_objects as go
 
 import numpy as np
 import pandas as pd
-import datetime as dt
-import warnings
-import time
-from pprint import pprint
 
 master_bar, progress_bar = force_console_behavior()
 
@@ -234,8 +229,7 @@ class SAnalysis:
                 )
 
         if absolute:
-            prog_bar.comment = 'Dynamic absolute index'
-            numpy_var = np.var(numpy_res, axis=0)
+            numpy_var = np.var(numpy_res, axis=1)
 
             if self._sensitivity_method in ["Sobol", "FAST"]:
                 for key, dict_res, var in zip(
@@ -260,7 +254,6 @@ class SAnalysis:
                     for idx in dict_res.keys():
                         res_array[key][idx] *= var
                 self.sensitivity_dynamic_results = res_array
-
 
     def plot(self, kind="bar", arguments=None):
         if kind == "bar":
@@ -326,16 +319,16 @@ class SAnalysis:
                                  " name as 'indicator")
 
             if self._sensitivity_method == "RBD_fast":
-                df_to_plot = pd.DataFrame({
-                    date: res['S1']
-                    for date, res in self.sensitivity_dynamic_results.items()
-                }).T
+                indic = 'S1'
+            elif self._sensitivity_method == "Sobol":
+                indic = 'ST'
+            else:
+                raise ValueError("Invalid sensitivity method")
 
-            if self._sensitivity_method == "Sobol":
-                df_to_plot = pd.DataFrame({
-                    date: res['ST']
-                    for date, res in self.sensitivity_dynamic_results.items()
-                }).T
+            df_to_plot = pd.DataFrame({
+                date: res[indic]
+                for date, res in self.sensitivity_dynamic_results.items()
+            }).T
 
             df_to_plot.columns = list(self.parameters_config.keys())
 
@@ -416,7 +409,6 @@ def plot_stacked_lines(
 
 def plot_sample(sample_res, ref=None, title=None,
                 y_label=None, x_label=None, alpha=0.5):
-
     if ref is not None:
         try:
             to_plot = pd.concat(
@@ -464,6 +456,7 @@ def plot_sample(sample_res, ref=None, title=None,
         fig.update_layout(xaxis_title=x_label)
 
     fig.show()
+
 
 def plot_morris_scatter(
         salib_res, title=None, unit='', scaler=100, autosize=True):

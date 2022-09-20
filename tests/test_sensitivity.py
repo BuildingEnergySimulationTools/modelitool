@@ -212,21 +212,21 @@ class TestSensitivity:
                    aggregation_method=np.mean,
                    arguments={"print_to_console": False})
 
-        sa.analyze(indicator='res1.showNumber',
-                   aggregation_method=np.mean,
-                   freq="2S",
-                   arguments={"print_to_console": True})
-
-        df_to_compare = pd.DataFrame({
-            key: res['S1']
-            for key, res in sa.sensitivity_dynamic_results.items()
-        }).T
-
         np.testing.assert_almost_equal(
             sa.sensitivity_results['S1'],
             np.array([0.26933607, 1.255609, -0.81162613]),
             decimal=3
         )
+
+        sa.dynanalyze(indicator='res1.showNumber',
+                      aggregation_method=np.mean,
+                      freq="2S",
+                      arguments={"print_to_console": True})
+
+        df_to_compare = pd.DataFrame({
+            key: res['S1']
+            for key, res in sa.sensitivity_dynamic_results.items()
+        }).T
 
         np.testing.assert_almost_equal(
             df_to_compare.to_numpy(),
@@ -235,5 +235,20 @@ class TestSensitivity:
             decimal=3
         )
 
+        sa.dynanalyze(indicator='res1.showNumber',
+                      aggregation_method=np.mean,
+                      freq="2S",
+                      arguments={"print_to_console": True},
+                      absolute=True)
 
+        df_to_compare = pd.DataFrame({
+            key: res['S1']
+            for key, res in sa.sensitivity_dynamic_results.items()
+        }).T
 
+        np.testing.assert_almost_equal(
+            df_to_compare.to_numpy(),
+            np.array([[7.66039795, 35.71175834, -23.08409401],
+                      [7.66039795, 35.71175834, -23.08409401]]),
+            decimal=3
+        )
