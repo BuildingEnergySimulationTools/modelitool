@@ -8,16 +8,12 @@ from SALib.analyze import morris
 from SALib.analyze import sobol
 from SALib.analyze import rbd_fast
 
-from fastprogress.fastprogress import master_bar, progress_bar
 from fastprogress.fastprogress import force_console_behavior
 
 import plotly.graph_objects as go
 
 import numpy as np
 import pandas as pd
-import datetime as dt
-import warnings
-import time
 
 master_bar, progress_bar = force_console_behavior()
 
@@ -158,7 +154,6 @@ class SAnalysis:
             indicator,
             aggregation_method,
             reference=None,
-            freq=None,
             arguments=None):
 
         if arguments is None:
@@ -169,42 +164,96 @@ class SAnalysis:
 
         analyser = self.meth_samp_map[self._sensitivity_method]["method"]
 
-        if freq is None:
-            y_array = np.array(self._compute_aggregated(
-                aggregation_method, indicator, reference))
-            
-            if self._sensitivity_method == "Sobol":
-                self.sensitivity_results = analyser.analyze(
-                    problem=self.salib_problem,
-                    Y=y_array,
-                    **arguments
-                )
-            elif self._sensitivity_method in ["Morris", "RBD_fast", "FAST"]:
-                self.sensitivity_results = analyser.analyze(
-                    problem=self.salib_problem,
-                    X=self.sample,
-                    Y=y_array,
-                    **arguments
-                )
-        else:
-            agg_list = self._compute_aggregated(
-                aggregation_method=aggregation_method,
-                indicator=indicator,
-                ref=reference,
-                freq=freq,
+        y_array = np.array(self._compute_aggregated(
+            aggregation_method, indicator, reference))
+
+        if self._sensitivity_method in ["Sobol", "FAST"]:
+            self.sensitivity_results = analyser.analyze(
+                problem=self.salib_problem,
+                Y=y_array,
+                **arguments
+            )
+        elif self._sensitivity_method in ["Morris", "RBD_fast"]:
+            self.sensitivity_results = analyser.analyze(
+                problem=self.salib_problem,
+                X=self.sample,
+                Y=y_array,
+                **arguments
             )
 
-            index = agg_list[0].index
-            numpy_res = np.array(agg_list).T
-            prog_bar = progress_bar(range(index.shape[0]))
+    def dynanalyze(
+            self,
+            indicator,
+            aggregation_method,
+            reference=None,
+            freq=None,
+            absolute=False,
+            arguments=None,
+    ):
 
-            for bar, idx, res in zip(prog_bar, index, numpy_res):
-                prog_bar.comment = 'Dynamic index'
+        if arguments is None:
+            arguments = {}
+
+        if freq is None:
+            raise ValueError('Specify a frequency for dynamic analysis')
+
+        analyser = self.meth_samp_map[self._sensitivity_method]["method"]
+
+        agg_list = self._compute_aggregated(
+            aggregation_method=aggregation_method,
+            indicator=indicator,
+            ref=reference,
+            freq=freq,
+        )
+
+        index = agg_list[0].index
+        numpy_res = np.array(agg_list).T
+        prog_bar = progress_bar(range(index.shape[0]))
+
+        for bar, idx, res in zip(prog_bar, index, numpy_res):
+            prog_bar.comment = 'Dynamic index'
+
+            if self._sensitivity_method in ["Sobol", "FAST"]:
                 self.sensitivity_dynamic_results[idx] = analyser.analyze(
                     problem=self.salib_problem,
                     Y=res,
                     **arguments
                 )
+
+            elif self._sensitivity_method in ["Morris", "RBD_fast"]:
+                self.sensitivity_dynamic_results[idx] = analyser.analyze(
+                    problem=self.salib_problem,
+                    X=self.sample,
+                    Y=res,
+                    **arguments
+                )
+
+        if absolute:
+            numpy_var = np.var(numpy_res, axis=1)
+
+            if self._sensitivity_method in ["Sobol", "FAST"]:
+                for key, dict_res, var in zip(
+                        self.sensitivity_dynamic_results.keys(),
+                        self.sensitivity_dynamic_results.values(),
+                        numpy_var):
+                    for idx in dict_res.keys():
+                        self.sensitivity_dynamic_results[key][idx] *= var
+
+            else:
+                for idx, it in self.sensitivity_dynamic_results.items():
+                    it.pop('names', None)
+
+                res_array = {
+                    idx: {idx_n: np.array(it_n) for idx_n, it_n in it.items()}
+                    for idx, it in self.sensitivity_dynamic_results.items()
+                }
+                for key, dict_res, var in zip(
+                        res_array.keys(),
+                        res_array.values(),
+                        numpy_var):
+                    for idx in dict_res.keys():
+                        res_array[key][idx] *= var
+                self.sensitivity_dynamic_results = res_array
 
     def plot(self, kind="bar", arguments=None):
         if kind == "bar":
@@ -269,8 +318,15 @@ class SAnalysis:
                 raise ValueError("Please specify at least model output"
                                  " name as 'indicator")
 
+            if self._sensitivity_method == "RBD_fast":
+                indic = 'S1'
+            elif self._sensitivity_method == "Sobol":
+                indic = 'ST'
+            else:
+                raise ValueError("Invalid sensitivity method")
+
             df_to_plot = pd.DataFrame({
-                date: res['ST']
+                date: res[indic]
                 for date, res in self.sensitivity_dynamic_results.items()
             }).T
 
@@ -353,7 +409,6 @@ def plot_stacked_lines(
 
 def plot_sample(sample_res, ref=None, title=None,
                 y_label=None, x_label=None, alpha=0.5):
-
     if ref is not None:
         try:
             to_plot = pd.concat(
@@ -399,5 +454,96 @@ def plot_sample(sample_res, ref=None, title=None,
 
     if x_label is not None:
         fig.update_layout(xaxis_title=x_label)
+
+    fig.show()
+
+
+def plot_morris_scatter(
+        salib_res, title=None, unit='', scaler=100, autosize=True):
+    morris_res = salib_res.to_df()
+    morris_res["distance"] = np.sqrt(
+        morris_res.mu_star ** 2 + morris_res.sigma ** 2
+    )
+    morris_res["dimless_distance"] = (
+            morris_res.distance / morris_res.distance.max())
+
+    import plotly.graph_objects as go
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=morris_res.mu_star,
+        y=morris_res.sigma,
+        name="Morris index",
+        mode='markers+text',
+        text=list(morris_res.index),
+        textposition="top center",
+        marker=dict(
+            size=morris_res.dimless_distance * scaler,
+            color=np.arange(morris_res.shape[0])
+        ),
+        error_x=dict(
+            type='data',  # value of error bar given in data coordinates
+            array=morris_res.mu_star_conf,
+            color='#696969',
+            visible=True
+        )
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=np.array([0, morris_res.mu_star.max() * 1.1]),
+        y=np.array([0, 0.1 * morris_res.mu_star.max() * 1.1]),
+        name="linear_lim",
+        mode='lines',
+        line=dict(
+            color='grey',
+            dash='dash'
+        ),
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=np.array([0, morris_res.mu_star.max() * 1.1]),
+        y=np.array([0, 0.5 * morris_res.mu_star.max() * 1.1]),
+        name="Monotonic limit",
+        mode='lines',
+        line=dict(
+            color='grey',
+            dash='dot'
+        ),
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=np.array([0, morris_res.mu_star.max() * 1.1]),
+        y=np.array([0, 1 * morris_res.mu_star.max() * 1.1]),
+        name="Non linear limit",
+        mode='lines',
+        line=dict(
+            color='grey',
+            dash='dashdot'
+        ),
+    ))
+
+    # Edit the layout
+    if title is not None:
+        title = title
+    else:
+        title = 'Morris Sensitivity Analysis'
+
+    if autosize:
+        y_lim = [- morris_res.sigma.max() * 0.1,
+                 morris_res.sigma.max() * 1.5]
+    else:
+        y_lim = [- morris_res.sigma.max() * 0.1,
+                 morris_res.mu_star.max() * 1.1]
+
+    x_label = f'Absolute mean of elementary effects μ* [{unit}]'
+    y_label = f'Standard deviation of elementary effects σ [{unit}]'
+
+    fig.update_layout(
+        title=title,
+        xaxis_title=x_label,
+        yaxis_title=y_label,
+        yaxis_range=y_lim,
+    )
 
     fig.show()
