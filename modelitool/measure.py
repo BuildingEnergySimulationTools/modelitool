@@ -112,15 +112,16 @@ class MeasuredDats:
 
     def remove_anomalies(self):
         for data_type, cols in self.data_type_dict.items():
-            self._minmax_corr(
-                cols=cols,
-                **self.corr_dict[data_type]["minmax"]
-            )
-
-            self._derivative_corr(
-                cols=cols,
-                **self.corr_dict[data_type]["derivative"]
-            )
+            if "minmax" in self.corr_dict[data_type].keys():
+                self._minmax_corr(
+                    cols=cols,
+                    **self.corr_dict[data_type]["minmax"]
+                )
+            if "derivative" in self.corr_dict[data_type].keys():
+                self._derivative_corr(
+                    cols=cols,
+                    **self.corr_dict[data_type]["derivative"]
+                )
         self.correction_journal["remove_anomalies"] = {
             "missing_values": missing_values_dict(self.corrected_data),
             "gaps_stats": gaps_describe(
