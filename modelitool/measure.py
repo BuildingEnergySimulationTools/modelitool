@@ -276,9 +276,9 @@ class MeasuredDats:
 
         fig.show()
 
-    def plot_compare_correction(
+    def plot(
             self, cols=None, y_label=None, title="Correction plot",
-            scale_data=False, scaler=StandardScaler):
+            scale_data=False, scaler=StandardScaler, plot_raw=False):
 
         if cols is None:
             cols = self.columns
@@ -292,24 +292,33 @@ class MeasuredDats:
         fig = go.Figure()
 
         for col in cols:
-            fig.add_scattergl(
-                x=to_plot_raw.index,
-                y=to_plot_raw[col],
-                name=f"{col}_raw",
-                mode='lines+markers',
-                # line=dict(color=f'rgb{color_rgb}')
-            )
+            if plot_raw:
+                fig.add_scattergl(
+                    x=to_plot_raw.index,
+                    y=to_plot_raw[col],
+                    name=f"{col}_raw",
+                    mode='lines+markers',
+                    line=dict(color=f'rgb(216,79,86)')
+                )
 
             fig.add_scattergl(
                 x=to_plot_corr.index,
                 y=to_plot_corr[col],
                 name=f"{col}_corrected",
                 mode='lines+markers',
-                line=dict(color=f'rgb(216,79,86)'))
+                )
 
         fig.update_layout(dict(
             title=title,
             yaxis_title=y_label
+        ))
+
+        fig.update_layout(legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.3,
+            xanchor="center",
+            x=0.5
         ))
 
         fig.show()
