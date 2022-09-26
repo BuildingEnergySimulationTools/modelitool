@@ -301,6 +301,17 @@ class MeasuredDats:
 
         fig = go.Figure()
 
+        ax_dict = {}
+        for col in cols:
+            for key, name_list in self.data_type_dict.items():
+                if col in name_list:
+                    ax_dict[col] = key
+
+        ax_map = {cat: f"y{i + 1}"
+                  for i, cat in enumerate(set(ax_dict.values()))}
+        ax_map[list(ax_map.keys())[0]] = 'y'
+        ax_dict = {k: ax_map[ax_dict[k]] for k in ax_dict.keys()}
+
         for col in cols:
             if plot_raw:
                 fig.add_scattergl(
@@ -308,7 +319,8 @@ class MeasuredDats:
                     y=to_plot_raw[col],
                     name=f"{col}_raw",
                     mode='lines+markers',
-                    line=dict(color=f'rgb(216,79,86)')
+                    line=dict(color=f'rgb(216,79,86)'),
+                    yaxis=ax_dict[col]
                 )
 
             fig.add_scattergl(
@@ -316,19 +328,29 @@ class MeasuredDats:
                 y=to_plot_corr[col],
                 name=f"{col}_corrected",
                 mode='lines+markers',
-                )
+                yaxis=ax_dict[col]
+            )
 
-        fig.update_layout(dict(
-            title=title,
-            yaxis_title=y_label
-        ))
+        layout_ax_dict = {}
+        ax_list = list(ax_map.keys())
+        layout_ax_dict["yaxis"] = {"title": ax_list[0]}
+        for i, ax in enumerate(ax_list[1:]):
+            layout_ax_dict[f"yaxis{i + 2}"] = {
+                "title": ax,
+                "side": "right"
+            }
 
-        fig.update_layout(legend=dict(
-            orientation="h",
-            yanchor="top",
-            y=-0.3,
-            xanchor="center",
-            x=0.5
-        ))
+        fig.update_layout(**layout_ax_dict)
+
+        fig.update_layout(
+            legend=dict(
+                orientation="h",
+                yanchor="top",
+                y=-0.1,
+                xanchor="center",
+                x=0.5),
+        )
+
+        fig.update_layout(dict(title=title))
 
         fig.show()
