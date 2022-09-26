@@ -278,17 +278,26 @@ class MeasuredDats:
         fig.show()
 
     def plot(
-            self, cols=None, y_label=None, title="Correction plot",
-            scale_data=False, scaler=StandardScaler, plot_raw=False):
+            self, cols=None, title="Correction plot",
+            scale_data=False, scaler=StandardScaler, plot_raw=False,
+            begin=None, end=None):
+
+        if begin is None:
+            begin = self.corrected_data.index[0]
+
+        if end is None:
+            end = self.corrected_data.index[-1]
 
         if cols is None:
             cols = self.columns
 
         if scale_data:
             to_plot_raw, to_plot_corr = self.get_scaled_data(cols, scaler)
+            to_plot_raw = to_plot_raw.loc[begin:end, :]
+            to_plot_corr = to_plot_corr.loc[begin:end, :]
         else:
-            to_plot_raw = self.data[cols]
-            to_plot_corr = self.corrected_data[cols]
+            to_plot_raw = self.data.loc[begin:end, cols]
+            to_plot_corr = self.corrected_data.loc[begin:end, cols]
 
         fig = go.Figure()
 
