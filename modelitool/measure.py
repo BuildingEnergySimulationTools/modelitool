@@ -260,8 +260,8 @@ class MeasuredDats:
         if isinstance(to_plot, pd.Series):
             to_plot = to_plot.to_frame()
 
-        y_min = to_plot.min().min()
-        y_max = to_plot.max().max()
+        y_min = to_plot[cols].min().min()
+        y_max = to_plot[cols].max().max()
 
         fig = go.Figure()
 
