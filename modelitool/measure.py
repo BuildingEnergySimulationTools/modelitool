@@ -101,6 +101,11 @@ class MeasuredDats:
         else:
             self.gaps_timedelta = gaps_timedelta
 
+        self.resample_func_dict = {
+            'mean': np.mean,
+            'sum': np.sum
+        }
+
     @property
     def columns(self):
         return self.data.columns
@@ -152,7 +157,8 @@ class MeasuredDats:
         agg_arguments = {}
         for data_type, cols in self.data_type_dict.items():
             for col in cols:
-                agg_arguments[col] = self.corr_dict[data_type]["resample"]
+                key = self.corr_dict[data_type]["resample"]
+                agg_arguments[col] = self.resample_func_dict[key]
 
         resampled = self.corrected_data.resample(timestep).agg(agg_arguments)
         self.corrected_data = resampled

@@ -292,10 +292,10 @@ class TestMeasuredDats:
             },
             corr_dict={
                 "col_1": {
-                    "resample": np.mean
+                    "resample": 'mean'
                 },
                 "col_2": {
-                    "resample": np.sum
+                    "resample": 'sum'
                 },
             }
         )
@@ -383,8 +383,5 @@ class TestMeasuredDats:
             },
             index=['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']
         )
-
-        print(ref)
-        print(gaps_describe(df))
 
         assert ref.equals(gaps_describe(df))
