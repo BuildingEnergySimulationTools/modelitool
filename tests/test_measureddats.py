@@ -409,6 +409,10 @@ class TestMeasuredDats:
                 "cat_1": ["dumb_column"],
                 "cat_2": ["dumb_column2"],
             },
+            corr_dict={
+                "cat_1": {},
+                "cat_2": {},
+            }
         )
 
         to_test = test._get_reversed_data_type_dict(
@@ -423,6 +427,10 @@ class TestMeasuredDats:
                 "cat_1": ["dumb_column"],
                 "cat_2": ["dumb_column2"],
             },
+            corr_dict={
+                "cat_1": {},
+                "cat_2": {},
+            }
         )
 
         ax_dict, layout_ax_dict = test._get_yaxis_config(

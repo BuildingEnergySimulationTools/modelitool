@@ -34,9 +34,10 @@ def check_config_dict(config_dict):
                     raise ValueError(f"Invalid configuration for {tpe} minmax")
 
             elif it == "derivative":
-                if list(loc_corr.keys()) != ['upper_rate', 'lower_rate']:
-                    raise ValueError(f"Invalid configuration "
-                                     f"for {tpe} derivative")
+                for k in list(loc_corr.keys()):
+                    if k not in ['upper_rate', 'lower_rate']:
+                        raise ValueError(f"Invalid configuration "
+                                         f"for {tpe} derivative")
             elif it == "fill_nan":
                 for elmt in loc_corr:
                     if elmt not in ['linear_interpolation', 'bfill', "ffill"]:
@@ -131,6 +132,7 @@ class MeasuredDats:
                  data,
                  data_type_dict=None,
                  corr_dict=None,
+                 config_file_path=None,
                  gaps_timedelta=None):
 
         self.data = data.apply(
@@ -140,8 +142,14 @@ class MeasuredDats:
             pd.to_numeric, args=('coerce',)
         ).copy()
 
-        self.data_type_dict = data_type_dict
-        self.corr_dict = corr_dict
+        if config_file_path is None:
+            self.data_type_dict = data_type_dict
+            self.corr_dict = corr_dict
+            check_config_dict({
+                "data_type_dict": data_type_dict,
+                "corr_dict": corr_dict
+            })
+
         self.correction_journal = {
             "Entries": data.shape[0],
             "Init": missing_values_dict(data)
