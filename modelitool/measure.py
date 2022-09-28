@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import json
 from modelitool.combitabconvert import df_to_combitimetable
 from collections import defaultdict
 import plotly.graph_objects as go
@@ -149,7 +150,9 @@ class MeasuredDats:
                 "data_type_dict": data_type_dict,
                 "corr_dict": corr_dict
             })
-
+        else:
+            self.read_config_file(config_file_path)
+            
         self.correction_journal = {
             "Entries": data.shape[0],
             "Init": missing_values_dict(data)
@@ -167,6 +170,20 @@ class MeasuredDats:
     @property
     def columns(self):
         return self.data.columns
+
+    def write_config_file(self, file_path):
+        with open(file_path, 'w', encoding='utf-8') as f:
+            to_dump = {"data_type_dict": self.data_type_dict,
+                       "corr_dict": self.corr_dict}
+            json.dump(to_dump, f, ensure_ascii=False, indent=4)
+
+    def read_config_file(self, file_path):
+        with open(file_path, 'r', encoding='utf-8') as f:
+            config_dict = json.load(f)
+
+        check_config_dict(config_dict)
+        self.data_type_dict = config_dict["data_type_dict"]
+        self.corr_dict = config_dict["corr_dict"]
 
     def auto_correct(self):
         self.remove_anomalies()
