@@ -13,6 +13,41 @@ def missing_values_dict(df):
     }
 
 
+def check_config_dict(config_dict):
+    if not list(config_dict.keys()) == ['data_type_dict', 'corr_dict']:
+        raise ValueError("Invalid data_type or corr_dict")
+
+    categories = list(config_dict["data_type_dict"].keys())
+    corr_dict_type = list(config_dict['corr_dict'].keys())
+    for cat in categories:
+        if cat not in corr_dict_type:
+            raise ValueError("Type present in data_type "
+                             "is missing in corr_dict")
+
+    for tpe in config_dict['corr_dict'].keys():
+        to_test = list(config_dict['corr_dict'][tpe].keys())
+        for it in to_test:
+            loc_corr = config_dict['corr_dict'][tpe][it]
+
+            if it == "minmax":
+                if list(loc_corr.keys()) != ['upper', 'lower']:
+                    raise ValueError(f"Invalid configuration for {tpe} minmax")
+
+            elif it == "derivative":
+                if list(loc_corr.keys()) != ['upper_rate', 'lower_rate']:
+                    raise ValueError(f"Invalid configuration "
+                                     f"for {tpe} derivative")
+            elif it == "fill_nan":
+                for elmt in loc_corr:
+                    if elmt not in ['linear_interpolation', 'bfill', "ffill"]:
+                        raise ValueError(f"Invalid configuration "
+                                         f"for {tpe} fill_nan")
+            elif it == "resample":
+                if loc_corr not in ['mean', 'sum']:
+                    raise ValueError(f"Invalid configuration "
+                                     f"for {tpe} resample")
+
+
 def select_data(df, cols=None, begin=None, end=None):
     if cols is None:
         cols = df.columns
@@ -292,8 +327,10 @@ class MeasuredDats:
         fig = go.Figure()
 
         for col in cols:
-            y_min = to_plot[cols_data_type[reversed_data_type[col]]].min().min()
-            y_max = to_plot[cols_data_type[reversed_data_type[col]]].max().max()
+            y_min = to_plot[
+                cols_data_type[reversed_data_type[col]]].min().min()
+            y_max = to_plot[
+                cols_data_type[reversed_data_type[col]]].max().max()
 
             add_scatter_and_gaps(
                 figure=fig,
