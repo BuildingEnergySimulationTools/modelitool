@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from modelitool.combitabconvert import df_to_combitimetable
-from sklearn.preprocessing import StandardScaler
+from collections import defaultdict
 import plotly.graph_objects as go
 import datetime as dt
 
@@ -281,13 +281,20 @@ class MeasuredDats:
         else:
             to_plot = select_data(self.corrected_data, cols, begin, end)
 
-        y_min = to_plot[cols].min().min()
-        y_max = to_plot[cols].max().max()
+        reversed_data_type = self._get_reversed_data_type_dict(cols)
+        cols_data_type = defaultdict(list)
+        for key, value in reversed_data_type.items():
+            cols_data_type[value].append(key)
+        cols_data_type = dict(cols_data_type)
+
         ax_dict, layout_ax_dict = self._get_yaxis_config(cols)
 
         fig = go.Figure()
 
         for col in cols:
+            y_min = to_plot[cols_data_type[reversed_data_type[col]]].min().min()
+            y_max = to_plot[cols_data_type[reversed_data_type[col]]].max().max()
+
             add_scatter_and_gaps(
                 figure=fig,
                 series=to_plot[col],
@@ -303,7 +310,6 @@ class MeasuredDats:
         fig.update_layout(**layout_ax_dict)
         fig.update_layout(dict(
             title=title,
-            yaxis_title=y_label
         ))
         fig.update_layout(
             legend=dict(
