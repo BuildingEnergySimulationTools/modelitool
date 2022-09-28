@@ -4,9 +4,25 @@ import pandas as pd
 from modelitool.measure import MeasuredDats
 from modelitool.measure import missing_values_dict
 from modelitool.measure import gaps_describe
+from modelitool.measure import select_data
 
 
 class TestMeasuredDats:
+    def test_select_data(self):
+        df = pd.DataFrame({
+            "a": [1, 2],
+            "b": [1, 2],
+        })
+
+        pd.testing.assert_frame_equal(select_data(df), df)
+
+        ref = pd.DataFrame({
+            "a": [1]
+        })
+
+        pd.testing.assert_frame_equal(
+            select_data(df, begin=0, end=0, cols=['a']), ref)
+
     def test_minmax_corr(self):
         time_index = pd.date_range(
             "2021-01-01 00:00:00",

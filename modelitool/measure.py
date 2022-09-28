@@ -13,6 +13,26 @@ def missing_values_dict(df):
     }
 
 
+def select_data(df, cols=None, begin=None, end=None):
+    if cols is None:
+        cols = df.columns
+
+    if begin is None:
+        begin = df.index[0]
+
+    if end is None:
+        end = df.index[-1]
+
+    return df.loc[begin:end, cols]
+
+
+def scale_data(df, scaler=StandardScaler):
+    scal = scaler()
+    scal.fit(df)
+
+    return scal.transform(df), scal
+
+
 def find_gaps(df_in, cols=None, timestep=None):
     if not cols:
         cols = df_in.columns
