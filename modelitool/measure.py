@@ -26,13 +26,6 @@ def select_data(df, cols=None, begin=None, end=None):
     return df.loc[begin:end, cols]
 
 
-def scale_data(df, scaler=StandardScaler):
-    scal = scaler()
-    scal.fit(df)
-
-    return scal.transform(df), scal
-
-
 def find_gaps(df_in, cols=None, timestep=None):
     if not cols:
         cols = df_in.columns
@@ -236,49 +229,22 @@ class MeasuredDats:
         else:
             df_to_combitimetable(self.data, file_path)
 
-    def get_scaled_data(self, cols=None, scaler=StandardScaler):
-        if cols is None:
-            cols = self.data.columns
-
-        df_raw = self.data[cols]
-        df_corr = self.corrected_data[cols]
-
-        scal = scaler()
-        scal.fit(df_raw)
-        df_raw[cols] = scal.transform(df_raw[cols])
-        df_corr[cols] = scal.transform(df_corr[cols])
-
-        return df_raw, df_corr
-
     def plot_gaps(
             self,
             cols=None,
+            begin=None,
+            end=None,
             gaps_timestep=dt.timedelta(hours=5),
             y_label=None,
             title="Gaps plot",
-            scale_data=False,
-            scaler=StandardScaler,
             raw_data=False,
             color_rgb=(243, 132, 48),
             alpha=0.5):
 
-        if cols is None:
-            cols = self.columns
-
-        if scale_data:
-            raw_scaled, corr_scaled = self.get_scaled_data(cols, scaler)
-            if raw_data:
-                to_plot = raw_scaled
-            else:
-                to_plot = corr_scaled
+        if raw_data:
+            to_plot = select_data(self.data, cols, begin, end)
         else:
-            if raw_data:
-                to_plot = self.data
-            else:
-                to_plot = self.corrected_data
-
-        if isinstance(to_plot, pd.Series):
-            to_plot = to_plot.to_frame()
+            to_plot = select_data(self.corrected_data, cols, begin, end)
 
         y_min = to_plot[cols].min().min()
         y_max = to_plot[cols].max().max()
@@ -303,27 +269,11 @@ class MeasuredDats:
 
         fig.show()
 
-    def plot(
-            self, cols=None, title="Correction plot",
-            scale_data=False, scaler=StandardScaler, plot_raw=False,
-            begin=None, end=None):
+    def plot(self, cols=None, title="Correction plot", plot_raw=False,
+             begin=None, end=None):
 
-        if begin is None:
-            begin = self.corrected_data.index[0]
-
-        if end is None:
-            end = self.corrected_data.index[-1]
-
-        if cols is None:
-            cols = self.columns
-
-        if scale_data:
-            to_plot_raw, to_plot_corr = self.get_scaled_data(cols, scaler)
-            to_plot_raw = to_plot_raw.loc[begin:end, :]
-            to_plot_corr = to_plot_corr.loc[begin:end, :]
-        else:
-            to_plot_raw = self.data.loc[begin:end, cols]
-            to_plot_corr = self.corrected_data.loc[begin:end, cols]
+        to_plot_raw = select_data(self.data, cols, begin, end)
+        to_plot_corr = select_data(self.corrected_data, cols, begin, end)
 
         fig = go.Figure()
 
