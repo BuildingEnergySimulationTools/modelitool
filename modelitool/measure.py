@@ -68,12 +68,13 @@ def auto_timestep(df):
 
 
 def add_scatter_and_gaps(figure, series, gap_series, color_rgb, alpha, y_min,
-                         y_max):
+                         y_max, yaxis):
     figure.add_trace(go.Scattergl(
         x=series.index,
         y=series.to_numpy().flatten(),
         mode='lines+markers',
         name=series.name,
+        yaxis=yaxis
         # line=dict(color=f'rgb{color_rgb}')
     ))
 
@@ -86,6 +87,7 @@ def add_scatter_and_gaps(figure, series, gap_series, color_rgb, alpha, y_min,
             showlegend=False,
             fillcolor=f"rgba({color_rgb[0]}, {color_rgb[1]},"
                       f" {color_rgb[2]} , {alpha})",
+            yaxis=yaxis
         ))
 
 
@@ -178,16 +180,26 @@ class MeasuredDats:
 
         self.correction_journal["Resample"] = f"Resampled at {timestep}"
 
-    def _get_yaxis_config(self, cols):
-        ax_dict = {}
+    def _get_reversed_data_type_dict(self, cols=None):
+        if cols is None:
+            cols = self.data.columns
+
+        rev_dict = {}
         for col in cols:
             for key, name_list in self.data_type_dict.items():
                 if col in name_list:
-                    ax_dict[col] = key
+                    rev_dict[col] = key
+        return rev_dict
 
+    def _get_yaxis_config(self, cols):
+        ax_dict = self._get_reversed_data_type_dict(cols=cols)
+
+        ordered_set_cat = list(dict.fromkeys(ax_dict.values()))
         ax_map = {cat: f"y{i + 1}"
-                  for i, cat in enumerate(set(ax_dict.values()))}
+                  for i, cat in enumerate(ordered_set_cat)}
+
         ax_map[list(ax_map.keys())[0]] = 'y'
+
         ax_dict = {k: ax_map[ax_dict[k]] for k in ax_dict.keys()}
 
         layout_ax_dict = {}
@@ -271,6 +283,7 @@ class MeasuredDats:
 
         y_min = to_plot[cols].min().min()
         y_max = to_plot[cols].max().max()
+        ax_dict, layout_ax_dict = self._get_yaxis_config(cols)
 
         fig = go.Figure()
 
@@ -283,12 +296,23 @@ class MeasuredDats:
                 color_rgb=color_rgb,
                 alpha=alpha,
                 y_min=y_min,
-                y_max=y_max)
+                y_max=y_max,
+                yaxis=ax_dict[col]
+            )
 
+        fig.update_layout(**layout_ax_dict)
         fig.update_layout(dict(
             title=title,
             yaxis_title=y_label
         ))
+        fig.update_layout(
+            legend=dict(
+                orientation="h",
+                yanchor="top",
+                y=-0.1,
+                xanchor="center",
+                x=0.5),
+        )
 
         fig.show()
 
@@ -322,7 +346,6 @@ class MeasuredDats:
             )
 
         fig.update_layout(**layout_ax_dict)
-
         fig.update_layout(
             legend=dict(
                 orientation="h",
@@ -331,7 +354,6 @@ class MeasuredDats:
                 xanchor="center",
                 x=0.5),
         )
-
         fig.update_layout(dict(title=title))
 
         fig.show()

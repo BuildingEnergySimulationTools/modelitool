@@ -402,12 +402,26 @@ class TestMeasuredDats:
 
         assert ref.equals(gaps_describe(df))
 
+    def test_get_reversed_data_type_dict(self):
+        test = MeasuredDats(
+            data=pd.DataFrame(),
+            data_type_dict={
+                "cat_1": ["dumb_column"],
+                "cat_2": ["dumb_column2"],
+            },
+        )
+
+        to_test = test._get_reversed_data_type_dict(
+            ['dumb_column', 'dumb_column2'])
+
+        assert to_test ==  {'dumb_column': 'cat_1', 'dumb_column2': 'cat_2'}
+
     def test_get_yaxis_config(self):
         test = MeasuredDats(
             data=pd.DataFrame(),
             data_type_dict={
-                "col_1": ["dumb_column"],
-                "col_2": ["dumb_column2"],
+                "cat_1": ["dumb_column"],
+                "cat_2": ["dumb_column2"],
             },
         )
 
@@ -416,8 +430,8 @@ class TestMeasuredDats:
 
         ax_dict_ref = {'dumb_column': 'y', 'dumb_column2': 'y2'}
         layout_ax_dict_ref = {
-            'yaxis': {'title': 'col_1'},
-            'yaxis2': {'title': 'col_2', 'side': 'right'}
+            'yaxis': {'title': 'cat_1'},
+            'yaxis2': {'title': 'cat_2', 'side': 'right'}
         }
 
         assert ax_dict == ax_dict_ref
