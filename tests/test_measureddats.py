@@ -401,3 +401,24 @@ class TestMeasuredDats:
         )
 
         assert ref.equals(gaps_describe(df))
+
+    def test_get_yaxis_config(self):
+        test = MeasuredDats(
+            data=pd.DataFrame(),
+            data_type_dict={
+                "col_1": ["dumb_column"],
+                "col_2": ["dumb_column2"],
+            },
+        )
+
+        ax_dict, layout_ax_dict = test._get_yaxis_config(
+            cols=['dumb_column', 'dumb_column2'])
+
+        ax_dict_ref = {'dumb_column': 'y', 'dumb_column2': 'y2'}
+        layout_ax_dict_ref = {
+            'yaxis': {'title': 'col_1'},
+            'yaxis2': {'title': 'col_2', 'side': 'right'}
+        }
+
+        assert ax_dict == ax_dict_ref
+        assert layout_ax_dict == layout_ax_dict_ref

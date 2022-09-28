@@ -178,6 +178,29 @@ class MeasuredDats:
 
         self.correction_journal["Resample"] = f"Resampled at {timestep}"
 
+    def _get_yaxis_config(self, cols):
+        ax_dict = {}
+        for col in cols:
+            for key, name_list in self.data_type_dict.items():
+                if col in name_list:
+                    ax_dict[col] = key
+
+        ax_map = {cat: f"y{i + 1}"
+                  for i, cat in enumerate(set(ax_dict.values()))}
+        ax_map[list(ax_map.keys())[0]] = 'y'
+        ax_dict = {k: ax_map[ax_dict[k]] for k in ax_dict.keys()}
+
+        layout_ax_dict = {}
+        ax_list = list(ax_map.keys())
+        layout_ax_dict["yaxis"] = {"title": ax_list[0]}
+        for i, ax in enumerate(ax_list[1:]):
+            layout_ax_dict[f"yaxis{i + 2}"] = {
+                "title": ax,
+                "side": "right"
+            }
+
+        return ax_dict, layout_ax_dict
+
     def _minmax_corr(self, cols, upper, lower):
         df = self.corrected_data.loc[:, cols]
         upper_mask = df > upper
@@ -275,18 +298,9 @@ class MeasuredDats:
         to_plot_raw = select_data(self.data, cols, begin, end)
         to_plot_corr = select_data(self.corrected_data, cols, begin, end)
 
+        ax_dict, layout_ax_dict = self._get_yaxis_config(cols)
+
         fig = go.Figure()
-
-        ax_dict = {}
-        for col in cols:
-            for key, name_list in self.data_type_dict.items():
-                if col in name_list:
-                    ax_dict[col] = key
-
-        ax_map = {cat: f"y{i + 1}"
-                  for i, cat in enumerate(set(ax_dict.values()))}
-        ax_map[list(ax_map.keys())[0]] = 'y'
-        ax_dict = {k: ax_map[ax_dict[k]] for k in ax_dict.keys()}
 
         for col in cols:
             if plot_raw:
@@ -306,15 +320,6 @@ class MeasuredDats:
                 mode='lines+markers',
                 yaxis=ax_dict[col]
             )
-
-        layout_ax_dict = {}
-        ax_list = list(ax_map.keys())
-        layout_ax_dict["yaxis"] = {"title": ax_list[0]}
-        for i, ax in enumerate(ax_list[1:]):
-            layout_ax_dict[f"yaxis{i + 2}"] = {
-                "title": ax,
-                "side": "right"
-            }
 
         fig.update_layout(**layout_ax_dict)
 
