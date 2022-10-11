@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+import datetime as dt
 
 from modelitool.measure import MeasuredDats
 from modelitool.measure import missing_values_dict
@@ -444,3 +447,20 @@ class TestMeasuredDats:
 
         assert ax_dict == ax_dict_ref
         assert layout_ax_dict == layout_ax_dict_ref
+
+    def test_energy_meter_to_power(self):
+        test = pd.Series(
+            [0, 1, 2, 2, 2, 3],
+            index=pd.date_range("2009-01-01 00:00:00", freq="10S", periods=6))
+
+        ref = pd.Series(
+            [0.0, 360.0, 360.0, 120.0],
+            index = [
+                dt.datetime(2009, 1, 1, 0, 0, 0),
+                dt.datetime(2009, 1, 1, 0, 0, 10),
+                dt.datetime(2009, 1, 1, 0, 0, 20),
+                dt.datetime(2009, 1, 1, 0, 0, 50),
+            ]
+        )
+
+        pd.testing.assert_series_equal(ref, energy_meter_to_power(test))

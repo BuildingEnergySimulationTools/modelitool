@@ -152,7 +152,7 @@ class MeasuredDats:
             })
         else:
             self.read_config_file(config_file_path)
-            
+
         self.correction_journal = {
             "Entries": data.shape[0],
             "Init": missing_values_dict(data)
