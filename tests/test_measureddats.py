@@ -421,7 +421,7 @@ class TestMeasuredDats:
         to_test = test._get_reversed_data_type_dict(
             ['dumb_column', 'dumb_column2'])
 
-        assert to_test ==  {'dumb_column': 'cat_1', 'dumb_column2': 'cat_2'}
+        assert to_test == {'dumb_column': 'cat_1', 'dumb_column2': 'cat_2'}
 
     def test_get_yaxis_config(self):
         test = MeasuredDats(
@@ -454,13 +454,10 @@ class TestMeasuredDats:
             index=pd.date_range("2009-01-01 00:00:00", freq="10S", periods=6))
 
         ref = pd.Series(
-            [0.0, 360.0, 360.0, 120.0],
-            index = [
-                dt.datetime(2009, 1, 1, 0, 0, 0),
-                dt.datetime(2009, 1, 1, 0, 0, 10),
-                dt.datetime(2009, 1, 1, 0, 0, 20),
-                dt.datetime(2009, 1, 1, 0, 0, 50),
-            ]
+            [360.0, 360.0, 180.0, -5.68E-14, 180.0, 360.0],
+            index=pd.date_range("2009-01-01 00:00:00", freq="10S", periods=6)
         )
 
-        pd.testing.assert_series_equal(ref, energy_meter_to_power(test))
+        to_test = energy_meter_to_power(test, drop_duplicates=False)
+
+        pd.testing.assert_series_equal(ref, to_test, rtol=0.01)
