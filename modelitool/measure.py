@@ -3,6 +3,7 @@ import pandas as pd
 import json
 from modelitool.combitabconvert import df_to_combitimetable
 from collections import defaultdict
+from scipy import integrate
 import plotly.graph_objects as go
 import datetime as dt
 

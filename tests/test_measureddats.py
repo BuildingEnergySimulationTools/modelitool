@@ -1,13 +1,13 @@
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import datetime as dt
 
 from modelitool.measure import MeasuredDats
 from modelitool.measure import missing_values_dict
 from modelitool.measure import gaps_describe
 from modelitool.measure import select_data
+from modelitool.measure import energy_meter_to_power
+from modelitool.measure import time_integrate
 
 
 class TestMeasuredDats:
@@ -461,3 +461,26 @@ class TestMeasuredDats:
         to_test = energy_meter_to_power(test, drop_duplicates=False)
 
         pd.testing.assert_series_equal(ref, to_test, rtol=0.01)
+
+    def test_time_integrate(self):
+        test = pd.Series(
+            [360.0, 360.0, 180.0, -5.68E-14, 180.0, 360.0],
+            index=pd.date_range("2009-01-01 00:00:00", freq="10S", periods=6),
+            name='cpt'
+        )
+
+        ref = pd.Series({'cpt': 3.})
+
+        pd.testing.assert_series_equal(ref, time_integrate(test) / 3600)
+
+        test = pd.DataFrame(
+            {
+                'cpt1': [360.0, 360.0, 180.0, -5.68E-14, 180.0, 360.0],
+                'cpt2': [360.0, 360.0, 180.0, -5.68E-14, 180.0, 360.0],
+             },
+            index=pd.date_range("2009-01-01 00:00:00", freq="10S", periods=6),
+        )
+
+        ref = pd.Series({'cpt1': 3., 'cpt2': 3.})
+
+        pd.testing.assert_series_equal(ref, time_integrate(test) / 3600)
