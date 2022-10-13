@@ -1,4 +1,3 @@
-
 import numpy as np
 import pandas as pd
 
@@ -6,7 +5,7 @@ from modelitool.measure import MeasuredDats
 from modelitool.measure import missing_values_dict
 from modelitool.measure import gaps_describe
 from modelitool.measure import select_data
-from modelitool.measure import energy_meter_to_power
+from modelitool.measure import time_gradient
 from modelitool.measure import time_integrate
 
 
@@ -448,19 +447,41 @@ class TestMeasuredDats:
         assert ax_dict == ax_dict_ref
         assert layout_ax_dict == layout_ax_dict_ref
 
-    def test_energy_meter_to_power(self):
+    def test_time_gradient(self):
         test = pd.Series(
             [0, 1, 2, 2, 2, 3],
-            index=pd.date_range("2009-01-01 00:00:00", freq="10S", periods=6))
+            index=pd.date_range("2009-01-01 00:00:00", freq="10S", periods=6),
+            name="cpt1"
+        ) * 3600
 
-        ref = pd.Series(
-            [360.0, 360.0, 180.0, -5.68E-14, 180.0, 360.0],
+        ref = pd.DataFrame(
+            {"cpt1": [360.0, 360.0, 180.0, -5.68E-14, 180.0, 360.0]},
             index=pd.date_range("2009-01-01 00:00:00", freq="10S", periods=6)
         )
 
-        to_test = energy_meter_to_power(test, drop_duplicates=False)
+        to_test = time_gradient(test)
 
-        pd.testing.assert_series_equal(ref, to_test, rtol=0.01)
+        pd.testing.assert_frame_equal(ref, to_test, rtol=0.01)
+
+        test = pd.DataFrame(
+            {
+                "cpt1": [0, 1, 2, 2, 2, 3],
+                "cpt2": [0, 1, 2, 2, 2, 3]
+            },
+            index=pd.date_range("2009-01-01 00:00:00", freq="10S", periods=6),
+        ) * 3600
+
+        ref = pd.DataFrame(
+            {
+                "cpt1": [360.0, 360.0, 180.0, -5.68E-14, 180.0, 360.0],
+                "cpt2": [360.0, 360.0, 180.0, -5.68E-14, 180.0, 360.0]
+            },
+            index=pd.date_range("2009-01-01 00:00:00", freq="10S", periods=6)
+        )
+
+        to_test = time_gradient(test)
+
+        pd.testing.assert_frame_equal(ref, to_test, rtol=0.01)
 
     def test_time_integrate(self):
         test = pd.Series(
@@ -477,7 +498,7 @@ class TestMeasuredDats:
             {
                 'cpt1': [360.0, 360.0, 180.0, -5.68E-14, 180.0, 360.0],
                 'cpt2': [360.0, 360.0, 180.0, -5.68E-14, 180.0, 360.0],
-             },
+            },
             index=pd.date_range("2009-01-01 00:00:00", freq="10S", periods=6),
         )
 

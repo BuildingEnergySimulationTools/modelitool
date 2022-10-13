@@ -8,6 +8,78 @@ import plotly.graph_objects as go
 import datetime as dt
 
 
+def _time_series_control(time_series):
+    if isinstance(time_series, pd.Series):
+        time_series = time_series.to_frame()
+    elif isinstance(time_series, pd.DataFrame):
+        pass
+    else:
+        raise ValueError(f"time_series is expecting pandas"
+                         f" Series or DataFrame. Got {type(time_series)}"
+                         f"instead")
+    if not isinstance(time_series.index, pd.DatetimeIndex):
+        raise ValueError(
+            "time_series index must be a pandas DateTimeIndex"
+        )
+    return time_series
+
+
+def time_gradient(time_series, begin=None, end=None):
+    time_series = _time_series_control(time_series)
+
+    if begin is None:
+        begin = time_series.index[0]
+
+    if end is None:
+        end = time_series.index[-1]
+
+    selected_ts = time_series.loc[begin: end, :]
+
+    ts_list = []
+    for col in selected_ts:
+        col_ts = selected_ts[col].dropna()
+
+        chrono = col_ts.index - col_ts.index[0]
+        chrono_sec = chrono.to_series().dt.total_seconds()
+
+        ts_list.append(pd.Series(
+            np.gradient(col_ts, chrono_sec),
+            index=col_ts.index,
+            name=col
+        ))
+
+    return pd.concat(ts_list, axis=1)
+
+
+def time_integrate(
+        time_series,
+        begin=None,
+        end=None,
+        interpolate=True,
+        interpolation_method='linear'):
+    time_series = _time_series_control(time_series)
+
+    if begin is None:
+        begin = time_series.index[0]
+
+    if end is None:
+        end = time_series.index[-1]
+
+    selected_ts = time_series.loc[begin:end, :]
+
+    if interpolate:
+        selected_ts = selected_ts.interpolate(method=interpolation_method)
+
+    chrono = (selected_ts.index - selected_ts.index[0]).to_series()
+    chrono = chrono.dt.total_seconds()
+
+    res_series = pd.Series()
+    for col in time_series:
+        res_series[col] = integrate.trapz(selected_ts[col], chrono)
+
+    return res_series
+
+
 def missing_values_dict(df):
     return {
         "Number_of_missing": df.count(),
