@@ -259,7 +259,7 @@ class MeasuredDats:
         self.corr_dict = config_dict["corr_dict"]
 
     def add_time_series(self, time_series, data_type, data_corr_dict=None):
-        _time_series_control(time_series)
+        time_series = _time_series_control(time_series)
         if data_corr_dict is None:
             data_corr_dict = {}
 
