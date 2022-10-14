@@ -505,3 +505,59 @@ class TestMeasuredDats:
         ref = pd.Series({'cpt1': 3., 'cpt2': 3.})
 
         pd.testing.assert_series_equal(ref, time_integrate(test) / 3600)
+
+    def test_add_time_series(self):
+        data = pd.DataFrame(
+            {"col": [1, 2, 3]},
+            index=pd.date_range('2009-01-01 00:00:00', freq="H", periods=3)
+        )
+
+        mdata = MeasuredDats(
+            data.copy(),
+            data_type_dict={"dumb_type": ["col"]},
+            corr_dict={"dumb_type": {}}
+        )
+
+        new_dat = pd.DataFrame(
+            {"col1": [2, 3, 4]},
+            index=pd.date_range('2009-01-01 01:00:00', freq="H", periods=3)
+        )
+
+        mdata.add_time_series(new_dat, data_type="dumb_type")
+
+        assert mdata.data_type_dict == {"dumb_type": ["col", "col1"]}
+        assert mdata.corr_dict == {"dumb_type": {}}
+        pd.testing.assert_frame_equal(
+            mdata.data, pd.concat([data, new_dat], axis=1))
+        pd.testing.assert_frame_equal(
+            mdata.corrected_data, pd.concat([data, new_dat], axis=1))
+
+        new_dat.columns = ["col2"]
+
+        mdata.add_time_series(new_dat, data_type="new_dumb_type")
+
+        assert mdata.data_type_dict == {
+            "dumb_type": ["col", "col1"],
+            "new_dumb_type": ["col2"]
+        }
+        assert mdata.corr_dict == {
+            "dumb_type": {},
+            "new_dumb_type": {}
+        }
+
+        new_dat.columns = ["col3"]
+
+        mdata.add_time_series(
+            new_dat,
+            data_type="new_dumb_type2",
+            data_corr_dict={"resample": "mean"}
+        )
+
+        assert mdata.data_type_dict == dict(dumb_type=["col", "col1"],
+                                            new_dumb_type=["col2"],
+                                            new_dumb_type2=["col3"])
+        assert mdata.corr_dict == {
+            "dumb_type": {},
+            "new_dumb_type": {},
+            "new_dumb_type2": {"resample": "mean"}
+        }

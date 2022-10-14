@@ -258,6 +258,26 @@ class MeasuredDats:
         self.data_type_dict = config_dict["data_type_dict"]
         self.corr_dict = config_dict["corr_dict"]
 
+    def add_time_series(self, time_series, data_type, data_corr_dict=None):
+        _time_series_control(time_series)
+        if data_corr_dict is None:
+            data_corr_dict = {}
+
+        if data_type in self.data_type_dict.keys():
+            self.data_type_dict[data_type] += list(time_series.columns)
+        else:
+            self.data_type_dict[data_type] = list(time_series.columns)
+            self.corr_dict[data_type] = data_corr_dict
+
+        check_config_dict({
+            "data_type_dict": self.data_type_dict,
+            "corr_dict": self.corr_dict
+        })
+
+        self.data = pd.concat([self.data, time_series], axis=1)
+        self.corrected_data = pd.concat(
+            [self.corrected_data, time_series], axis=1)
+
     def auto_correct(self):
         self.remove_anomalies()
         self.fill_nan()
