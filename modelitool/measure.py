@@ -403,11 +403,13 @@ class MeasuredDats:
             begin=None,
             end=None,
             gaps_timestep=dt.timedelta(hours=5),
-            y_label=None,
             title="Gaps plot",
             raw_data=False,
             color_rgb=(243, 132, 48),
             alpha=0.5):
+
+        if cols is None:
+            cols = self.columns
 
         if raw_data:
             to_plot = select_data(self.data, cols, begin, end)
