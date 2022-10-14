@@ -462,6 +462,9 @@ class MeasuredDats:
     def plot(self, cols=None, title="Correction plot", plot_raw=False,
              begin=None, end=None):
 
+        if cols is None:
+            cols = self.columns
+
         to_plot_raw = select_data(self.data, cols, begin, end)
         to_plot_corr = select_data(self.corrected_data, cols, begin, end)
 
