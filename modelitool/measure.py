@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import datetime as dt
 
 
-def _time_series_control(time_series):
+def time_series_control(time_series):
     if isinstance(time_series, pd.Series):
         time_series = time_series.to_frame()
     elif isinstance(time_series, pd.DataFrame):
@@ -25,7 +25,7 @@ def _time_series_control(time_series):
 
 
 def time_gradient(time_series, begin=None, end=None):
-    time_series = _time_series_control(time_series)
+    time_series = time_series_control(time_series)
 
     if begin is None:
         begin = time_series.index[0]
@@ -57,7 +57,7 @@ def time_integrate(
         end=None,
         interpolate=True,
         interpolation_method='linear'):
-    time_series = _time_series_control(time_series)
+    time_series = time_series_control(time_series)
 
     if begin is None:
         begin = time_series.index[0]
@@ -73,7 +73,7 @@ def time_integrate(
     chrono = (selected_ts.index - selected_ts.index[0]).to_series()
     chrono = chrono.dt.total_seconds()
 
-    res_series = pd.Series()
+    res_series = pd.Series(dtype='float64')
     for col in time_series:
         res_series[col] = integrate.trapz(selected_ts[col], chrono)
 
@@ -259,7 +259,7 @@ class MeasuredDats:
         self.corr_dict = config_dict["corr_dict"]
 
     def add_time_series(self, time_series, data_type, data_corr_dict=None):
-        time_series = _time_series_control(time_series)
+        time_series = time_series_control(time_series)
         if data_corr_dict is None:
             data_corr_dict = {}
 
