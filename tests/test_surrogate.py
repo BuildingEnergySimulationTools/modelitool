@@ -6,6 +6,7 @@ import numpy as np
 from modelitool.simulate import Simulator
 from modelitool.surrogate import SimulationSampler
 from modelitool.surrogate import get_aggregated_indicator
+from modelitool.surrogate import SurrogateModel
 
 from sklearn.metrics import mean_absolute_error
 
@@ -19,31 +20,41 @@ PARAM_DICT = {
     "y.k": [0, 10]
 }
 
+SIMULATION_OPTIONS = {
+    "startTime": 0,
+    "stopTime": 2,
+    "stepSize": 1,
+    "tolerance": 1e-06,
+    "solver": "dassl"
+}
+
+OUTPUTS = ["res.showNumber"]
+
 
 @pytest.fixture(scope="session")
-def simul(tmp_path_factory):
-    simulation_opt = {
-        "startTime": 0,
-        "stopTime": 2,
-        "stepSize": 1,
-        "tolerance": 1e-06,
-        "solver": "dassl"
-    }
-
-    outputs = ["res.showNumber"]
-
+def rosen(tmp_path_factory):
     simu = Simulator(model_path="TestLib.rosen",
                      package_path=PACKAGE_PATH,
                      lmodel=["Modelica"],
-                     simulation_options=simulation_opt,
-                     output_list=outputs)
+                     simulation_options=SIMULATION_OPTIONS,
+                     output_list=OUTPUTS)
+    return simu
+
+
+@pytest.fixture(scope="session")
+def linear_2d(tmp_path_factory):
+    simu = Simulator(model_path="TestLib.linear_2d",
+                     package_path=PACKAGE_PATH,
+                     lmodel=["Modelica"],
+                     simulation_options=SIMULATION_OPTIONS,
+                     output_list=OUTPUTS)
     return simu
 
 
 class TestSurrogate:
-    def test_simulation_sampler(self, simul):
+    def test_simulation_sampler(self, rosen):
         sampler = SimulationSampler(
-            simulator=simul,
+            simulator=rosen,
             parameters=PARAM_DICT,
         )
 
@@ -55,9 +66,9 @@ class TestSurrogate:
 
         assert to_test == ref
 
-    def test_get_aggregated_indicator(self, simul):
+    def test_get_aggregated_indicator(self, rosen):
         sampler = SimulationSampler(
-            simulator=simul,
+            simulator=rosen,
             parameters=PARAM_DICT,
         )
 
@@ -84,3 +95,22 @@ class TestSurrogate:
         ])
 
         assert np.allclose(y_array, ref, atol=1)
+
+    def test_surrogate_model(self, linear_2d):
+        surrogate = SurrogateModel(
+            simulation_sampler=SimulationSampler(
+                simulator=linear_2d,
+                parameters=PARAM_DICT,
+            ))
+
+        surrogate.add_samples(100, seed=42)
+
+        surrogate.fit_sample(
+            indicator="res.showNumber",
+            aggregation_method=np.mean,
+        )
+
+        res = surrogate.minimization_identification()
+
+        assert np.allclose(
+            res['x'], np.array([0., 0.]), atol=10E-3)

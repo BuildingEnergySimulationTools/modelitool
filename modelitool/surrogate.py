@@ -1,8 +1,11 @@
 import numpy as np
 import pandas as pd
 
-from copy import deepcopy
+
+from modelitool.measure import time_series_control
+
 from scipy.stats.qmc import LatinHypercube
+from scipy.optimize import differential_evolution
 import itertools
 
 from sklearn.preprocessing import StandardScaler
@@ -170,14 +173,13 @@ class SurrogateModel:
 
         if custom_series is None:
             y_array = get_aggregated_indicator(
-                simulation_list=self.simulation_sampler.sample_simulation_list,
-                results_group=results_group,
+                simulation_list=self.simulation_sampler.sample_results,
                 indicator=indicator,
                 method=aggregation_method,
-                reference=reference,
                 method_args=method_args,
+                reference=reference,
                 start=start,
-                end=end,
+                end=end
             )
 
         else:
@@ -225,7 +227,6 @@ class SurrogateModel:
         self.infos['metrics_method_results'] = metrics_method_results
         self.infos['metrics_method'] = metrics_method
         self.infos['indicator'] = indicator
-        self.infos['results_group'] = results_group
         self.infos['aggregation_method'] = aggregation_method
 
         if verbose:
@@ -243,3 +244,14 @@ class SurrogateModel:
         best_model = self.model_dict[self.infos["best_model_key"]]
         ys_array = best_model.predict(xs_array)
         return self.y_scaler.inverse_transform(np.reshape(ys_array, (-1, 1)))
+
+    def minimization_identification(self):
+        def objective_function(x):
+            return self.predict(x)[0, 0]
+
+        return differential_evolution(
+            objective_function,
+            bounds=[(val[0], val[1])
+                    for val in self.simulation_sampler.parameters.values()],
+        )
+
