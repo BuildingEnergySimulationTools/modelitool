@@ -188,7 +188,7 @@ def add_scatter_and_gaps(figure, series, gap_series, color_rgb, alpha, y_min,
         # line=dict(color=f'rgb{color_rgb}')
     ))
 
-    for t_idx, gap in gap_series.iteritems():
+    for t_idx, gap in gap_series.items():
         figure.add_trace(go.Scattergl(
             x=[t_idx - gap, t_idx - gap, t_idx, t_idx],
             y=[y_min, y_max, y_max, y_min],
