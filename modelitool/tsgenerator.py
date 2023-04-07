@@ -147,8 +147,8 @@ class DHWaterConsumption:
             self.coefficients = coefficients_RE2020
 
         self.v_used = self.t_shower * self.d_shower
-        self.v_liters_day = self.n_dwellings * self.v_per_dwelling  # Volume par jour (L/j)
-        self.v_shower_bath_per_day = self.ratio_bath_shower * self.v_liters_day  # Volume d'eau douche/bain/jour (L/j)
+        self.v_liters_day = self.n_dwellings * self.v_per_dwelling
+        self.v_shower_bath_per_day = self.ratio_bath_shower * self.v_liters_day
 
     def get_coefficient_calc_from_period(self, start, end):
 
@@ -168,75 +168,75 @@ class DHWaterConsumption:
         )
 
         val_list = []
-        for val in self.df_coefficient.index:
-            if val.day_of_week in range(5):
-                hour_coefficients = self.coefficients["day"]["hour_weekday"]
-            elif val.day_of_week == 5:
-                hour_coefficients = self.coefficients["day"]["hour_saturday"]
-            else:
-                hour_coefficients = self.coefficients["day"]["hour_sunday"]
+        # for val in self.df_coefficient.index:
+        #     if val.day_of_week in range(5):
+        #         hour_coefficients = self.coefficients["day"]["hour_weekday"]
+        #     elif val.day_of_week == 5:
+        #         hour_coefficients = self.coefficients["day"]["hour_saturday"]
+        #     else:
+        #         hour_coefficients = self.coefficients["day"]["hour_sunday"]
+        #
+        #     h24 = (
+        #         hour_coefficients
+        #         * self.coefficients["month"][str(val.month_name())]
+        #         * self.coefficients["week"][str(val.day_name())]
+        #     )
+        #
+        #     val_list.append(h24[val.hour])
+        #
+        # self.df_coefficient['coef'] = val_list
 
-            h24 = (
-                hour_coefficients
-                * self.coefficients["month"][str(val.month_name())]
-                * self.coefficients["week"][str(val.day_name())]
-            )
+        if self.method == "COSTIC":
 
-            val_list.append(h24[val.hour])
+            for val in self.df_coefficient.index:
+                if val.day_of_week in range(5):
+                    hour_coefficients = self.coefficients["day"]["hour_weekday"]
+                elif val.day_of_week == 5:
+                    hour_coefficients = self.coefficients["day"]["hour_saturday"]
+                else:
+                    hour_coefficients = self.coefficients["day"]["hour_sunday"]
+
+                h24 = (
+                        hour_coefficients
+                        * self.coefficients["month"][str(val.month_name())]
+                        * self.coefficients["week"][str(val.day_name())]
+                )
+                val_list.append(h24[val.hour])
+
+        elif self.method == "RE2020":
+
+            for val in self.df_coefficient.index:
+                if val.day_of_week in range(5):
+                    hour_coefficients = self.coefficients["day"]["hour_weekday"]
+                else:
+                    hour_coefficients = self.coefficients["day"]["hour_weekend"]
+
+                h24 = (
+                        hour_coefficients
+                        * self.coefficients["month"][str(val.month_name())]
+                )
+                val_list.append(h24[val.hour])
 
         self.df_coefficient['coef'] = val_list
+        self.df_daily_sum = self.df_coefficient.resample('D').sum()
+        self.df_daily_sum.columns = ["coef_daily_sum"]
+        return self.df_coefficient
 
-
-        # while start <= end:
-        #     current_month = start.strftime('%B')
-        #     current_weekday = start.strftime('%A')
-        #     current_weekday_nb = start.weekday()
-        #
-        #     if self.method == "COSTIC":
-        #         if current_weekday_nb < 5:
-        #             hour_coefficients = self.coefficients["day"]["hour_weekday"]
-        #         elif current_weekday_nb == 5:
-        #             hour_coefficients = self.coefficients["day"]["hour_saturday"]
-        #         else:
-        #             hour_coefficients = self.coefficients["day"]["hour_sunday"]
-        #         for current_hour in range(24):
-        #             c = (self.coefficients["month"][str(current_month)]
-        #                  * self.coefficients["week"][str(current_weekday)]
-        #                  * hour_coefficients[str(current_hour)])
-        #             coefficients_c.append(c)
-        #         start += timedelta(days=1)
-        #
-        #     elif self.method == "RE2020":
-        #         if current_weekday_nb < 5:
-        #             hour_coefficients = self.coefficients["day"]["hour_weekday"]
-        #         else:
-        #             hour_coefficients = self.coefficients["day"]["hour_weekend"]
-        #         for current_hour in range(24):
-        #             c = (self.coefficients["month"][str(current_month)]
-        #                  * hour_coefficients[str(current_hour)])
-        #             coefficients_c.append(c)
-        #         start += timedelta(days=1)
-        #
-        # # self.df_coefficient = pd.DataFrame({'coef': coefficients_c}, index=periods)
-        # self.df_coefficient = pd.DataFrame({'coef': coefficients_c})
-        # # self.df_daily_sum = self.df_coefficient.resample('D').sum()
-        # # self.df_daily_sum.columns = ["coef_daily_sum"]
-        # # df_coefficient = self.df_coefficient[:len(periods_a)]
-        # return df_coefficient
+        self.df_daily_sum = self.df_coefficient.resample('D').sum()
+        self.df_daily_sum.columns = ["coef_daily_sum"]
+        return self.df_coefficient
 
     def costic_shower_distribution(self, start, end):
 
         periods = pd.date_range(start=start, end=end, freq='H')
-
         # Concaténation des coefficients et de leur daily sum
         self.get_coefficient_calc_from_period(start, end)
-        self.df_daily_sum = self.df_daily_sum.resample('H').ffill()
         df_co = pd.concat([self.df_coefficient, self.df_daily_sum], axis=1)
+        df_co.fillna(method='ffill', inplace=True)
+        df_co = df_co.dropna(axis=0)
 
         # Calcul du nombre de douches par heure
         df_co['consoECS_COSTIC'] = df_co['coef'] * self.v_shower_bath_per_day / df_co['coef_daily_sum']
-        df_co = df_co.dropna(axis=0)
-        df_co = df_co[:len(periods)]
         return df_co[['consoECS_COSTIC']]
 
     def costic_random_shower_distribution(self,
@@ -244,20 +244,6 @@ class DHWaterConsumption:
                                           end=None,
                                           optional_columns=False,
                                           seed=None):
-        # if start or end is None:
-        #     start = datetime.datetime(
-        #             datetime.datetime.now().year,
-        #             1,
-        #             1,
-        #     )
-        #
-        #     end = datetime.datetime(
-        #             datetime.datetime.now().year,
-        #             12,
-        #             31,
-        #             0,
-        #             0
-        #     )
 
         if seed is not None:
             rs = RandomState(MT19937(SeedSequence(seed)))
@@ -266,10 +252,9 @@ class DHWaterConsumption:
 
         periods = pd.date_range(start=start, end=end, freq='T')
         df_costic = self.costic_shower_distribution(start, end)
-
         df_costic["nb_shower"] = df_costic['consoECS_COSTIC'] / self.v_used
         df_costic["t_shower_per_hour"] = df_costic["nb_shower"] * self.t_shower
-        df_costic["nb_shower_int"] = np.floor(df_costic["nb_shower"]).astype(int)
+        df_costic["nb_shower_int"] = np.round(df_costic["nb_shower"]).astype(int)
 
         rs_dd = rs.randint(
             0,
@@ -295,13 +280,16 @@ class DHWaterConsumption:
             columns=['shower_per_minute']
         )
 
-        df_costic_random["consoECS_COSTIC_random"] = df_costic_random["shower_per_minute"] * 480
+        df_costic_random["consoECS_COSTIC_random"] = df_costic_random["shower_per_minute"] * self.v_used / self.t_shower
         df_costic_random["consoECS_COSTIC_random"] = df_costic_random["consoECS_COSTIC_random"].astype(float)
+
+        self.df_costic_random = df_costic_random
 
         if optional_columns:
             return df_costic_random
         else:
             return df_costic_random[["consoECS_COSTIC_random"]]
+
 
     def re2020_shower_distribution(self, start, end):
         periods = pd.date_range(start=start, end=end, freq='H')
