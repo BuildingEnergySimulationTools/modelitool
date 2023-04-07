@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+from numpy.random import MT19937
+from numpy.random import RandomState, SeedSequence
 import datetime
 from datetime import timedelta
 
@@ -28,24 +30,24 @@ coefficients_COSTIC = {
         "Sunday": 1.13
     },
     "day": {
-        "hour_weekday": {
-            '0': 0.264, '1': 0.096, '2': 0.048, '3': 0.024, '4': 0.144, '5': 0.384,
-            '6': 1.152, '7': 2.064, '8': 1.176, '9': 1.08, '10': 1.248, '11': 1.224,
-            '12': 1.296, '13': 1.104, '14': 0.84, '15': 0.768, '16': 0.768, '17': 1.104,
-            '18': 1.632, '19': 2.088, '20': 2.232, '21': 1.608, '22': 1.032, '23': 0.624
-        },
-        "hour_saturday": {
-            '0': 0.408, '1': 0.192, '2': 0.072, '3': 0.048, '4': 0.072, '5': 0.168,
-            '6': 0.312, '7': 0.624, '8': 1.08, '9': 1.584, '10': 1.872, '11': 1.992,
-            '12': 1.92, '13': 1.704, '14': 1.536, '15': 1.2, '16': 1.248, '17': 1.128,
-            '18': 1.296, '19': 1.32, '20': 1.392, '21': 1.2, '22': 0.936, '23': 0.696
-        },
-        "hour_sunday": {
-            '0': 0.384, '1': 0.168, '2': 0.096, '3': 0.048, '4': 0.048, '5': 0.048,
-            '6': 0.12, '7': 0.216, '8': 0.576, '9': 1.128, '10': 1.536, '11': 1.752,
-            '12': 1.896, '13': 1.872, '14': 1.656, '15': 1.296, '16': 1.272, '17': 1.248,
-            '18': 1.776, '19': 2.016, '20': 2.04, '21': 1.392, '22': 0.864, '23': 0.552
-        },
+        "hour_weekday": np.array([
+            0.264, 0.096, 0.048, 0.024, 0.144, 0.384,
+            1.152, 2.064, 1.176, 1.08, 1.248, 1.224,
+            1.296, 1.104, 0.84,0.768, 0.768, 1.104,
+            1.632, 2.088, 2.232, 1.608, 1.032, 0.624
+        ]),
+        "hour_saturday": np.array([
+            0.408, 0.192, 0.072, 0.048, 0.072, 0.168,
+            0.312, 0.624, 1.08, 1.584, 1.872, 1.992,
+            1.92, 1.704,1.536, 1.2, 1.248, 1.128,
+            1.296, 1.32, 1.392, 1.2, 0.936, 0.696
+        ]),
+        "hour_sunday": np.array([
+            0.384, 0.168, 0.096, 0.048, 0.048, 0.048,
+            0.12, 0.216, 0.576, 1.128, 1.536, 1.752,
+            1.896, 1.872, 1.656, 1.296, 1.272, 1.248,
+            1.776, 2.016, 2.04, 1.392, 0.864, 0.552
+        ]),
     },
 }
 coefficients_RE2020 = {
@@ -64,18 +66,18 @@ coefficients_RE2020 = {
         "December": 1.05
     },
     "day": {
-        "hour_weekday": {
-            '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0,
-            '6': 0, '7': 0.028, '8': 0.029, '9': 0, '10': 0, '11': 0,
-            '12': 0, '13': 0, '14': 0, '15': 0, '16': 0, '17': 0.007,
-            '18': 0.022, '19': 0.022, '20': 0.022, '21': 0.007, '22': 0.007, '23': 0.007
-        },
-        "hour_weekend": {
-            '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0,
-            '6': 0, '7': 0.028, '8': 0.029, '9': 0, '10': 0, '11': 0,
-            '12': 0, '13': 0, '14': 0, '15': 0, '16': 0, '17': 0.011,
-            '18': 0.011, '19': 0.029, '20': 0.011, '21': 0.0011, '22': 0.0011, '23': 0.0
-        },
+        "hour_weekday": np.array([
+            0, 0, 0, 0, 0, 0,
+            0, 0.028, 0.029, 0, 0, 0,
+            0, 0, 0, 0, 0, 0.007,
+            0.022, 0.022, 0.022, 0.007, 0.007, 0.007
+        ]),
+        "hour_weekend": np.array([
+            0, 0, 0, 0, 0, 0,
+            0, 0.028, 0.029, 0, 0, 0,
+            0, 0, 0, 0, 0, 0.011,
+            0.011, 0.029, 0.011, 0.0011, 0.0011, 0.0
+        ]),
     },
 }
 
@@ -153,47 +155,74 @@ class DHWaterConsumption:
         # if not pd.Timestamp(start) or not pd.Timestamp(end):
         #     raise ValueError("Les valeurs start et end doivent être des timestamps valides.")
 
-        periods_a = pd.date_range(start=start, end=end, freq='H')
+        # periods_a = pd.date_range(start=start, end=end, freq='H')
 
-        end = end + timedelta(days=1)
-        periods = pd.date_range(start=start, end=end, freq='H')
+        # end = end + timedelta(days=1)
+        date_index = pd.date_range(start=start, end=end, freq='H')
         coefficients_c = []
 
-        while start <= end:
-            current_month = start.strftime('%B')
-            current_weekday = start.strftime('%A')
-            current_weekday_nb = start.weekday()
+        self.df_coefficient = pd.DataFrame(
+            data=np.zeros(date_index.shape[0]),
+            index=date_index,
+            columns=["coef"]
+        )
 
-            if self.method == "COSTIC":
-                if current_weekday_nb < 5:
-                    hour_coefficients = self.coefficients["day"]["hour_weekday"]
-                elif current_weekday_nb == 5:
-                    hour_coefficients = self.coefficients["day"]["hour_saturday"]
-                else:
-                    hour_coefficients = self.coefficients["day"]["hour_sunday"]
-                for current_hour in range(24):
-                    c = (self.coefficients["month"][str(current_month)]
-                         * self.coefficients["week"][str(current_weekday)]
-                         * hour_coefficients[str(current_hour)])
-                    coefficients_c.append(c)
-                start += timedelta(days=1)
+        val_list = []
+        for val in self.df_coefficient.index:
+            if val.day_of_week in range(5):
+                hour_coefficients = self.coefficients["day"]["hour_weekday"]
+            elif val.day_of_week == 5:
+                hour_coefficients = self.coefficients["day"]["hour_saturday"]
+            else:
+                hour_coefficients = self.coefficients["day"]["hour_sunday"]
 
-            elif self.method == "RE2020":
-                if current_weekday_nb < 5:
-                    hour_coefficients = self.coefficients["day"]["hour_weekday"]
-                else:
-                    hour_coefficients = self.coefficients["day"]["hour_weekend"]
-                for current_hour in range(24):
-                    c = (self.coefficients["month"][str(current_month)]
-                         * hour_coefficients[str(current_hour)])
-                    coefficients_c.append(c)
-                start += timedelta(days=1)
+            h24 = (
+                hour_coefficients
+                * self.coefficients["month"][str(val.month_name())]
+                * self.coefficients["week"][str(val.day_name())]
+            )
 
-        self.df_coefficient = pd.DataFrame({'coef': coefficients_c}, index=periods)
-        self.df_daily_sum = self.df_coefficient.resample('D').sum()
-        self.df_daily_sum.columns = ["coef_daily_sum"]
-        df_coefficient = self.df_coefficient[:len(periods_a)]
-        return df_coefficient
+            val_list.append(h24[val.hour])
+
+        self.df_coefficient['coef'] = val_list
+
+
+        # while start <= end:
+        #     current_month = start.strftime('%B')
+        #     current_weekday = start.strftime('%A')
+        #     current_weekday_nb = start.weekday()
+        #
+        #     if self.method == "COSTIC":
+        #         if current_weekday_nb < 5:
+        #             hour_coefficients = self.coefficients["day"]["hour_weekday"]
+        #         elif current_weekday_nb == 5:
+        #             hour_coefficients = self.coefficients["day"]["hour_saturday"]
+        #         else:
+        #             hour_coefficients = self.coefficients["day"]["hour_sunday"]
+        #         for current_hour in range(24):
+        #             c = (self.coefficients["month"][str(current_month)]
+        #                  * self.coefficients["week"][str(current_weekday)]
+        #                  * hour_coefficients[str(current_hour)])
+        #             coefficients_c.append(c)
+        #         start += timedelta(days=1)
+        #
+        #     elif self.method == "RE2020":
+        #         if current_weekday_nb < 5:
+        #             hour_coefficients = self.coefficients["day"]["hour_weekday"]
+        #         else:
+        #             hour_coefficients = self.coefficients["day"]["hour_weekend"]
+        #         for current_hour in range(24):
+        #             c = (self.coefficients["month"][str(current_month)]
+        #                  * hour_coefficients[str(current_hour)])
+        #             coefficients_c.append(c)
+        #         start += timedelta(days=1)
+        #
+        # # self.df_coefficient = pd.DataFrame({'coef': coefficients_c}, index=periods)
+        # self.df_coefficient = pd.DataFrame({'coef': coefficients_c})
+        # # self.df_daily_sum = self.df_coefficient.resample('D').sum()
+        # # self.df_daily_sum.columns = ["coef_daily_sum"]
+        # # df_coefficient = self.df_coefficient[:len(periods_a)]
+        # return df_coefficient
 
     def costic_shower_distribution(self, start, end):
 
@@ -211,9 +240,29 @@ class DHWaterConsumption:
         return df_co[['consoECS_COSTIC']]
 
     def costic_random_shower_distribution(self,
-                                          start,
-                                          end,
-                                          optional_columns=False):
+                                          start=None,
+                                          end=None,
+                                          optional_columns=False,
+                                          seed=None):
+        # if start or end is None:
+        #     start = datetime.datetime(
+        #             datetime.datetime.now().year,
+        #             1,
+        #             1,
+        #     )
+        #
+        #     end = datetime.datetime(
+        #             datetime.datetime.now().year,
+        #             12,
+        #             31,
+        #             0,
+        #             0
+        #     )
+
+        if seed is not None:
+            rs = RandomState(MT19937(SeedSequence(seed)))
+        else:
+            rs = RandomState()
 
         periods = pd.date_range(start=start, end=end, freq='T')
         df_costic = self.costic_shower_distribution(start, end)
@@ -221,29 +270,31 @@ class DHWaterConsumption:
         df_costic["nb_shower"] = df_costic['consoECS_COSTIC'] / self.v_used
         df_costic["t_shower_per_hour"] = df_costic["nb_shower"] * self.t_shower
         df_costic["nb_shower_int"] = np.floor(df_costic["nb_shower"]).astype(int)
-        df_costic_random = pd.DataFrame()
 
-        minutes_per_hour = 60
-        if self.t_shower > minutes_per_hour:
-            raise ValueError("t_shower ne peut pas être supérieur à 60 minutes")
+        rs_dd = rs.randint(
+            0,
+            60 - self.t_shower,
+            (len(periods), df_costic["nb_shower_int"].max())
+        )
 
-        # Distribution des douches par minute
-        def distrib_shower_per_minute(nb_shower):
-            distribution = np.zeros(minutes_per_hour)
-            for i in range(nb_shower):
-                start_shower = np.random.randint(minutes_per_hour - self.t_shower)
+        distribution_list = []
+        for h, nb_shower in zip(rs_dd, df_costic["nb_shower_int"]):
+            starts = h[:nb_shower]
+            distribution = np.zeros(60)
+            for start_shower in starts:
                 distribution[start_shower: start_shower + self.t_shower] += 1
-            return distribution
+            distribution_list.append(distribution)
 
-        df_costic_random['shower_per_minute'] = df_costic['nb_shower_int'].apply(
-            distrib_shower_per_minute).values.tolist()
-        df_costic_random = df_costic_random.explode('shower_per_minute')
-        df_costic = df_costic.resample('1T').ffill()
-        df_costic_random = df_costic_random[:len(periods)]
-        df_costic_random.index = periods
+        df_costic_random = pd.DataFrame(
+            data=np.concatenate(distribution_list),
+            index=pd.date_range(
+                df_costic["nb_shower_int"].index[0],
+                freq='T',
+                periods=df_costic.shape[0] * 60
+            ),
+            columns=['shower_per_minute']
+        )
 
-        df_costic_random = pd.merge(
-            df_costic, df_costic_random, left_index=True, right_index=True, how='right')
         df_costic_random["consoECS_COSTIC_random"] = df_costic_random["shower_per_minute"] * 480
         df_costic_random["consoECS_COSTIC_random"] = df_costic_random["consoECS_COSTIC_random"].astype(float)
 
