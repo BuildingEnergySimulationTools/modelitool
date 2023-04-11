@@ -2,8 +2,6 @@ import pandas as pd
 import numpy as np
 from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
-import datetime
-from datetime import timedelta
 
 coefficients_COSTIC = {
     "month": {
@@ -137,8 +135,10 @@ class DHWaterConsumption:
         Calculates the hot water consumption for showers based on "COSTIC" method within the given time period.\
         The output dataframe is sampled every hour.
     costic_random_shower_distribution(start, end, optional_columns=False, seed=None):
-        Calculates a random distribution of hot water consumption for showers based on "COSTIC" method within the given \
-        time period. The output dataframe is sampled every minute.
+        Calculates a random distribution of hot water consumption for showers based on "COSTIC" method within \
+        the given time period. The output dataframe is sampled every minute.
+        Set seed to None for a new random distribution each time method is run. Otherwise, set to any constant \
+        number for the same random distribution.
     re2020_shower_distribution(start, end):
         Calculates the hot water consumption for showers based on "COSTIC" method within the given time period.\
         The output dataframe is sampled every hour.
@@ -184,8 +184,6 @@ class DHWaterConsumption:
             raise ValueError("Start and end values must be valid timestamps.")
 
         date_index = pd.date_range(start=start, end=end, freq='H')
-        coefficients_c = []
-
         self.df_coefficient = pd.DataFrame(
             data=np.zeros(date_index.shape[0]),
             index=date_index,
@@ -230,8 +228,6 @@ class DHWaterConsumption:
         return self.df_coefficient
 
     def costic_shower_distribution(self, start, end):
-
-        periods = pd.date_range(start=start, end=end, freq='H')
 
         # Concatenation of coefficients and their daily sum
         self.get_coefficient_calc_from_period(start, end)
