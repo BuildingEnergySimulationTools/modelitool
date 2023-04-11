@@ -33,13 +33,13 @@ coefficients_COSTIC = {
         "hour_weekday": np.array([
             0.264, 0.096, 0.048, 0.024, 0.144, 0.384,
             1.152, 2.064, 1.176, 1.08, 1.248, 1.224,
-            1.296, 1.104, 0.84,0.768, 0.768, 1.104,
+            1.296, 1.104, 0.84, 0.768, 0.768, 1.104,
             1.632, 2.088, 2.232, 1.608, 1.032, 0.624
         ]),
         "hour_saturday": np.array([
             0.408, 0.192, 0.072, 0.048, 0.072, 0.168,
             0.312, 0.624, 1.08, 1.584, 1.872, 1.992,
-            1.92, 1.704,1.536, 1.2, 1.248, 1.128,
+            1.92, 1.704, 1.536, 1.2, 1.248, 1.128,
             1.296, 1.32, 1.392, 1.2, 0.936, 0.696
         ]),
         "hour_sunday": np.array([
@@ -84,35 +84,64 @@ coefficients_RE2020 = {
 
 class DHWaterConsumption:
     """
-    A class that calculates the water consumption for a building that uses district heating.
+    Class for calculating domestic hot water consumption in a building based on either RE2020 or COSTIC coefficients.
+
+    Parameters:
+    -----------
+    n_dwellings : int
+        Number of dwellings in the building.
+    v_per_dwelling : float, optional (default=110)
+        Daily hot water consumption per dwelling in liters.
+    ratio_bath_shower : float, optional (default=0.8)
+        Ratio of baths compared to showers.
+    t_shower : int, optional (default=7)
+        Average duration of a shower in minutes.
+    d_shower : float, optional (default=8)
+       Shower flow rate of showers in liters per minute.
+    s_moy_dwelling : float, optional (default=49.6)
+        Average surface area per dwelling in square meters.
+    s_tot_building : float, optional (default=2480)
+        Total surface area of the building in square meters.
+    method : str, optional (default="COSTIC")
+        Method for calculating hot water consumption. Available options are "COSTIC" or "RE2020".
 
     Attributes:
-    ----------
-    n_dwellings: int
-        The number of dwellings in the building
-    v_per_dwelling: int, optional
-        The volume of water used per dwelling in liters per day, default value is 110
-    ratio_bath_shower: float, optional
-        The ratio of water used for shower to the total volume of water used in a dwelling per day, default value is 0.8
-    t_shower: int, optional
-        The average duration of a shower in minutes, default value is 7
-    d_shower: int, optional
-        The number of showers taken per person per day, default value is 8
-    s_moy_dwelling: float, optional
-        The average surface area per dwelling in square meters, default value is 49.6
-    s_tot_building: float, optional
-        The total surface area of the building in square meters, default value is 2480
-    method: str, optional
-        The method used to calculate the water consumption. Possible values are "COSTIC" and "RE2020". Default value is "COSTIC".
+    -----------
+    df_coefficient : pd.DataFrame
+        DataFrame containing the  coefficients for hot water consumption, calculated either on "COSTIC" \
+        or "RE2020" method.
+    df_daily_sum : pd.DataFrame
+        DataFrame containing the daily sum of coefficients.
+    df_re2020 : pd.DataFrame
+        DataFrame containing the hot water consumption for showers based on "RE2020" method.
+    df_costic : pd.DataFrame
+        DataFrame containing the hot water consumption for showers based on "COSTIC" method.
+    df_costic_random : pd.DataFrame
+        DataFrame containing a random distribution of hot water consumption for showers based on "COSTIC" method.
+    df_all : pd.DataFrame
+        DataFrame containing calculated coefficients and other calculated data.
+    coefficients : dict
+        Dictionary containing the coefficients for calculating hot water consumption based on the chosen method.
+    v_used : float
+        Total hot water consumption per shower in liters.
+    v_liters_day : float
+        Total hot water consumption per day for the entire building in liters.
+    v_shower_bath_per_day : float
+        Total hot water consumption per day for the entire building in liters taking into account the ratio_bath_shower.
 
     Methods:
-    -------
-    get_coefficient_calc_from_df(df)
-        Calculates the coefficients for the water consumption calculation based on the method specified
-    COSTIC_shower_distribution(df)
-        Calculates the water consumption based on the COSTIC method for the given dataframe
-    COSTIC_random_shower_distribution(df, optional_columns=False)
-        Calculates the water consumption based on the COSTIC method with random shower distribution for the given dataframe
+    --------
+    get_coefficient_calc_from_period(start, end):
+        Calculates the coefficients for hot water consumption based on the chosen method within the given time period.
+    costic_shower_distribution(start, end):
+        Calculates the hot water consumption for showers based on "COSTIC" method within the given time period.\
+        The output dataframe is sampled every hour.
+    costic_random_shower_distribution(start, end, optional_columns=False, seed=None):
+        Calculates a random distribution of hot water consumption for showers based on "COSTIC" method within the given \
+        time period. The output dataframe is sampled every minute.
+    re2020_shower_distribution(start, end):
+        Calculates the hot water consumption for showers based on "COSTIC" method within the given time period.\
+        The output dataframe is sampled every hour.
     """
 
     def __init__(self,
@@ -151,13 +180,9 @@ class DHWaterConsumption:
         self.v_shower_bath_per_day = self.ratio_bath_shower * self.v_liters_day
 
     def get_coefficient_calc_from_period(self, start, end):
+        if not pd.Timestamp(start) or not pd.Timestamp(end):
+            raise ValueError("Start and end values must be valid timestamps.")
 
-        # if not pd.Timestamp(start) or not pd.Timestamp(end):
-        #     raise ValueError("Les valeurs start et end doivent être des timestamps valides.")
-
-        # periods_a = pd.date_range(start=start, end=end, freq='H')
-
-        # end = end + timedelta(days=1)
         date_index = pd.date_range(start=start, end=end, freq='H')
         coefficients_c = []
 
@@ -168,24 +193,6 @@ class DHWaterConsumption:
         )
 
         val_list = []
-        # for val in self.df_coefficient.index:
-        #     if val.day_of_week in range(5):
-        #         hour_coefficients = self.coefficients["day"]["hour_weekday"]
-        #     elif val.day_of_week == 5:
-        #         hour_coefficients = self.coefficients["day"]["hour_saturday"]
-        #     else:
-        #         hour_coefficients = self.coefficients["day"]["hour_sunday"]
-        #
-        #     h24 = (
-        #         hour_coefficients
-        #         * self.coefficients["month"][str(val.month_name())]
-        #         * self.coefficients["week"][str(val.day_name())]
-        #     )
-        #
-        #     val_list.append(h24[val.hour])
-        #
-        # self.df_coefficient['coef'] = val_list
-
         if self.method == "COSTIC":
 
             for val in self.df_coefficient.index:
@@ -222,20 +229,17 @@ class DHWaterConsumption:
         self.df_daily_sum.columns = ["coef_daily_sum"]
         return self.df_coefficient
 
-        self.df_daily_sum = self.df_coefficient.resample('D').sum()
-        self.df_daily_sum.columns = ["coef_daily_sum"]
-        return self.df_coefficient
-
     def costic_shower_distribution(self, start, end):
 
         periods = pd.date_range(start=start, end=end, freq='H')
-        # Concaténation des coefficients et de leur daily sum
+
+        # Concatenation of coefficients and their daily sum
         self.get_coefficient_calc_from_period(start, end)
         df_co = pd.concat([self.df_coefficient, self.df_daily_sum], axis=1)
         df_co.fillna(method='ffill', inplace=True)
         df_co = df_co.dropna(axis=0)
 
-        # Calcul du nombre de douches par heure
+        # Calculation of the number of showers per hour
         df_co['consoECS_COSTIC'] = df_co['coef'] * self.v_shower_bath_per_day / df_co['coef_daily_sum']
         return df_co[['consoECS_COSTIC']]
 
@@ -290,7 +294,6 @@ class DHWaterConsumption:
         else:
             return df_costic_random[["consoECS_COSTIC_random"]]
 
-
     def re2020_shower_distribution(self, start, end):
         periods = pd.date_range(start=start, end=end, freq='H')
         self.get_coefficient_calc_from_period(start, end)
@@ -307,7 +310,7 @@ class DHWaterConsumption:
         v_weekly = a * n_adult  # Liters
         v_shower_bath = v_weekly * self.ratio_bath_shower
 
-        # Calcul du nombre de douches par heure
+        # Calculation of the number of showers per hour
         to_return = self.df_coefficient.copy() * v_shower_bath
         to_return = to_return[:len(periods)]
         to_return.columns = ['consoECS_RE2020']
