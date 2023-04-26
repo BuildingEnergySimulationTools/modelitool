@@ -13,16 +13,16 @@ class Identificator:
                  ):
         self.simulator = simulator
         self.param_init = {
-            item: parameters[item]["init"]
-            for item, val in parameters.items()
+            param["name"]: param["init"]
+            for param in parameters
         }
         self.param_interval = {
-            item: parameters[item]["interval"]
-            for item, val in parameters.items()
+            param["name"]: param["interval"]
+            for param in parameters
         }
 
         self.param_identified = {
-            item: np.nan for item in parameters.keys()
+            param["name"]: np.nan for param in parameters
         }
 
         self.simulator.set_param_dict(self.param_init)
