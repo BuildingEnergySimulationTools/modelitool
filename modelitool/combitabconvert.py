@@ -49,5 +49,5 @@ def df_to_combitimetable(df, filename):
         file.write(df.to_csv(
             header=False,
             sep='\t',
-            line_terminator='\n'
+            lineterminator='\n'
         ))
