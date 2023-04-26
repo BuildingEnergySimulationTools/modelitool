@@ -52,7 +52,7 @@ def get_aggregated_indicator(simulation_list,
             reference = reference.loc[start: end]
 
     if reference is None:
-        return method(y_df).to_numpy()
+        return y_df.apply(method, axis=0).to_numpy()
 
     elif method_args is None:
         return np.array([
