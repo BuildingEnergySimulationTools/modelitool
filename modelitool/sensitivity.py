@@ -29,8 +29,8 @@ def check_arguments(res, param, result):
 def modelitool_to_salib_problem(modelitool_problem):
     return {
         'num_vars': len(modelitool_problem),
-        'names': list(modelitool_problem.keys()),
-        'bounds': list(modelitool_problem.values())
+        'names': [p["name"] for p in modelitool_problem],
+        'bounds': list(map(lambda p: p['interval'], modelitool_problem))
     }
 
 
@@ -101,8 +101,8 @@ class SAnalysis:
 
         for samp in self.sample:
             simu_list.append({
-                param: val for param, val in zip(
-                    self.parameters_config.keys(), samp
+                param["name"]: val for param, val in zip(
+                    self.parameters_config, samp
                 )
             })
 
@@ -263,7 +263,7 @@ class SAnalysis:
             if self._sensitivity_method == "Sobol":
                 plot_sobol_st_bar(
                     self.sensitivity_results,
-                    self.parameters_config.keys()
+                    [param["name"] for param in self.parameters_config]
                 )
 
         if kind == "parallel":
@@ -283,7 +283,7 @@ class SAnalysis:
                     **arg_dict))
 
             param_dict = {
-                par: values
+                par["name"]: values
                 for par, values in zip(
                     self.parameters_config, self.sample.T
                 )
@@ -330,7 +330,7 @@ class SAnalysis:
                 for date, res in self.sensitivity_dynamic_results.items()
             }).T
 
-            df_to_plot.columns = list(self.parameters_config.keys())
+            df_to_plot.columns = [p["name"] for p in self.parameters_config]
 
             options = {key: val for key, val in arguments.items()
                        if key != 'indicator'}
