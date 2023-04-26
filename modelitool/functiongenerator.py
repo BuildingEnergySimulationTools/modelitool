@@ -18,7 +18,10 @@ class ModelicaFunction:
             self.indicators = simulator.output_list
         else:
             self.indicators = indicators
-        self.agg_methods_dict = agg_methods_dict or [np.mean for _ in self.indicators]
+        if agg_methods_dict is None:
+            self.agg_methods_dict = {ind: np.mean for ind in self.indicators}
+        else:
+            self.agg_methods_dict = agg_methods_dict
         self.reference_dict = reference_dict
         self.reference_df = reference_df
 
