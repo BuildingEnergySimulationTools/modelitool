@@ -23,11 +23,11 @@ class ModelicaFunction:
         else:
             self.agg_methods_dict = agg_methods_dict
         if (reference_dict is not None and reference_df is None) or (
-                reference_dict is None and reference_df is not None):
+            reference_dict is None and reference_df is not None
+        ):
             raise ValueError("Both reference_dict and reference_df should be provided")
         self.reference_dict = reference_dict
         self.reference_df = reference_df
-
 
     def function(self, x_dict):
         temp_dict = {param["name"]: x_dict[param["name"]] for param in self.param_dict}
