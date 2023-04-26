@@ -43,11 +43,14 @@ def simul(tmp_path_factory):
 
 @pytest.fixture()
 def sa_param_config():
-    return {
-        "x.k": [1.0, 3.0],
-        "y.k": [1.0, 3.0],
-        "z.k": [1.0, 3.0],
-    }
+    return [
+        {'name': 'x.k',
+         'interval': (1.0, 3.0)},
+        {'name': 'y.k',
+         'interval': (1.0, 3.0)},
+        {'name': 'z.k',
+         'interval': (1.0, 3.0)},
+    ]
 
 
 @pytest.fixture()
@@ -84,9 +87,9 @@ class TestSensitivity:
                 'z.k',
             ],
             'bounds': [
-                [1.0, 3.0],
-                [1.0, 3.0],
-                [1.0, 3.0],
+                (1.0, 3.0),
+                (1.0, 3.0),
+                (1.0, 3.0),
             ]
         }
 
@@ -192,11 +195,14 @@ class TestSensitivity:
         )
 
     def test_analyse(self, simul):
-        modelitool_problem = {
-            "x.k": [-3.14159265359, 3.14159265359],
-            "y.k": [-3.14159265359, 3.14159265359],
-            "z.k": [-3.14159265359, 3.14159265359]
-        }
+        modelitool_problem = [
+            {'name': 'x.k',
+             'interval': (-3.14159265359, 3.14159265359)},
+            {'name': 'y.k',
+             'interval': (-3.14159265359, 3.14159265359)},
+            {'name': 'z.k',
+             'interval': (-3.14159265359, 3.14159265359)},
+        ]
 
         sa = SAnalysis(
             simulator=simul,

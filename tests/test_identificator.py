@@ -10,16 +10,14 @@ from modelitool.identify import Identificator
 
 PACKAGE_PATH = Path(__file__).parent / "TestLib/package.mo"
 
-ID_PARAMS = {
-    'x.k': {
-        "init": 5,
-        "interval": (0, 10)
-    },
-    'y.k': {
-        "init": 5,
-        "interval": (0, 10)
-    },
-}
+ID_PARAMS = [
+    {'name': 'x.k',
+     "interval": (0, 10),
+     "init": 5},
+    {'name': 'y.k',
+     "interval": (0, 10),
+     "init": 5}
+]
 
 DATASET = pd.DataFrame(
     {
@@ -76,16 +74,14 @@ def simul_linear(tmp_path_factory):
 
 class TestIdentificator:
     def test_fit_default(self, simul):
-        id_params = {
-            'x.k': {
-                "init": 5,
-                "interval": (-5, 5)
-            },
-            'y.k': {
-                "init": 5,
-                "interval": (-5, 5)
-            },
-        }
+        id_params = [
+            {'name': 'x.k',
+             "interval": (-5, 5),
+             "init": 5},
+            {'name': 'y.k',
+             "interval": (-5, 5),
+             "init": 5}
+        ]
 
         ident = Identificator(
             simulator=simul,
