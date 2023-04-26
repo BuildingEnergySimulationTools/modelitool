@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import pytest
+
 from modelitool.functiongenerator import ModelicaFunction
 from modelitool.simulate import Simulator
 from sklearn.metrics import mean_squared_error, mean_absolute_error
@@ -60,12 +62,10 @@ expected_res = pd.DataFrame(
     },
     index=pd.date_range('2023-01-01 00:00:00', freq="s", periods=2))
 
+
 class TestModelicaFunction:
 
     def test_function_indicators(self):
-
-
-
         mf = ModelicaFunction(simulator=simu,
                               param_dict=parameters,
                               agg_methods_dict=agg_methods_dict,
@@ -82,7 +82,6 @@ class TestModelicaFunction:
             rtol=0.01)
 
     def test_function_no_indicators(self):
-
         mf = ModelicaFunction(simulator=simu,
                               param_dict=parameters,
                               agg_methods_dict=None,
@@ -97,3 +96,14 @@ class TestModelicaFunction:
             np.array([np.mean(expected_res['meas1']),
                       np.mean(expected_res['meas2'])]),
             rtol=0.01)
+
+    def test_warning_error(self):
+        # reference_df is not provided
+        with pytest.raises(ValueError):
+            ModelicaFunction(simulator=simu, param_dict=parameters,
+                             reference_df=None, reference_dict=dataset)
+
+        # reference_dict is not provided
+        with pytest.raises(ValueError):
+            ModelicaFunction(simulator=simu, param_dict=parameters,
+                             reference_df=dataset, reference_dict=None)
