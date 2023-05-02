@@ -6,14 +6,14 @@ class ModelicaFunction:
     def __init__(
         self,
         simulator,
-        param_dict,
+        param_list,
         indicators=None,
         agg_methods_dict=None,
         reference_dict=None,
         reference_df=None,
     ):
         self.simulator = simulator
-        self.param_dict = param_dict
+        self.param_list = param_list
         if indicators is None:
             self.indicators = simulator.output_list
         else:
@@ -30,7 +30,7 @@ class ModelicaFunction:
         self.reference_df = reference_df
 
     def function(self, x_dict):
-        temp_dict = {param["name"]: x_dict[param["name"]] for param in self.param_dict}
+        temp_dict = {param["name"]: x_dict[param["name"]] for param in self.param_list}
         self.simulator.set_param_dict(temp_dict)
         self.simulator.simulate()
         res = self.simulator.get_results()

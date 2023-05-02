@@ -63,7 +63,7 @@ class TestModelicaFunction:
     def test_function_indicators(self):
         mf = ModelicaFunction(
             simulator=simu,
-            param_dict=parameters,
+            param_list=parameters,
             agg_methods_dict=agg_methods_dict,
             indicators=["res1.showNumber", "res2.showNumber"],
             reference_df=dataset,
@@ -86,7 +86,7 @@ class TestModelicaFunction:
     def test_function_no_indicators(self):
         mf = ModelicaFunction(
             simulator=simu,
-            param_dict=parameters,
+            param_list=parameters,
             agg_methods_dict=None,
             indicators=None,
             reference_df=None,
@@ -106,7 +106,7 @@ class TestModelicaFunction:
         with pytest.raises(ValueError):
             ModelicaFunction(
                 simulator=simu,
-                param_dict=parameters,
+                param_list=parameters,
                 reference_df=None,
                 reference_dict=dataset,
             )
@@ -115,7 +115,7 @@ class TestModelicaFunction:
         with pytest.raises(ValueError):
             ModelicaFunction(
                 simulator=simu,
-                param_dict=parameters,
+                param_list=parameters,
                 reference_df=dataset,
                 reference_dict=None,
             )
