@@ -3,6 +3,47 @@ import pandas as pd
 
 
 class ModelicaFunction:
+    """
+    A class that defines a function to be used in Corrai for multi objective
+    optimisation based on a Modelitool Simulator.
+
+    Args:
+        simulator (object): A fully configured Modelitool Simulator object.
+        param_list (list): A list of parameter defined as dictionaries. At least , each
+            parameter dict must have the following keys : "names", "interval".
+        indicators (list, optional): A list of indicators to be returned by the
+            function. An indicator must be one of the Simulator outputs. If not
+            provided, all indicators in the simulator's output list will be returned.
+            Default is None.
+        agg_methods_dict (dict, optional): A dictionary that maps indicator names to
+            aggregation methods. Each aggregation method should be function that takes
+            an array of values and returns a single value. It can also be an error
+            function that will return an error indicator between the indicator results
+            and a reference array of values defined in reference_df.
+            If not provided, the default aggregation method for each indicator is
+            numpy.mean. Default is None.
+        reference_dict (dict, optional): When using an error function as agg_method, a
+            reference_dict must be used to map indicator names to reference indicator
+            names. The specified reference name will be used to locate the value in
+            reference_df.
+            If provided, the function will compute each indicator's deviation from its
+            reference indicator using the corresponding aggregation method.
+            Default is None.
+        reference_df (pandas.DataFrame, optional): A pandas DataFrame containing the
+            reference values for each reference indicator specified in reference_dict.
+            The DataFrame should have the same length as the simulation results.
+            Default is None.
+
+    Returns:
+        pandas.Series: A pandas Series containing the function results.
+        The index is the indicator names and the values are the aggregated simulation
+        results.
+
+    Raises:
+        ValueError: If reference_dict and reference_df are not both provided or both
+        None.
+    """
+
     def __init__(
         self,
         simulator,
