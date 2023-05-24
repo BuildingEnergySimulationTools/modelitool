@@ -17,17 +17,18 @@ from modelitool.combitabconvert import seconds_to_datetime
 
 
 class Simulator:
-    def __init__(self,
-                 model_path,
-                 simulation_options,
-                 output_list,
-                 init_parameters=None,
-                 simulation_path=None,
-                 boundary_df=None,
-                 year=None,
-                 package_path=None,
-                 lmodel=[]
-                 ):
+    def __init__(
+        self,
+        model_path,
+        simulation_options,
+        output_list,
+        init_parameters=None,
+        simulation_path=None,
+        boundary_df=None,
+        year=None,
+        package_path=None,
+        lmodel=[],
+    ):
         if type(model_path) == str:
             model_path = Path(model_path)
 
@@ -39,24 +40,22 @@ class Simulator:
             os.mkdir(simulation_path)
 
         self.omc = OMCSessionZMQ()
-        self.omc.sendExpression(
-            f'cd("{simulation_path.as_posix()}")'
-        )
+        self.omc.sendExpression(f'cd("{simulation_path.as_posix()}")')
 
         # A bit dirty but the only way I found to change the simulation dir
         # ModelicaSystem take cwd as currDirectory
         os.chdir(simulation_path)
         if package_path is None:
             model_system_args = {
-                'fileName': model_path.as_posix(),
-                'modelName': model_path.stem,
-                'lmodel': lmodel
+                "fileName": model_path.as_posix(),
+                "modelName": model_path.stem,
+                "lmodel": lmodel,
             }
         else:
             model_system_args = {
-                'fileName': package_path.as_posix(),
-                'modelName': model_path,
-                'lmodel': lmodel
+                "fileName": package_path.as_posix(),
+                "modelName": model_path,
+                "lmodel": lmodel,
             }
 
         self.model = ModelicaSystem(**model_system_args)
@@ -67,8 +66,10 @@ class Simulator:
         if boundary_df is not None:
             self.set_boundaries_df(boundary_df)
             if year is not None:
-                warnings.warn("Simulator year is read from boundary"
-                              "DAtaFrame. Argument year is ignored")
+                warnings.warn(
+                    "Simulator year is read from boundary"
+                    "DAtaFrame. Argument year is ignored"
+                )
         elif year is not None:
             self.year = year
         else:
@@ -94,7 +95,7 @@ class Simulator:
                 f'stopTime={simulation_options["stopTime"]}',
                 f'stepSize={simulation_options["stepSize"]}',
                 f'tolerance={simulation_options["tolerance"]}',
-                f'solver={simulation_options["solver"]}'
+                f'solver={simulation_options["solver"]}',
             ]
         )
 
@@ -105,27 +106,24 @@ class Simulator:
 
         new_bounds_path = self._simulation_path / "bounds.txt"
         df_to_combitimetable(df, new_bounds_path)
-        self.model.setParameters(
-            f'Boundaries.fileName="{new_bounds_path.as_posix()}"'
-        )
+        self.model.setParameters(f'Boundaries.fileName="{new_bounds_path.as_posix()}"')
         try:
             self.year = df.index[0].year
-        except:
+        except ValueError:
             raise ValueError(
                 "Could not read date from boundary condition. "
-                "Please verify that Dataframe index is a datetime")
+                "Please verify that Dataframe index is a datetime"
+            )
 
     def set_param_dict(self, param_dict):
         # t1 = time()
-        self.model.setParameters(
-            [f"{item}={val}" for item, val in param_dict.items()]
-        )
+        self.model.setParameters([f"{item}={val}" for item, val in param_dict.items()])
         # t2 = time()
         # print(f"Setting new parameters took {t2-t1}s")
 
     def simulate(self):
         # t1 = time()
-        self.model.simulate(resultfile='res.mat')
+        self.model.simulate(resultfile="res.mat")
         # t2 = time()
         # print(f"Simulating took {t2-t1}s")
 
@@ -135,26 +133,23 @@ class Simulator:
         # Manipulations are done to resample the index and provide seconds
         # t1 = time()
         sol_list = self.model.getSolutions(
-            ["time"] + self.output_list,
-            resultfile='res.mat'
+            ["time"] + self.output_list, resultfile="res.mat"
         ).T
 
         res = pd.DataFrame(
-            sol_list[:, 1:],
-            index=sol_list[:, 0].flatten(),
-            columns=self.output_list
+            sol_list[:, 1:], index=sol_list[:, 0].flatten(), columns=self.output_list
         )
 
         res.columns = self.output_list
 
-        res.index = pd.to_timedelta(res.index, unit='second')
+        res.index = pd.to_timedelta(res.index, unit="second")
         res = res.resample(
             f"{int(self.model.getSimulationOptions()['stepSize'])}S"
         ).mean()
         res.index = res.index.to_series().dt.total_seconds()
 
         if not index_datetime:
-            res.index = res.index.astype('int')
+            res.index = res.index.astype("int")
         else:
             res.index = seconds_to_datetime(res.index, self.year)
         # t2 = time()

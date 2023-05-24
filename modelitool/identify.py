@@ -6,24 +6,12 @@ import time
 
 
 class Identificator:
-    def __init__(self,
-                 simulator,
-                 parameters,
-                 error_function=None
-                 ):
+    def __init__(self, simulator, parameters, error_function=None):
         self.simulator = simulator
-        self.param_init = {
-            param["name"]: param["init"]
-            for param in parameters
-        }
-        self.param_interval = {
-            param["name"]: param["interval"]
-            for param in parameters
-        }
+        self.param_init = {param["name"]: param["init"] for param in parameters}
+        self.param_interval = {param["name"]: param["interval"] for param in parameters}
 
-        self.param_identified = {
-            param["name"]: np.nan for param in parameters
-        }
+        self.param_identified = {param["name"]: np.nan for param in parameters}
 
         self.simulator.set_param_dict(self.param_init)
 
@@ -34,16 +22,17 @@ class Identificator:
 
         self.optimization_results = None
 
-    def fit(self,
-            features,
-            labels,
-            convergence_tolerance=0.05,
-            population_size=15,
-            crossover_probability=0.7,
-            mutation_constant=(0.5, 1),
-            max_iteration=1000
-            ):
-        print('Optimization started')
+    def fit(
+        self,
+        features,
+        labels,
+        convergence_tolerance=0.05,
+        population_size=15,
+        crossover_probability=0.7,
+        mutation_constant=(0.5, 1),
+        max_iteration=1000,
+    ):
+        print("Optimization started")
         print(self.param_interval)
         start_time_eval = time.time()
 
@@ -52,8 +41,8 @@ class Identificator:
             dymo_index = datetime_to_seconds(features.index)
             self.simulator.model.setSimulationOptions(
                 [
-                    f'startTime={dymo_index[0]}',
-                    f'stopTime={dymo_index[-1]}',
+                    f"startTime={dymo_index[0]}",
+                    f"stopTime={dymo_index[-1]}",
                 ]
             )
 
@@ -66,10 +55,10 @@ class Identificator:
             tol=convergence_tolerance,
             recombination=crossover_probability,
             mutation=mutation_constant,
-            maxiter=max_iteration
+            maxiter=max_iteration,
         )
 
-        if res['success']:
+        if res["success"]:
             print(f'Identification successful error function = {res["fun"]}')
             for key, val in zip(self.param_identified.keys(), res["x"]):
                 self.param_identified[key] = val
@@ -77,41 +66,34 @@ class Identificator:
         else:
             raise ValueError("Identification failed to converge")
 
-        print('Duration: {}'.format(time.time() - start_time_eval))
+        print("Duration: {}".format(time.time() - start_time_eval))
 
     def predict(self, features):
-        if list(self.param_identified.values()) == \
-                [np.nan] * len(self.param_identified):
-            raise ValueError(
-                "Parameters have not been identified, please fit model"
-            )
+        if list(self.param_identified.values()) == [np.nan] * len(
+            self.param_identified
+        ):
+            raise ValueError("Parameters have not been identified, please fit model")
         else:
             self.simulator.set_param_dict(self.param_identified)
             self.simulator.set_boundaries_df(features)
             dymo_index = datetime_to_seconds(features.index)
             self.simulator.model.setSimulationOptions(
                 [
-                    f'startTime={dymo_index[0]}',
-                    f'stopTime={dymo_index[-1]}',
+                    f"startTime={dymo_index[0]}",
+                    f"stopTime={dymo_index[-1]}",
                 ]
             )
             self.simulator.simulate()
             return self.simulator.get_results()
 
     def _optimization_callback(self, xk, convergence):
-        print({
-            it: val for it, val in zip(self.param_init.keys(), xk)
-        })
-        print(f'convergence = {convergence}')
+        print({it: val for it, val in zip(self.param_init.keys(), xk)})
+        print(f"convergence = {convergence}")
 
     def _objective_function(self, x, *args):
-        labels, = args
-        tempo_dict = {
-            item: x[i] for i, item in enumerate(self.param_init.keys())
-        }
+        (labels,) = args
+        tempo_dict = {item: x[i] for i, item in enumerate(self.param_init.keys())}
         self.simulator.set_param_dict(tempo_dict)
         self.simulator.simulate()
 
-        return self.error_function(
-            self.simulator.get_results(), labels
-        )
+        return self.error_function(self.simulator.get_results(), labels)
