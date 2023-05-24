@@ -6,6 +6,8 @@ from modelitool.combitabconvert import datetime_to_seconds
 
 from datetime import timedelta
 
+import pytest
+
 
 class TestCombitabconvert:
     def test_get_dymo_time_index(self):
@@ -21,11 +23,30 @@ class TestCombitabconvert:
         assert datetime_to_seconds(df.index) == [3600.0, 7200.0, 10800.0]
 
     def test_df_to_combitimetable(self, tmpdir):
-        time_index = pd.date_range(
-            "2021-01-01 01:00:00",
-            freq="H",
-            periods=3
-        )
+        with pytest.raises(ValueError):
+            df_to_combitimetable([1, 2, 3], tmpdir / "test.txt")
+
+        with pytest.raises(ValueError):
+            df_to_combitimetable(
+                pd.DataFrame(data=[1, 2, 3], index=[1, 2, 3]), tmpdir / "test.txt"
+            )
+
+        with pytest.raises(ValueError):
+            df_to_combitimetable(
+                pd.DataFrame(
+                    data=[1, 2, 3],
+                    index=pd.DatetimeIndex(
+                        [
+                            "2020-01-01 00:00:00",
+                            "2019-12-31 23:00:00",
+                            "2020-01-01 01:00:00",
+                        ]
+                    ),
+                ),
+                tmpdir / "test.txt",
+            )
+
+        time_index = pd.date_range("2021-01-01 01:00:00", freq="H", periods=3)
         df = pd.DataFrame(
             {"dumb_column": [0] * time_index.shape[0],
              "dumb_column2": [1] * time_index.shape[0]},
