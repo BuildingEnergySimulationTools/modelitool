@@ -34,6 +34,18 @@ def get_dymo_time_index(df):
 
 
 def df_to_combitimetable(df, filename):
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError(f"df must be an instance of pandas DataFrame. Got {type(df)}")
+    if not isinstance(df.index, pd.DatetimeIndex):
+        raise ValueError(
+            f"DataFrame index must be an instance of DatetimeIndex. " f"Got {type(df)}"
+        )
+    if not df.index.is_monotonic_increasing:
+        raise ValueError(
+            "df DateTimeIndex is not monotonicaly increasing, this will"
+            "cause Modelica to crash."
+        )
+
     df = df.copy()
     with open(filename, "w") as file:
         file.write("#1 \n")
