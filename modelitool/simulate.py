@@ -121,11 +121,12 @@ class Simulator:
         # t2 = time()
         # print(f"Setting new parameters took {t2-t1}s")
 
-    def simulate(self):
-        # t1 = time()
-        self.model.simulate(resultfile="res.mat")
-        # t2 = time()
-        # print(f"Simulating took {t2-t1}s")
+    def simulate(
+        self,
+        simflags=None,
+    ):
+        self.simflags = simflags
+        self.model.simulate(resultfile="res.mat", simflags=simflags)
 
     def get_results(self, index_datetime=True):
         # Modelica solver can provide several results for one timestep
