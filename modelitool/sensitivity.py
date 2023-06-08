@@ -80,7 +80,14 @@ class SAnalysis:
             arguments = {}
 
         sampler = self.meth_samp_map[self._sensitivity_method]["sampling"]
-        self.sample = sampler.sample(N=n, problem=self.salib_problem, **arguments)
+        sample_temp = sampler.sample(N=n, problem=self.salib_problem, **arguments)
+
+        for index, param in enumerate(self.parameters_config):
+            vtype = param["type"]
+            if vtype == "Integer":
+                sample_temp[:, index] = np.round(sample_temp[:, index])
+                sample_temp = np.unique(sample_temp, axis=0)
+        self.sample = sample_temp
 
     def run_simulations(self, verbose_step=10):
         if self.sample.size == 0:
