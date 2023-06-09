@@ -135,21 +135,25 @@ class Simulator:
         else:
             resultfile = "res.mat"
         self.model.simulate(resultfile=resultfile, simflags=simflags)
+        self.resultfile=resultfile
 
     def get_results(self, index_datetime=True):
         # Modelica solver can provide several results for one timestep
         # Moreover variable timestep solver can provide messy result
         # Manipulations are done to resample the index and provide seconds
-        # t1 = time()
-        sol_list = self.model.getSolutions(
-            ["time"] + self.output_list, resultfile="res.mat"
-        ).T
 
-        res = pd.DataFrame(
-            sol_list[:, 1:], index=sol_list[:, 0].flatten(), columns=self.output_list
-        )
 
-        res.columns = self.output_list
+        if self.simulation_options["outputFormat"] == "csv":
+            res = pd.read_csv(self._simulation_path / "res.csv", index_col=0)
+
+        else:
+            sol_list = self.model.getSolutions(
+                ["time"] + self.output_list, resultfile="res.mat"
+            ).T
+            res = pd.DataFrame(
+                sol_list[:, 1:], index=sol_list[:, 0].flatten(), columns=self.output_list
+            )
+            res.columns = self.output_list
 
         res.index = pd.to_timedelta(res.index, unit="second")
         res = res.resample(
