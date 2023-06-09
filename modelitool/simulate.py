@@ -50,12 +50,14 @@ class Simulator:
                 "fileName": model_path.as_posix(),
                 "modelName": model_path.stem,
                 "lmodel": lmodel,
+                "variableFilter": "|".join(output_list)
             }
         else:
             model_system_args = {
                 "fileName": package_path.as_posix(),
                 "modelName": model_path,
                 "lmodel": lmodel,
+                "variableFilter": "|".join(output_list)
             }
 
         self.model = ModelicaSystem(**model_system_args)
@@ -96,8 +98,10 @@ class Simulator:
                 f'stepSize={simulation_options["stepSize"]}',
                 f'tolerance={simulation_options["tolerance"]}',
                 f'solver={simulation_options["solver"]}',
+                f'outputFormat={simulation_options["outputFormat"]}',
             ]
         )
+        self.simulation_options = simulation_options
 
     def set_boundaries_df(self, df):
         # DataFrame columns order must match the order
@@ -123,10 +127,14 @@ class Simulator:
 
     def simulate(
         self,
-        simflags=None,
+        simflags=None
     ):
         self.simflags = simflags
-        self.model.simulate(resultfile="res.mat", simflags=simflags)
+        if self.simulation_options["outputFormat"] == "csv":
+            resultfile = "res.csv"
+        else:
+            resultfile = "res.mat"
+        self.model.simulate(resultfile=resultfile, simflags=simflags)
 
     def get_results(self, index_datetime=True):
         # Modelica solver can provide several results for one timestep
@@ -153,6 +161,7 @@ class Simulator:
             res.index = res.index.astype("int")
         else:
             res.index = seconds_to_datetime(res.index, self.year)
+
         # t2 = time()
         # print(f"Getting results took {t2-t1}s")
         return res
