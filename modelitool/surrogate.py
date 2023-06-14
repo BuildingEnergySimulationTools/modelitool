@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 
-
 from modelitool.measure import time_series_control
 
 from scipy.stats.qmc import LatinHypercube
@@ -85,7 +84,7 @@ class SimulationSampler:
 
         return np.array(
             [
-                [self.parameters[par][i] for par, i in zip(self.parameters, line)]
+                [par["interval"][i] for par, i in zip(self.parameters, line)]
                 for line in iter_index
             ]
         )
@@ -99,14 +98,15 @@ class SimulationSampler:
                 (
                     new_sample_value,
                     [
-                        (
-                            self.parameters[par][0]
-                            + val * (self.parameters[par][1] - self.parameters[par][0])
-                        )
+                        par["interval"][0]
+                        + val * par["interval"][1]
+                        - par["interval"][0]
                         for par, val in zip(self.parameters, s)
                     ],
                 )
             )
+
+        # return new_sample_value
 
         if self.sample.size == 0:
             bound_sample = self.get_boundary_sample()
@@ -115,7 +115,7 @@ class SimulationSampler:
         prog_bar = progress_bar(range(new_sample_value.shape[0]))
         for pb, simul in zip(prog_bar, new_sample_value):
             sim_config = {
-                param: val for param, val in zip(self.parameters.keys(), simul)
+                param["name"]: val for param, val in zip(self.parameters, simul)
             }
             prog_bar.comment = "Simulations"
             self.simulator.set_param_dict(sim_config)
@@ -248,6 +248,7 @@ class SurrogateModel:
         return differential_evolution(
             objective_function,
             bounds=[
-                (val[0], val[1]) for val in self.simulation_sampler.parameters.values()
+                (param["interval"][0], param["interval"][1])
+                for param in self.simulation_sampler.parameters
             ],
         )
