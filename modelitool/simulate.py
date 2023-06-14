@@ -50,12 +50,14 @@ class Simulator:
                 "fileName": model_path.as_posix(),
                 "modelName": model_path.stem,
                 "lmodel": lmodel,
+                "variableFilter": "|".join(output_list),
             }
         else:
             model_system_args = {
                 "fileName": package_path.as_posix(),
                 "modelName": model_path,
                 "lmodel": lmodel,
+                "variableFilter": "|".join(output_list),
             }
 
         self.model = ModelicaSystem(**model_system_args)
@@ -96,8 +98,10 @@ class Simulator:
                 f'stepSize={simulation_options["stepSize"]}',
                 f'tolerance={simulation_options["tolerance"]}',
                 f'solver={simulation_options["solver"]}',
+                f'outputFormat={simulation_options["outputFormat"]}',
             ]
         )
+        self.simulation_options = simulation_options
 
     def set_boundaries_df(self, df):
         # DataFrame columns order must match the order
@@ -121,26 +125,33 @@ class Simulator:
         # t2 = time()
         # print(f"Setting new parameters took {t2-t1}s")
 
-    def simulate(self):
-        # t1 = time()
-        self.model.simulate(resultfile="res.mat")
-        # t2 = time()
-        # print(f"Simulating took {t2-t1}s")
+    def simulate(self, simflags=None):
+        self.simflags = simflags
+        if self.simulation_options["outputFormat"] == "csv":
+            resultfile = "res.csv"
+        else:
+            resultfile = "res.mat"
+        self.model.simulate(resultfile=resultfile, simflags=simflags)
+        self.resultfile = resultfile
 
     def get_results(self, index_datetime=True):
         # Modelica solver can provide several results for one timestep
         # Moreover variable timestep solver can provide messy result
         # Manipulations are done to resample the index and provide seconds
-        # t1 = time()
-        sol_list = self.model.getSolutions(
-            ["time"] + self.output_list, resultfile="res.mat"
-        ).T
 
-        res = pd.DataFrame(
-            sol_list[:, 1:], index=sol_list[:, 0].flatten(), columns=self.output_list
-        )
+        if self.simulation_options["outputFormat"] == "csv":
+            res = pd.read_csv(self._simulation_path / "res.csv", index_col=0)
 
-        res.columns = self.output_list
+        else:
+            sol_list = self.model.getSolutions(
+                ["time"] + self.output_list, resultfile="res.mat"
+            ).T
+            res = pd.DataFrame(
+                sol_list[:, 1:],
+                index=sol_list[:, 0].flatten(),
+                columns=self.output_list,
+            )
+            res.columns = self.output_list
 
         res.index = pd.to_timedelta(res.index, unit="second")
         res = res.resample(
@@ -152,6 +163,7 @@ class Simulator:
             res.index = res.index.astype("int")
         else:
             res.index = seconds_to_datetime(res.index, self.year)
+
         # t2 = time()
         # print(f"Getting results took {t2-t1}s")
         return res

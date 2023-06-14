@@ -89,7 +89,7 @@ class SAnalysis:
                 sample_temp = np.unique(sample_temp, axis=0)
         self.sample = sample_temp
 
-    def run_simulations(self, verbose_step=10):
+    def run_simulations(self, verbose_step=10, simflags=None):
         if self.sample.size == 0:
             raise ValueError("No sample available. Generate sample using draw_sample()")
 
@@ -106,7 +106,7 @@ class SAnalysis:
         for pb, sim in zip(prog_bar, simu_list):
             prog_bar.comment = "Simulations"
             self.simulator.set_param_dict(sim)
-            self.simulator.simulate()
+            self.simulator.simulate(simflags=simflags)
             results = self.simulator.get_results()
             self.simulation_results.append(results)
 
