@@ -4,6 +4,7 @@ import pandas as pd
 
 # TODO integrate surrogate in *args of MyProblem (corrai.multi_optimize.py)
 
+
 class ModelicaFunction:
     """
     A class that defines a function to be used in Corrai for multi objective
@@ -47,14 +48,14 @@ class ModelicaFunction:
     """
 
     def __init__(
-            self,
-            simulator,
-            param_list,
-            indicators=None,
-            surrogate=None,
-            agg_methods_dict=None,
-            reference_dict=None,
-            reference_df=None,
+        self,
+        simulator,
+        param_list,
+        indicators=None,
+        surrogate=None,
+        agg_methods_dict=None,
+        reference_dict=None,
+        reference_df=None,
     ):
         self.simulator = simulator
         self.surrogate = surrogate
@@ -68,7 +69,7 @@ class ModelicaFunction:
         else:
             self.agg_methods_dict = agg_methods_dict
         if (reference_dict is not None and reference_df is None) or (
-                reference_dict is None and reference_df is not None
+            reference_dict is None and reference_df is not None
         ):
             raise ValueError("Both reference_dict and reference_df should be provided")
         self.reference_dict = reference_dict
