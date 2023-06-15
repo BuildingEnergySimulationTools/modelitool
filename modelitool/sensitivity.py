@@ -379,7 +379,13 @@ def plot_stacked_lines(df, title=None, y_label=None, x_label=None, legend_title=
 
 
 def plot_sample(
-    sample_res, ref=None, title=None, y_label=None, x_label=None, alpha=0.5
+        sample_res,
+        ref=None,
+        title=None,
+        y_label=None,
+        x_label=None,
+        alpha=0.5,
+        loc=None,
 ):
     if ref is not None:
         try:
@@ -389,6 +395,13 @@ def plot_sample(
 
     else:
         to_plot = pd.concat([res for res in sample_res])
+
+    if loc is not None:
+        print(sample_res)
+        to_plot = pd.concat([res for res in sample_res]).loc[loc[0]:loc[1]]
+        print(to_plot)
+
+
 
     fig = go.Figure()
     fig.add_trace(
