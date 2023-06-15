@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 
 
+# TODO integrate surrogate in *args of MyProblem (corrai.multi_optimize.py)
+
 class ModelicaFunction:
     """
     A class that defines a function to be used in Corrai for multi objective
