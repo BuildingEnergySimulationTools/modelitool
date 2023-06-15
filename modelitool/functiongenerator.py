@@ -45,15 +45,17 @@ class ModelicaFunction:
     """
 
     def __init__(
-        self,
-        simulator,
-        param_list,
-        indicators=None,
-        agg_methods_dict=None,
-        reference_dict=None,
-        reference_df=None,
+            self,
+            simulator,
+            param_list,
+            indicators=None,
+            surrogate=None,
+            agg_methods_dict=None,
+            reference_dict=None,
+            reference_df=None,
     ):
         self.simulator = simulator
+        self.surrogate = surrogate
         self.param_list = param_list
         if indicators is None:
             self.indicators = simulator.output_list
@@ -64,7 +66,7 @@ class ModelicaFunction:
         else:
             self.agg_methods_dict = agg_methods_dict
         if (reference_dict is not None and reference_df is None) or (
-            reference_dict is None and reference_df is not None
+                reference_dict is None and reference_df is not None
         ):
             raise ValueError("Both reference_dict and reference_df should be provided")
         self.reference_dict = reference_dict
@@ -90,5 +92,13 @@ class ModelicaFunction:
 
         for ind in solo_ind_names:
             res_series[ind] = self.agg_methods_dict[ind](res[ind])
+        # print(res_series)
+        return res_series
+
+    def function_surrogate(self, x_dict):
+        temp_array = np.array(list(x_dict.values()))
+        res = self.surrogate.predict(x_array=temp_array)
+        res_series = pd.Series(data=res[0], dtype="float64")
+        res_series.index = [self.indicators]
 
         return res_series
