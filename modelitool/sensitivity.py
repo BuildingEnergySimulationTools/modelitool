@@ -397,7 +397,7 @@ def plot_sample(
         to_plot = pd.concat([res for res in sample_res])
 
     if loc is not None:
-        to_plot = pd.concat([res for res in sample_res]).loc[loc[0]:loc[1]]
+        to_plot = pd.concat([res for res in sample_res]).loc[loc[0] : loc[1]]
 
     fig = go.Figure()
     fig.add_trace(
