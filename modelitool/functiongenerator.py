@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 
 
+# TODO integrate surrogate in *args of MyProblem (corrai.multi_optimize.py)
+
+
 class ModelicaFunction:
     """
     A class that defines a function to be used in Corrai for multi objective
@@ -49,11 +52,13 @@ class ModelicaFunction:
         simulator,
         param_list,
         indicators=None,
+        surrogate=None,
         agg_methods_dict=None,
         reference_dict=None,
         reference_df=None,
     ):
         self.simulator = simulator
+        self.surrogate = surrogate
         self.param_list = param_list
         if indicators is None:
             self.indicators = simulator.output_list
@@ -90,5 +95,13 @@ class ModelicaFunction:
 
         for ind in solo_ind_names:
             res_series[ind] = self.agg_methods_dict[ind](res[ind])
+        # print(res_series)
+        return res_series
+
+    def function_surrogate(self, x_dict):
+        temp_array = np.array(list(x_dict.values()))
+        res = self.surrogate.predict(x_array=temp_array)
+        res_series = pd.Series(data=res[0], dtype="float64")
+        res_series.index = [self.indicators]
 
         return res_series
