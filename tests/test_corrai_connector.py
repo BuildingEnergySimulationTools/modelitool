@@ -1,11 +1,16 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
+
 import pytest
 
-from modelitool.functiongenerator import ModelicaFunction
-from modelitool.simulate import Simulator
 from sklearn.metrics import mean_squared_error, mean_absolute_error
+from modelitool.simulate import Simulator
+from modelitool.surrogate import SimulationSampler
+from modelitool.surrogate import SurrogateModel
+
+from modelitool.corrai_connector import ModelicaFunction
+
 
 PACKAGE_DIR = Path(__file__).parent / "TestLib"
 
@@ -29,6 +34,7 @@ simu_options = {
     "stepSize": 1,
     "tolerance": 1e-06,
     "solver": "dassl",
+    "outputFormat": "mat",
 }
 
 simu = Simulator(
@@ -119,3 +125,22 @@ class TestModelicaFunction:
                 reference_df=dataset,
                 reference_dict=None,
             )
+
+
+class TestScikitFunction:
+    def test_function(self):
+        surrogate = SurrogateModel(
+            simulation_sampler=SimulationSampler(
+                simulator=simu,
+                parameters=parameters,
+            )
+        )
+
+        surrogate.add_samples(100, seed=42)
+        surrogate.fit_sample(
+            indicator="res1.showNumber",
+            aggregation_method=np.mean,
+        )
+
+        res = surrogate.predict(np.array([2, 2]))
+        np.testing.assert_almost_equal(res, 8.15, decimal=1)

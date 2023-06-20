@@ -1,14 +1,65 @@
-import numpy as np
 import pandas as pd
+import numpy as np
 
 
-# TODO integrate surrogate in *args of MyProblem (corrai.multi_optimize.py)
+class ScikitFunction:
+    """
+    A class that represents a scikit-learn function.
+
+    Parameters:
+    - simulator (object): The simulator object used for the function.
+    - surrogate (object): The surrogate object used for prediction.
+    - param_list (list): A list of parameter names.
+    - indicators (list, optional): A list of indicator names. Defaults to None.
+
+    Attributes:
+    - simulator (object): The simulator object used for the function.
+    - surrogate (object): The surrogate object used for prediction.
+    - param_list (list): A list of parameter names.
+    - indicators (list): A list of indicator names.
+
+    Methods:
+    - function(x_dict): Calculates the function value for the given input dictionary.
+
+    """
+
+    def __init__(
+        self,
+        simulator,
+        surrogate,
+        param_list,
+        indicators=None,
+    ):
+        self.simulator = simulator
+        self.surrogate = surrogate
+        self.param_list = param_list
+        if indicators is None:
+            self.indicators = simulator.output_list
+        else:
+            self.indicators = indicators
+
+    def function(self, x_dict):
+        """
+        Calculates the function value for the given input dictionary.
+
+        Args:
+        - x_dict (dict): A dictionary of input values.
+
+        Returns:
+        - res_series (Series): A pandas Series object containing the function values.
+        """
+
+        temp_array = np.array(list(x_dict.values()))
+        res = self.surrogate.predict(x_array=temp_array)
+        res_series = pd.Series(data=res[0, 0], dtype="float64")
+        res_series.index = [self.indicators]
+
+        return res_series
 
 
 class ModelicaFunction:
     """
-    A class that defines a function to be used in Corrai for multi objective
-    optimisation based on a Modelitool Simulator.
+    A class that defines a function based on a Modelitool Simulator.
 
     Args:
         simulator (object): A fully configured Modelitool Simulator object.
@@ -19,7 +70,7 @@ class ModelicaFunction:
             provided, all indicators in the simulator's output list will be returned.
             Default is None.
         agg_methods_dict (dict, optional): A dictionary that maps indicator names to
-            aggregation methods. Each aggregation method should be function that takes
+            aggregation methods. Each aggregation method should be a function that takes
             an array of values and returns a single value. It can also be an error
             function that will return an error indicator between the indicator results
             and a reference array of values defined in reference_df.
@@ -52,13 +103,11 @@ class ModelicaFunction:
         simulator,
         param_list,
         indicators=None,
-        surrogate=None,
         agg_methods_dict=None,
         reference_dict=None,
         reference_df=None,
     ):
         self.simulator = simulator
-        self.surrogate = surrogate
         self.param_list = param_list
         if indicators is None:
             self.indicators = simulator.output_list
@@ -76,6 +125,16 @@ class ModelicaFunction:
         self.reference_df = reference_df
 
     def function(self, x_dict):
+        """
+        Calculates the function value for the given input dictionary.
+
+        Args:
+        - x_dict (dict): A dictionary of input values.
+
+        Returns:
+        - res_series (Series): A pandas Series object containing the function values.
+
+        """
         temp_dict = {param["name"]: x_dict[param["name"]] for param in self.param_list}
         self.simulator.set_param_dict(temp_dict)
         self.simulator.simulate()
@@ -95,13 +154,4 @@ class ModelicaFunction:
 
         for ind in solo_ind_names:
             res_series[ind] = self.agg_methods_dict[ind](res[ind])
-        # print(res_series)
-        return res_series
-
-    def function_surrogate(self, x_dict):
-        temp_array = np.array(list(x_dict.values()))
-        res = self.surrogate.predict(x_array=temp_array)
-        res_series = pd.Series(data=res[0], dtype="float64")
-        res_series.index = [self.indicators]
-
         return res_series
