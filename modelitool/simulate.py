@@ -4,8 +4,10 @@ import warnings
 import pandas as pd
 import datetime as dt
 
-from OMPython import ModelicaSystem
-from OMPython import OMCSessionZMQ
+from pydelica import Session
+from pydelica.logger import OMLogLevel
+from pydelica.options import Solver
+
 import tempfile
 from pathlib import Path
 
@@ -13,57 +15,22 @@ from modelitool.combitabconvert import df_to_combitimetable
 from modelitool.combitabconvert import seconds_to_datetime
 
 
-# TODO Create a debug mode to print time
-
-
 class Simulator:
     def __init__(
         self,
         model_path,
-        simulation_options,
-        output_list,
+        model_name=None,
+        simulation_options=None,
+        output_list=None,
         init_parameters=None,
-        simulation_path=None,
         boundary_df=None,
         year=None,
-        package_path=None,
-        lmodel=[],
+
     ):
-        if type(model_path) == str:
-            model_path = Path(model_path)
-
-        if simulation_path is None:
-            simulation_path = tempfile.mkdtemp()
-            simulation_path = Path(simulation_path)
-
-        if not os.path.exists(simulation_path):
-            os.mkdir(simulation_path)
-
-        self.omc = OMCSessionZMQ()
-        self.omc.sendExpression(f'cd("{simulation_path.as_posix()}")')
-
-        # A bit dirty but the only way I found to change the simulation dir
-        # ModelicaSystem take cwd as currDirectory
-        os.chdir(simulation_path)
-        if package_path is None:
-            model_system_args = {
-                "fileName": model_path.as_posix(),
-                "modelName": model_path.stem,
-                "lmodel": lmodel,
-                "variableFilter": "|".join(output_list),
-            }
+        if isinstance(model_path, str):
+            self.model_path = Path(model_path)
         else:
-            model_system_args = {
-                "fileName": package_path.as_posix(),
-                "modelName": model_path,
-                "lmodel": lmodel,
-                "variableFilter": "|".join(output_list),
-            }
-
-        self.model = ModelicaSystem(**model_system_args)
-
-        self._simulation_path = simulation_path
-        self.output_list = output_list
+            self.model_path = model_path
 
         if boundary_df is not None:
             self.set_boundaries_df(boundary_df)
@@ -80,27 +47,48 @@ class Simulator:
         if init_parameters:
             self.set_param_dict(init_parameters)
 
-        self.set_simulation_options(simulation_options)
+        self.simulation_options = simulation_options
 
-    def get_available_outputs(self):
-        if self.model.getSolutions() is None:
-            # A bit dirty but simulation must be run once so
-            # getSolutions() can access results
-            self.simulate()
+        self.session = Session(log_level=OMLogLevel.STATS)
+        self.session.__enter__()
+        self.build_model()
+        if model_name is None:
+            self.model_name = list(self.session._model_parameters.keys())[0]
 
-        return self.model.getSolutions()
+        if simulation_options is not None:
+            self.set_simulation_options(simulation_options)
+
+        if output_list is not None:
+            self.set_variable_filter(output_list, self.model_name)
+            self.output_list = output_list
+    def __del__(self):
+        self.session.__exit__()
+
+    def build_model(self, profiling=None, omc_build_flags=None):
+        self.session.build_model(self.model_path, profiling, omc_build_flags)
+
+    def get_parameters(self):
+        return self.session.get_parameters()
+
+    def set_variable_filter(self, output_list, model_name=None):
+        if model_name is None:
+            model_name = self.model_name
+
+        self.session.set_variable_filter("|".join(output_list), model_name=model_name)
 
     def set_simulation_options(self, simulation_options):
-        self.model.setSimulationOptions(
-            [
-                f'startTime={simulation_options["startTime"]}',
-                f'stopTime={simulation_options["stopTime"]}',
-                f'stepSize={simulation_options["stepSize"]}',
-                f'tolerance={simulation_options["tolerance"]}',
-                f'solver={simulation_options["solver"]}',
-                f'outputFormat={simulation_options["outputFormat"]}',
-            ]
+
+        self.session.set_solver(getattr(Solver, simulation_options["solver"].upper()))
+        self.session.set_time_range(
+            start_time=simulation_options["startTime"],
+            stop_time=simulation_options["stopTime"]
         )
+        self.session.set_tolerance(tolerance=simulation_options["tolerance"])
+
+        for model in self.session._simulation_opts:
+            self.session._simulation_opts[model].set_option(
+                "stepSize", simulation_options["stepSize"])
+
         self.simulation_options = simulation_options
 
     def set_boundaries_df(self, df):
@@ -120,42 +108,28 @@ class Simulator:
             )
 
     def set_param_dict(self, param_dict):
-        # t1 = time()
-        self.model.setParameters([f"{item}={val}" for item, val in param_dict.items()])
-        # t2 = time()
-        # print(f"Setting new parameters took {t2-t1}s")
+        for key, value in param_dict.items():
+            self.session.set_parameter(key, value)
 
-    def simulate(self, simflags=None):
-        self.simflags = simflags
-        if self.simulation_options["outputFormat"] == "csv":
-            resultfile = "res.csv"
-        else:
-            resultfile = "res.mat"
-        self.model.simulate(resultfile=resultfile, simflags=simflags)
-        self.resultfile = resultfile
+    def simulate(self, model_name=None):
+        if model_name is None:
+            model_name = self.model_name
+        self.session.simulate(model_name=model_name)
 
-    def get_results(self, index_datetime=True):
+    def get_results(self, model_name=None, index_datetime=True):
         # Modelica solver can provide several results for one timestep
         # Moreover variable timestep solver can provide messy result
         # Manipulations are done to resample the index and provide seconds
+        if model_name is None:
+            model_name = self.model_name
 
-        if self.simulation_options["outputFormat"] == "csv":
-            res = pd.read_csv(self._simulation_path / "res.csv", index_col=0)
-
-        else:
-            sol_list = self.model.getSolutions(
-                ["time"] + self.output_list, resultfile="res.mat"
-            ).T
-            res = pd.DataFrame(
-                sol_list[:, 1:],
-                index=sol_list[:, 0].flatten(),
-                columns=self.output_list,
-            )
-            res.columns = self.output_list
+        res = pd.DataFrame(self.session.get_solutions()[model_name])
+        res.index = res['time']
+        res = res.drop('time', axis=1)
 
         res.index = pd.to_timedelta(res.index, unit="second")
         res = res.resample(
-            f"{int(self.model.getSimulationOptions()['stepSize'])}S"
+            f"{self.session._simulation_opts['rosen'].get('stepSize')}S"
         ).mean()
         res.index = res.index.to_series().dt.total_seconds()
 
@@ -164,6 +138,4 @@ class Simulator:
         else:
             res.index = seconds_to_datetime(res.index, self.year)
 
-        # t2 = time()
-        # print(f"Getting results took {t2-t1}s")
         return res

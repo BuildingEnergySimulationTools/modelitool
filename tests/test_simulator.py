@@ -22,14 +22,10 @@ OUTPUTS = ["res.showNumber"]
 
 @pytest.fixture(scope="session")
 def simul(tmp_path_factory):
-    test_run_path = tmp_path_factory.mktemp("run")
     simu = Simulator(
-        model_path="TestLib.rosen",
-        package_path=PACKAGE_DIR / "package.mo",
+        model_path=PACKAGE_DIR / "rosen.mo",
         simulation_options=SIMULATION_OPTIONS,
         output_list=OUTPUTS,
-        simulation_path=test_run_path,
-        lmodel=["Modelica"],
     )
     return simu
 
