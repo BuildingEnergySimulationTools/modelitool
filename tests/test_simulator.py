@@ -54,12 +54,9 @@ def simul_boundaries():
     }
 
     simu = Simulator(
-        model_path="TestLib.boundary_test",
-        package_path=PACKAGE_DIR / "package.mo",
+        model_path=PACKAGE_DIR / "boundary_test.mo",
         simulation_options=simul_options,
-        output_list=["Boundaries.y[1]", "Boundaries.y[2]"],
-        simulation_path=None,
-        lmodel=["Modelica"],
+        # output_list=["Boundaries.y[1]", "Boundaries.y[2]"],
     )
     return simu
 
@@ -74,7 +71,7 @@ class TestSimulator:
         simul.set_param_dict(test_dict)
 
         for key in test_dict.keys():
-            assert float(test_dict[key]) == float(simul.model.getParameters()[key])
+            assert test_dict[key] == simul.session.get_parameters()[key]['value']
 
     def test_simulate_get_results(self, simul):
         simul.simulate()
@@ -85,13 +82,6 @@ class TestSimulator:
 
         assert ref.equals(res)
 
-    def test_run_in_temp_dir(self, simul_none_run_path):
-        # TODO Test do not remove created tempdir
-        ref_path = simul_none_run_path._simulation_path.as_posix()
-        sim_path = simul_none_run_path.omc.sendExpression("cd()")
-
-        assert ref_path == sim_path
-
     def test_set_boundaries_df(self, simul_boundaries):
         new_bounds = pd.DataFrame(
             {"Boundaries.y[1]": [10, 20, 30], "Boundaries.y[2]": [3, 4, 5]},
@@ -99,8 +89,9 @@ class TestSimulator:
         )
         new_bounds.index.freq = None
         new_bounds = new_bounds.astype(float)
+        new_bounds.index.names = ['time']
 
-        simul_boundaries.set_boundaries_df(new_bounds)
+        simul_boundaries.set_combi_time_table_df(new_bounds, 'Boundaries')
         simul_boundaries.simulate()
         res = simul_boundaries.get_results()
 

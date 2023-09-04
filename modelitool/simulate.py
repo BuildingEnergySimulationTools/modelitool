@@ -33,11 +33,11 @@ class Simulator:
             self.model_path = model_path
 
         if boundary_df is not None:
-            self.set_boundaries_df(boundary_df)
+            self.set_combi_time_table_df(boundary_df, 'Boundaries')
             if year is not None:
                 warnings.warn(
                     "Simulator year is read from boundary"
-                    "DAtaFrame. Argument year is ignored"
+                    "DataFrame. Argument year is ignored"
                 )
         elif year is not None:
             self.year = year
@@ -52,8 +52,12 @@ class Simulator:
         self.session = Session(log_level=OMLogLevel.STATS)
         self.session.__enter__()
         self.build_model()
+
         if model_name is None:
             self.model_name = list(self.session._model_parameters.keys())[0]
+
+        self.simulation_path = Path(
+            self.session.get_binary_location(self.model_name)).parent
 
         if simulation_options is not None:
             self.set_simulation_options(simulation_options)
@@ -91,20 +95,23 @@ class Simulator:
 
         self.simulation_options = simulation_options
 
-    def set_boundaries_df(self, df):
+    def set_combi_time_table_df(self, df, combi_time_table_name):
         # DataFrame columns order must match the order
         # defined in the modelica file. This cannot be checked
         # Modelica file must contain a combiTimetable named Boundaries
 
-        new_bounds_path = self._simulation_path / "bounds.txt"
+        new_bounds_path = self.simulation_path / "bounds.txt"
         df_to_combitimetable(df, new_bounds_path)
-        self.model.setParameters(f'Boundaries.fileName="{new_bounds_path.as_posix()}"')
+        self.session.set_parameter(
+            f'{combi_time_table_name}.fileName',
+            new_bounds_path.as_posix()
+        )
         try:
             self.year = df.index[0].year
         except ValueError:
             raise ValueError(
                 "Could not read date from boundary condition. "
-                "Please verify that Dataframe index is a datetime"
+                "Please verify that Dataframe has DateTime index"
             )
 
     def set_param_dict(self, param_dict):
@@ -129,7 +136,7 @@ class Simulator:
 
         res.index = pd.to_timedelta(res.index, unit="second")
         res = res.resample(
-            f"{self.session._simulation_opts['rosen'].get('stepSize')}S"
+            f"{self.session._simulation_opts[self.model_name].get('stepSize')}S"
         ).mean()
         res.index = res.index.to_series().dt.total_seconds()
 
