@@ -64,7 +64,7 @@ class Simulator:
 
         if output_list is not None:
             self.set_variable_filter(output_list, self.model_name)
-            self.output_list = output_list
+        self.output_list = output_list
     def __del__(self):
         self.session.__exit__()
 
@@ -145,4 +145,7 @@ class Simulator:
         else:
             res.index = seconds_to_datetime(res.index, self.year)
 
-        return res
+        if self.output_list is None:
+            return res
+        else:
+            return res[self.output_list]

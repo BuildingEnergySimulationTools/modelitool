@@ -29,20 +29,6 @@ def simul(tmp_path_factory):
     )
     return simu
 
-
-@pytest.fixture(scope="session")
-def simul_none_run_path():
-    simu = Simulator(
-        model_path="TestLib.rosen",
-        package_path=PACKAGE_DIR / "package.mo",
-        simulation_options=SIMULATION_OPTIONS,
-        output_list=OUTPUTS,
-        simulation_path=None,
-        lmodel=["Modelica"],
-    )
-    return simu
-
-
 @pytest.fixture(scope="session")
 def simul_boundaries():
     simul_options = {
@@ -56,7 +42,7 @@ def simul_boundaries():
     simu = Simulator(
         model_path=PACKAGE_DIR / "boundary_test.mo",
         simulation_options=simul_options,
-        # output_list=["Boundaries.y[1]", "Boundaries.y[2]"],
+        output_list=["Boundaries.y[1]", "Boundaries.y[2]"],
     )
     return simu
 
