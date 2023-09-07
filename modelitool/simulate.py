@@ -25,7 +25,6 @@ class Simulator:
         init_parameters=None,
         boundary_df=None,
         year=None,
-
     ):
         if isinstance(model_path, str):
             self.model_path = Path(model_path)
@@ -33,7 +32,7 @@ class Simulator:
             self.model_path = model_path
 
         if boundary_df is not None:
-            self.set_combi_time_table_df(boundary_df, 'Boundaries')
+            self.set_combi_time_table_df(boundary_df, "Boundaries")
             if year is not None:
                 warnings.warn(
                     "Simulator year is read from boundary"
@@ -57,14 +56,14 @@ class Simulator:
             self.model_name = list(self.session._model_parameters.keys())[0]
 
         self.simulation_path = Path(
-            self.session.get_binary_location(self.model_name)).parent
+            self.session.get_binary_location(self.model_name)
+        ).parent
 
         if simulation_options is not None:
             self.set_simulation_options(simulation_options)
 
-        if output_list is not None:
-            self.set_variable_filter(output_list, self.model_name)
         self.output_list = output_list
+
     def __del__(self):
         self.session.__exit__()
 
@@ -81,17 +80,17 @@ class Simulator:
         self.session.set_variable_filter("|".join(output_list), model_name=model_name)
 
     def set_simulation_options(self, simulation_options):
-
         self.session.set_solver(getattr(Solver, simulation_options["solver"].upper()))
         self.session.set_time_range(
             start_time=simulation_options["startTime"],
-            stop_time=simulation_options["stopTime"]
+            stop_time=simulation_options["stopTime"],
         )
         self.session.set_tolerance(tolerance=simulation_options["tolerance"])
 
         for model in self.session._simulation_opts:
             self.session._simulation_opts[model].set_option(
-                "stepSize", simulation_options["stepSize"])
+                "stepSize", simulation_options["stepSize"]
+            )
 
         self.simulation_options = simulation_options
 
@@ -103,8 +102,7 @@ class Simulator:
         new_bounds_path = self.simulation_path / "bounds.txt"
         df_to_combitimetable(df, new_bounds_path)
         self.session.set_parameter(
-            f'{combi_time_table_name}.fileName',
-            new_bounds_path.as_posix()
+            f"{combi_time_table_name}.fileName", new_bounds_path.as_posix()
         )
         try:
             self.year = df.index[0].year
@@ -131,8 +129,8 @@ class Simulator:
             model_name = self.model_name
 
         res = pd.DataFrame(self.session.get_solutions()[model_name])
-        res.index = res['time']
-        res = res.drop('time', axis=1)
+        res.index = res["time"]
+        res = res.drop("time", axis=1)
 
         res.index = pd.to_timedelta(res.index, unit="second")
         res = res.resample(

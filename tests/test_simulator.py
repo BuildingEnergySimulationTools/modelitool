@@ -29,6 +29,7 @@ def simul(tmp_path_factory):
     )
     return simu
 
+
 @pytest.fixture(scope="session")
 def simul_boundaries():
     simul_options = {
@@ -42,7 +43,6 @@ def simul_boundaries():
     simu = Simulator(
         model_path=PACKAGE_DIR / "boundary_test.mo",
         simulation_options=simul_options,
-        output_list=["Boundaries.y[1]", "Boundaries.y[2]"],
     )
     return simu
 
@@ -50,21 +50,21 @@ def simul_boundaries():
 class TestSimulator:
     def test_set_param_dict(self, simul):
         test_dict = {
-            "x.k": 2.0,
-            "y.k": 2.0,
+            "x.k": 3.0,
+            "y.k": 3.0,
         }
 
         simul.set_param_dict(test_dict)
 
         for key in test_dict.keys():
-            assert test_dict[key] == simul.session.get_parameters()[key]['value']
+            assert test_dict[key] == simul.session.get_parameters()[key]["value"]
 
     def test_simulate_get_results(self, simul):
         simul.simulate()
 
         res = simul.get_results(index_datetime=False)
 
-        ref = pd.DataFrame({"res.showNumber": [401.0, 401.0, 401.0]})
+        ref = pd.DataFrame({"res.showNumber": [3604.0, 3604.0, 3604.0]})
 
         assert ref.equals(res)
 
@@ -75,9 +75,9 @@ class TestSimulator:
         )
         new_bounds.index.freq = None
         new_bounds = new_bounds.astype(float)
-        new_bounds.index.names = ['time']
+        new_bounds.index.names = ["time"]
 
-        simul_boundaries.set_combi_time_table_df(new_bounds, 'Boundaries')
+        simul_boundaries.set_combi_time_table_df(new_bounds, "Boundaries")
         simul_boundaries.simulate()
         res = simul_boundaries.get_results()
 
