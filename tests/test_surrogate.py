@@ -13,9 +13,22 @@ from sklearn.metrics import mean_absolute_error
 import pytest
 import datetime as dt
 
-PACKAGE_PATH = Path(__file__).parent / "TestLib/package.mo"
+PACKAGE_PATH = Path(__file__).parent / "TestLib"
 
-PARAM_DICT = {"x.k": [0, 10], "y.k": [0, 10]}
+PARAM_DICT = [
+    {
+        'name': "x.k",
+        'interval': (0, 10),
+        'init': 0.0,
+        'type': "Real"
+    },
+    {
+        'name': 'y.k',
+        'interval':(0, 10),
+        'init': 0,
+        'type': "Real"
+    },
+]
 
 SIMULATION_OPTIONS = {
     "startTime": 0,
@@ -31,9 +44,7 @@ OUTPUTS = ["res.showNumber"]
 @pytest.fixture(scope="session")
 def rosen(tmp_path_factory):
     simu = Simulator(
-        model_path="TestLib.rosen",
-        package_path=PACKAGE_PATH,
-        lmodel=["Modelica"],
+        model_path=PACKAGE_PATH / "rosen.mo",
         simulation_options=SIMULATION_OPTIONS,
         output_list=OUTPUTS,
     )
@@ -43,9 +54,7 @@ def rosen(tmp_path_factory):
 @pytest.fixture(scope="session")
 def linear_2d(tmp_path_factory):
     simu = Simulator(
-        model_path="TestLib.linear_2d",
-        package_path=PACKAGE_PATH,
-        lmodel=["Modelica"],
+        model_path=PACKAGE_PATH / "linear_2d.mo",
         simulation_options=SIMULATION_OPTIONS,
         output_list=OUTPUTS,
     )
