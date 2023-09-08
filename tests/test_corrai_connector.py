@@ -38,12 +38,9 @@ simu_options = {
 }
 
 simu = Simulator(
-    model_path="TestLib.ishigami_two_outputs",
-    package_path=PACKAGE_DIR / "package.mo",
+    model_path=PACKAGE_DIR / "ishigami_two_outputs.mo",
     simulation_options=simu_options,
     output_list=outputs,
-    simulation_path=None,
-    lmodel=["Modelica"],
 )
 
 x_dict = {"x.k": 2, "y.k": 2}

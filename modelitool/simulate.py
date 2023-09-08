@@ -80,19 +80,44 @@ class Simulator:
         self.session.set_variable_filter("|".join(output_list), model_name=model_name)
 
     def set_simulation_options(self, simulation_options):
-        self.session.set_solver(getattr(Solver, simulation_options["solver"].upper()))
-        self.session.set_time_range(
-            start_time=simulation_options["startTime"],
-            stop_time=simulation_options["stopTime"],
-        )
-        self.session.set_tolerance(tolerance=simulation_options["tolerance"])
+        try:
+            self.session.set_solver(
+                getattr(Solver, simulation_options["solver"].upper())
+            )
+            self.simulation_options["solver"] = simulation_options["solver"]
+        except KeyError:
+            pass
+
+        try:
+            self.session.set_time_range(
+                start_time=simulation_options["startTime"],
+                stop_time=simulation_options["stopTime"],
+            )
+            self.simulation_options["startTime"] = simulation_options["startTime"]
+            self.simulation_options["stopTime"] = simulation_options["stopTime"]
+
+        except KeyError:
+            if "startTime" not in list(
+                simulation_options.keys()
+            ) or "stopTime" not in list(simulation_options.keys()):
+                raise ValueError(
+                    "Cannot provide one of 'startTime' or 'stopTime' both shall be "
+                    "provided at once"
+                )
+            else:
+                pass
+
+        try:
+            self.session.set_tolerance(tolerance=simulation_options["tolerance"])
+            self.simulation_options["tolerance"] = simulation_options["tolerance"]
+        except KeyError:
+            pass
 
         for model in self.session._simulation_opts:
             self.session._simulation_opts[model].set_option(
                 "stepSize", simulation_options["stepSize"]
             )
-
-        self.simulation_options = simulation_options
+            self.simulation_options["stepSize"] = simulation_options["stepSize"]
 
     def set_combi_time_table_df(self, df, combi_time_table_name):
         # DataFrame columns order must match the order

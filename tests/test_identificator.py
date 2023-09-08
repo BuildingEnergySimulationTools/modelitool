@@ -8,7 +8,7 @@ from modelitool.combitabconvert import seconds_to_datetime
 from modelitool.simulate import Simulator
 from modelitool.identify import Identificator
 
-PACKAGE_PATH = Path(__file__).parent / "TestLib/package.mo"
+PACKAGE_PATH = Path(__file__).parent / "TestLib"
 
 ID_PARAMS = [
     {"name": "x.k", "interval": (0, 10), "init": 5},
@@ -36,9 +36,7 @@ def simul(tmp_path_factory):
     outputs = ["res.showNumber"]
 
     simu = Simulator(
-        model_path="TestLib.rosen",
-        package_path=PACKAGE_PATH,
-        lmodel=["Modelica"],
+        model_path=PACKAGE_PATH / "rosen.mo",
         simulation_options=simulation_opt,
         output_list=outputs,
     )
@@ -58,9 +56,7 @@ def simul_linear(tmp_path_factory):
     outputs = ["res.showNumber"]
 
     simu = Simulator(
-        model_path="TestLib.linear_two_dimension",
-        package_path=PACKAGE_PATH,
-        lmodel=["Modelica"],
+        model_path=PACKAGE_PATH / "linear_two_dimension.mo",
         simulation_options=simulation_opt,
         output_list=outputs,
     )
@@ -74,12 +70,12 @@ class TestIdentificator:
             {"name": "y.k", "interval": (-5, 5), "init": 5},
         ]
 
-        ident = Identificator(
-            simulator=simul,
-            parameters=id_params,
-        )
+        ident = Identificator(simulator=simul, parameters=id_params)
 
-        ident.fit(features=None, labels=np.array([0, 0, 0]))
+        ident.fit(
+            features=None,
+            labels=np.array([0, 0, 0]),
+        )
 
         np.testing.assert_allclose(
             np.array(list(ident.param_identified.values())),
