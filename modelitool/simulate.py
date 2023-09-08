@@ -128,7 +128,14 @@ class Simulator:
         if model_name is None:
             model_name = self.model_name
 
-        res = pd.DataFrame(self.session.get_solutions()[model_name])
+        # A bit hacky. Get the last simulation in _solution dictionary
+        # Should correspond to the last calculated result
+        res = pd.DataFrame(
+            self.session._solutions[model_name].get_solutions()[
+                list(self.session._solutions[model_name].get_solutions().keys())[-1]
+            ]
+        )
+
         res.index = res["time"]
         res = res.drop("time", axis=1)
 

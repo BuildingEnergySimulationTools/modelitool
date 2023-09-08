@@ -56,10 +56,14 @@ class TestSimulator:
 
         simul.set_param_dict(test_dict)
 
+        simul.simulate()
+
         for key in test_dict.keys():
             assert test_dict[key] == simul.session.get_parameters()[key]["value"]
 
     def test_simulate_get_results(self, simul):
+        simul.set_param_dict({"x.k": 3., "y.k": 3.})
+
         simul.simulate()
 
         res = simul.get_results(index_datetime=False)
