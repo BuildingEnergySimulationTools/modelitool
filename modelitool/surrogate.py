@@ -99,8 +99,7 @@ class SimulationSampler:
                     new_sample_value,
                     [
                         par["interval"][0]
-                        + val * par["interval"][1]
-                        - par["interval"][0]
+                        + val * (par["interval"][1] - par["interval"][0])
                         for par, val in zip(self.parameters, s)
                     ],
                 )
