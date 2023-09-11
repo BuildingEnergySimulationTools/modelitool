@@ -37,13 +37,15 @@ class Identificator:
         start_time_eval = time.time()
 
         if features is not None:
-            self.simulator.set_boundaries_df(features)
+            self.simulator.set_combi_time_table_df(
+                features, combi_time_table_name="Boundaries"
+            )
             dymo_index = datetime_to_seconds(features.index)
-            self.simulator.model.setSimulationOptions(
-                [
-                    f"startTime={dymo_index[0]}",
-                    f"stopTime={dymo_index[-1]}",
-                ]
+            self.simulator.set_simulation_options(
+                {
+                    "startTime": dymo_index[0],
+                    "stopTime": dymo_index[-1],
+                }
             )
 
         res = differential_evolution(
@@ -75,13 +77,15 @@ class Identificator:
             raise ValueError("Parameters have not been identified, please fit model")
         else:
             self.simulator.set_param_dict(self.param_identified)
-            self.simulator.set_boundaries_df(features)
+            self.simulator.set_combi_time_table_df(
+                features, combi_time_table_name="Boundaries"
+            )
             dymo_index = datetime_to_seconds(features.index)
-            self.simulator.model.setSimulationOptions(
-                [
-                    f"startTime={dymo_index[0]}",
-                    f"stopTime={dymo_index[-1]}",
-                ]
+            self.simulator.set_simulation_options(
+                {
+                    "startTime": dymo_index[0],
+                    "stopTime": dymo_index[-1],
+                }
             )
             self.simulator.simulate()
             return self.simulator.get_results()
