@@ -19,7 +19,7 @@ def sum_error(res, ref):
 
 @pytest.fixture(scope="session")
 def simul(tmp_path_factory):
-    package_path = Path(__file__).parent / "TestLib/package.mo"
+    package_path = Path(__file__).parent / "TestLib"
 
     simulation_opt = {
         "startTime": 0,
@@ -32,10 +32,8 @@ def simul(tmp_path_factory):
     outputs = ["res1.showNumber", "res2.showNumber"]
 
     simu = Simulator(
-        model_path="TestLib.ishigami_two_outputs",
-        package_path=package_path,
+        model_path=package_path / "ishigami_two_outputs.mo",
         year=2009,
-        lmodel=["Modelica"],
         simulation_options=simulation_opt,
         output_list=outputs,
     )
@@ -116,7 +114,7 @@ class TestSensitivity:
             sa_object.simulation_results, expected_res, decimal=6
         )
 
-    def test__compute_aggregated(self, simul, expected_res, sa_param_config):
+    def test_compute_aggregated(self, simul, expected_res, sa_param_config):
         ref_agg = pd.Series(
             [5.152551355, 5.152551355, 5.152551355],
             index=pd.date_range("2009-01-01 00:00:00", freq="s", periods=3),
