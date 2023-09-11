@@ -79,7 +79,7 @@ class Simulator:
 
         self.session.set_variable_filter("|".join(output_list), model_name=model_name)
 
-    def set_simulation_options(self, simulation_options):
+    def set_simulation_options(self, simulation_options: dict):
         try:
             self.session.set_solver(
                 getattr(Solver, simulation_options["solver"].upper())
@@ -113,11 +113,14 @@ class Simulator:
         except KeyError:
             pass
 
-        for model in self.session._simulation_opts:
-            self.session._simulation_opts[model].set_option(
-                "stepSize", simulation_options["stepSize"]
-            )
-            self.simulation_options["stepSize"] = simulation_options["stepSize"]
+        try:
+            for model in self.session._simulation_opts:
+                self.session._simulation_opts[model].set_option(
+                    "stepSize", simulation_options["stepSize"]
+                )
+                self.simulation_options["stepSize"] = simulation_options["stepSize"]
+        except KeyError:
+            pass
 
     def set_combi_time_table_df(self, df, combi_time_table_name):
         # DataFrame columns order must match the order
