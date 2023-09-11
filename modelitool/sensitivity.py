@@ -106,7 +106,7 @@ class SAnalysis:
         for pb, sim in zip(prog_bar, simu_list):
             prog_bar.comment = "Simulations"
             self.simulator.set_param_dict(sim)
-            self.simulator.simulate(simflags=simflags)
+            self.simulator.simulate()
             results = self.simulator.get_results()
             self.simulation_results.append(results)
 
