@@ -1,4 +1,3 @@
-within TestLib;
 model ishigami_two_outputs
   Modelica.Blocks.Sources.Constant x(k = 2);
   Modelica.Blocks.Sources.Constant y(k = 2);
@@ -19,5 +18,5 @@ equation
   res2.numberPort = Modelica.Math.sin(x.k)+A2*Modelica.Math.sin(y.k)^2+B2*z.k^4*Modelica.Math.sin(x.k);
 
 annotation(
-    uses(Modelica(version = "3.2.3")));
+    uses(Modelica(version = "4.0.0")));
 end ishigami_two_outputs;

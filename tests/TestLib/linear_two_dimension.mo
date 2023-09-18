@@ -1,5 +1,3 @@
-within TestLib;
-
 model linear_two_dimension
 Modelica.Blocks.Sources.Constant x(k=2);
 Modelica.Blocks.Sources.Constant y(k=1);
