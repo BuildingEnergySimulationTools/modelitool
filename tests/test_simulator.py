@@ -43,6 +43,7 @@ def simul_boundaries():
     simu = Simulator(
         model_path=PACKAGE_DIR / "boundary_test.mo",
         simulation_options=simul_options,
+        output_list=["Boundaries.y[1]", "Boundaries.y[2]"]
     )
     return simu
 
