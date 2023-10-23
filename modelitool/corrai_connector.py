@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
+from corrai.base.parameter import Parameter
 
+
+from typing import Any
 
 class ScikitFunction:
     """
@@ -27,7 +30,7 @@ class ScikitFunction:
         self,
         simulator,
         surrogate,
-        param_list,
+        param_list: list[dict[Parameter, Any]],
         indicators=None,
     ):
         self.simulator = simulator
@@ -135,7 +138,7 @@ class ModelicaFunction:
         - res_series (Series): A pandas Series object containing the function values.
 
         """
-        temp_dict = {param["name"]: x_dict[param["name"]] for param in self.param_list}
+        temp_dict = {param[Parameter.NAME]: x_dict[param[Parameter.NAME]] for param in self.param_list}
         self.simulator.set_param_dict(temp_dict)
         self.simulator.simulate()
         res = self.simulator.get_results()
