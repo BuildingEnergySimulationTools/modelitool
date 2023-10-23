@@ -8,6 +8,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from modelitool.simulate import Simulator
 from modelitool.surrogate import SimulationSampler
 from modelitool.surrogate import SurrogateModel
+from corrai.base.parameter import Parameter
 
 from modelitool.corrai_connector import ModelicaFunction
 
@@ -17,8 +18,8 @@ PACKAGE_DIR = Path(__file__).parent / "TestLib"
 outputs = ["res1.showNumber", "res2.showNumber"]
 
 parameters = [
-    {"name": "x.k", "interval": (1.0, 3.0)},
-    {"name": "y.k", "interval": (1.0, 3.0)},
+    {Parameter.NAME: "x.k", Parameter.INTERVAL: (1.0, 3.0)},
+    {Parameter.NAME: "y.k", Parameter.INTERVAL: (1.0, 3.0)},
 ]
 
 agg_methods_dict = {
