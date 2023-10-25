@@ -5,6 +5,7 @@ from corrai.base.parameter import Parameter
 
 from typing import Any
 
+
 class ScikitFunction:
     """
     A class that represents a scikit-learn function.
@@ -109,7 +110,6 @@ class ModelicaFunction:
         agg_methods_dict=None,
         reference_dict=None,
         reference_df=None,
-
     ):
         self.simulator = simulator
         self.param_list = param_list
@@ -136,35 +136,43 @@ class ModelicaFunction:
         - x_dict (dict): A dictionary of input values.
 
         Returns:
-        - res_series (Series): A pandas Series object containing the function values with function names as indices.
+        - res_series (Series): A pandas Series object containing
+        the function values with function names as indices.
 
         """
-        temp_dict = {param[Parameter.NAME]: x_dict[param[Parameter.NAME]] for param in self.param_list}
+        temp_dict = {
+            param[Parameter.NAME]: x_dict[param[Parameter.NAME]]
+            for param in self.param_list
+        }
         self.simulator.set_param_dict(temp_dict)
         self.simulator.simulate()
         res = self.simulator.get_results()
 
-        # Create a dictionary to store function results with function names as keys
         function_results = {}
 
         for ind, ind_info in self.indicators.items():
             if all(output in res for output in ind_info["depends_on"]):
-                custom_values = ind_info["function"](*[res[output] for output in ind_info["depends_on"]])
+                custom_values = ind_info["function"](
+                    *[res[output] for output in ind_info["depends_on"]]
+                )
                 if ind in self.agg_methods_dict:
-                    # Check if there is a reference for this indicator
                     if ind in self.reference_dict:
                         function_results[ind] = self.agg_methods_dict[ind](
                             custom_values, self.reference_df[self.reference_dict[ind]]
                         )
                     else:
-                        function_results[ind] = self.agg_methods_dict[ind](custom_values)
+                        function_results[ind] = self.agg_methods_dict[ind](
+                            custom_values
+                        )
                 else:
                     function_results[ind] = np.mean(custom_values)
 
         # Include the values calculated by custom functions
         for func_name, func_info in self.indicators.items():
             if func_name not in function_results:
-                custom_values = func_info["function"](*[res[output] for output in func_info["depends_on"]])
+                custom_values = func_info["function"](
+                    *[res[output] for output in func_info["depends_on"]]
+                )
                 function_results[func_name] = custom_values
 
         # Include the reference indicators
@@ -174,8 +182,6 @@ class ModelicaFunction:
                     res[k], self.reference_df[self.reference_dict[k]]
                 )
 
-        # Convert the dictionary of function results to a pandas Series
         res_series = pd.Series(function_results, dtype="float64")
 
         return res_series
-
