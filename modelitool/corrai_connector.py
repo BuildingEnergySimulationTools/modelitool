@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from corrai.base.parameter import Parameter
 
-
 from typing import Any
 
 
@@ -28,11 +27,11 @@ class ScikitFunction:
     """
 
     def __init__(
-        self,
-        simulator,
-        surrogate,
-        param_list: list[dict[Parameter, Any]],
-        indicators=None,
+            self,
+            simulator,
+            surrogate,
+            param_list: list[dict[Parameter, Any]],
+            indicators=None,
     ):
         self.simulator = simulator
         self.surrogate = surrogate
@@ -103,13 +102,13 @@ class ModelicaFunction:
     """
 
     def __init__(
-        self,
-        simulator,
-        param_list,
-        indicators=None,
-        agg_methods_dict=None,
-        reference_dict=None,
-        reference_df=None,
+            self,
+            simulator,
+            param_list,
+            indicators=None,
+            agg_methods_dict=None,
+            reference_dict=None,
+            reference_df=None,
     ):
         self.simulator = simulator
         self.param_list = param_list
@@ -122,7 +121,7 @@ class ModelicaFunction:
         else:
             self.agg_methods_dict = agg_methods_dict
         if (reference_dict is not None and reference_df is None) or (
-            reference_dict is None and reference_df is not None
+                reference_dict is None and reference_df is not None
         ):
             raise ValueError("Both reference_dict and reference_df should be provided")
         self.reference_dict = reference_dict
@@ -156,16 +155,18 @@ class ModelicaFunction:
                     *[res[output] for output in ind_info["depends_on"]]
                 )
                 if ind in self.agg_methods_dict:
-                    if ind in self.reference_dict:
-                        function_results[ind] = self.agg_methods_dict[ind](
-                            custom_values, self.reference_df[self.reference_dict[ind]]
-                        )
+                    if self.reference_dict is not None:
+                        print(f"ref_dict{self.reference_dict}")
+                        if ind in self.reference_dict:
+                            function_results[ind] = self.agg_methods_dict[ind](
+                                custom_values, self.reference_df[self.reference_dict[ind]]
+                            )
+                        else:
+                            function_results[ind] = self.agg_methods_dict[ind](
+                                custom_values
+                            )
                     else:
-                        function_results[ind] = self.agg_methods_dict[ind](
-                            custom_values
-                        )
-                else:
-                    function_results[ind] = np.mean(custom_values)
+                        function_results[ind] = np.mean(custom_values)
 
         # Include the values calculated by custom functions
         for func_name, func_info in self.indicators.items():
