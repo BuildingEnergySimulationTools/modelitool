@@ -10,6 +10,7 @@ from modelitool.measure import time_integrate
 
 
 class TestMeasuredDats:
+
     def test_select_data(self):
         df = pd.DataFrame(
             {

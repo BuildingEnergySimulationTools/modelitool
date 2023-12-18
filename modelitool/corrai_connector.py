@@ -1,5 +1,13 @@
 import pandas as pd
 import numpy as np
+from corrai.base.model import Model
+
+
+class ModelicaModel(Model):
+    def simulate(
+        self, parameter_dict: dict = None, simulation_options: dict = None
+    ) -> pd.DataFrame:
+        pass
 
 
 class ScikitFunction:

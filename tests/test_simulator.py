@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from modelitool.simulate import Simulator
+from modelitool.simulate import Simulator, seconds_since_start_of_year, CorraiModel
+from corrai.base.simulate import run_models_in_parallel
 
 
 import pandas as pd
@@ -49,6 +50,26 @@ def simul_boundaries():
 
 
 class TestSimulator:
+    def test_corrai_model(self):
+        simu_opt = dict(
+            start="2009-12-31 22:00:00", end="2010-01-01 02:00:00", timestep=3600
+        )
+
+        params = pd.DataFrame({"x.k": [0.0, 1.0, 2.0], "y.k": [0.0, 1.0, 2.0]})
+
+        corrai_model = CorraiModel(
+            model_path=PACKAGE_DIR / "linear_2d.mo", output_list=["res.showNumber"]
+        )
+
+        # res = corrai_model.simulate(parameter_dict=params, simulation_options=simu_opt)
+        res = run_models_in_parallel(
+            corrai_model, parameter_samples=params, simulation_options=simu_opt, n_cpu=3
+        )
+        assert True
+
+    def test_seconds_since_start_of_year(self):
+        assert seconds_since_start_of_year("2009-01-01 00:00:00") == 0
+
     def test_set_param_dict(self, simul):
         test_dict = {
             "x.k": 3.0,
@@ -63,7 +84,7 @@ class TestSimulator:
             assert test_dict[key] == simul.session.get_parameters()[key]["value"]
 
     def test_simulate_get_results(self, simul):
-        simul.set_param_dict({"x.k": 3., "y.k": 3.})
+        simul.set_param_dict({"x.k": 3.0, "y.k": 3.0})
 
         simul.simulate()
 

@@ -16,18 +16,8 @@ import datetime as dt
 PACKAGE_PATH = Path(__file__).parent / "TestLib"
 
 PARAM_DICT = [
-    {
-        'name': "x.k",
-        'interval': (0, 10),
-        'init': 0.0,
-        'type': "Real"
-    },
-    {
-        'name': 'y.k',
-        'interval':(0, 10),
-        'init': 0,
-        'type': "Real"
-    },
+    {"name": "x.k", "interval": (0, 10), "init": 0.0, "type": "Real"},
+    {"name": "y.k", "interval": (0, 10), "init": 0, "type": "Real"},
 ]
 
 SIMULATION_OPTIONS = {
