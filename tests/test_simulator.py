@@ -15,9 +15,10 @@ SIMULATION_OPTIONS = {
     "stepSize": 1,
     "tolerance": 1e-06,
     "solver": "dassl",
+    'outputFormat': 'csv'
 }
 
-OUTPUTS = ["res.showNumber"]
+OUTPUTS = ['res.showNumber']
 
 
 @pytest.fixture(scope="session")
@@ -55,6 +56,7 @@ def simul_boundaries():
         "stepSize": 1 * 3600,
         "tolerance": 1e-06,
         "solver": "dassl",
+        'outputFormat': 'csv'
     }
 
     simu = Simulator(
@@ -82,11 +84,8 @@ class TestSimulator:
 
     def test_simulate_get_results(self, simul):
         simul.simulate()
-
         res = simul.get_results(index_datetime=False)
-
         ref = pd.DataFrame({"res.showNumber": [401.0, 401.0, 401.0]})
-
         assert ref.equals(res)
 
     def test_run_in_temp_dir(self, simul_none_run_path):
