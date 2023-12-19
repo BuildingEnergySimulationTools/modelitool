@@ -2,7 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from modelitool.simulate import Simulator
+from modelitool.simulate import Simulator, OMModel
+
+from tempfile import mkdtemp
 
 
 import pandas as pd
@@ -15,10 +17,10 @@ SIMULATION_OPTIONS = {
     "stepSize": 1,
     "tolerance": 1e-06,
     "solver": "dassl",
-    'outputFormat': 'csv'
+    "outputFormat": "csv",
 }
 
-OUTPUTS = ['res.showNumber']
+OUTPUTS = ["res.showNumber"]
 
 
 @pytest.fixture(scope="session")
@@ -56,7 +58,7 @@ def simul_boundaries():
         "stepSize": 1 * 3600,
         "tolerance": 1e-06,
         "solver": "dassl",
-        'outputFormat': 'csv'
+        "outputFormat": "csv",
     }
 
     simu = Simulator(
@@ -81,6 +83,31 @@ class TestSimulator:
 
         for key in test_dict.keys():
             assert float(test_dict[key]) == float(simul.model.getParameters()[key])
+
+    def test_ommodel(self):
+        test_run_path = Path(mkdtemp())
+        test_dict = {
+            "x.k": 2.0,
+            "y.k": 2.0,
+        }
+
+        ommodel = OMModel(
+            model_path="TestLib.rosen",
+            package_path=PACKAGE_DIR / "package.mo",
+            simulation_options=SIMULATION_OPTIONS,
+            output_list=OUTPUTS,
+            simulation_path=test_run_path,
+            lmodel=["Modelica"],
+            year=2009
+        )
+
+        res = ommodel.simulate(test_dict, SIMULATION_OPTIONS)
+        ref = pd.DataFrame(
+                {"res.showNumber": [401.0, 401.0, 401.0],"res.numberPort": [401.0, 401.0, 401.0]},
+                           index=pd.date_range("2009-01-01 00:00:00", freq='H', periods=3)
+        )
+
+        pd.testing.assert_frame_equal(res, ref)
 
     def test_simulate_get_results(self, simul):
         simul.simulate()
