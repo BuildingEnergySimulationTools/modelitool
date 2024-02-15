@@ -27,11 +27,11 @@ class ScikitFunction:
     """
 
     def __init__(
-            self,
-            simulator,
-            surrogate,
-            param_list: list[dict[Parameter, Any]],
-            indicators=None,
+        self,
+        simulator,
+        surrogate,
+        param_list: list[dict[Parameter, Any]],
+        indicators=None,
     ):
         self.simulator = simulator
         self.surrogate = surrogate
@@ -111,14 +111,14 @@ class ModelicaFunction:
     """
 
     def __init__(
-            self,
-            simulator,
-            param_list,
-            indicators=None,
-            agg_methods_dict=None,
-            reference_dict=None,
-            reference_df=None,
-            custom_ind_dict=None,
+        self,
+        simulator,
+        param_list,
+        indicators=None,
+        agg_methods_dict=None,
+        reference_dict=None,
+        reference_df=None,
+        custom_ind_dict=None,
     ):
         self.simulator = simulator
         self.param_list = param_list
@@ -131,7 +131,7 @@ class ModelicaFunction:
         else:
             self.agg_methods_dict = agg_methods_dict
         if (reference_dict is not None and reference_df is None) or (
-                reference_dict is None and reference_df is not None
+            reference_dict is None and reference_df is not None
         ):
             raise ValueError("Both reference_dict and reference_df should be provided")
         self.reference_dict = reference_dict
@@ -179,11 +179,14 @@ class ModelicaFunction:
             if ind in function_results and ind in self.agg_methods_dict:
                 if self.reference_dict and ind in self.reference_dict:
                     ref_values = self.reference_df[self.reference_dict[ind]]
-                    function_results[ind] = self.agg_methods_dict[ind](function_results[ind], ref_values)
+                    function_results[ind] = self.agg_methods_dict[ind](
+                        function_results[ind], ref_values
+                    )
 
                 else:
-                    function_results[ind] = self.agg_methods_dict[ind](function_results[ind])
+                    function_results[ind] = self.agg_methods_dict[ind](
+                        function_results[ind]
+                    )
 
         res_series = pd.Series(function_results, dtype="float64")
         return res_series
-

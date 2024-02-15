@@ -35,12 +35,11 @@ simu_options = {
     "stepSize": 1,
     "tolerance": 1e-06,
     "solver": "dassl",
-    "outputFormat": "mat",
+    "outputFormat": "csv",
 }
 
 simu = Simulator(
-    model_path="TestLib.ishigami_two_outputs",
-    package_path=PACKAGE_DIR / "package.mo",
+    model_path=PACKAGE_DIR / "ishigami_two_outputs.mo",
     simulation_options=simu_options,
     output_list=outputs,
     simulation_path=None,
@@ -87,6 +86,28 @@ class TestModelicaFunction:
                     mean_absolute_error(expected_res["meas2"], dataset["meas2"]),
                 ]
             ),
+            rtol=0.01,
+        )
+
+    def test_custom_indicators(self):
+        mf = ModelicaFunction(
+            simulator=simu,
+            param_list=parameters,
+            indicators=["res1.showNumber", "res2.showNumber", "custom_indicator"],
+            custom_ind_dict={
+                "custom_indicator": {
+                    "depends_on": ["res1.showNumber", "res2.showNumber"],
+                    "function": lambda x, y: x + y,
+                }
+            },
+        )
+
+        res = mf.function(x_dict)
+
+        # Test custom indicator
+        np.testing.assert_allclose(
+            res["custom_indicator"],
+            expected_res["meas1"] + expected_res["meas2"],
             rtol=0.01,
         )
 
