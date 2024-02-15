@@ -90,6 +90,15 @@ class ModelicaFunction:
             reference values for each reference indicator specified in reference_dict.
             The DataFrame should have the same length as the simulation results.
             Default is None.
+        custom_ind_dict (dict, optional): A dictionary that maps indicator names to custom
+        indicator information. Each custom indicator information should be a dictionary
+        containing the following keys:
+            - "depends_on": A list of indicator names that the custom function depends on.
+            They should be in output list of simulator
+            - "function": A function that computes the custom indicator values based on the
+              values of indicators specified in "depends_on".
+            If provided, the function will calculate custom indicators in addition to regular
+            indicators. Default is None.
 
     Returns:
         pandas.Series: A pandas Series containing the function results.
