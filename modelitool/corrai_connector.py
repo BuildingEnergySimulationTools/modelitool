@@ -109,6 +109,7 @@ class ModelicaFunction:
             agg_methods_dict=None,
             reference_dict=None,
             reference_df=None,
+            custom_ind_dict=None,
     ):
         self.simulator = simulator
         self.param_list = param_list
@@ -126,6 +127,7 @@ class ModelicaFunction:
             raise ValueError("Both reference_dict and reference_df should be provided")
         self.reference_dict = reference_dict
         self.reference_df = reference_df
+        self.custom_ind_dict = custom_ind_dict
 
     def function(self, x_dict):
         """
@@ -137,7 +139,6 @@ class ModelicaFunction:
         Returns:
         - res_series (Series): A pandas Series object containing
         the function values with function names as indices.
-
         """
         temp_dict = {
             param[Parameter.NAME]: x_dict[param[Parameter.NAME]]
@@ -149,39 +150,31 @@ class ModelicaFunction:
 
         function_results = {}
 
-        for ind, ind_info in self.indicators.items():
-            if all(output in res for output in ind_info["depends_on"]):
-                custom_values = ind_info["function"](
-                    *[res[output] for output in ind_info["depends_on"]]
-                )
+        # Calculate regular indicators
+        for ind in self.indicators:
+            if ind in res:
+                function_results[ind] = res[ind]
 
-                if ind in self.agg_methods_dict:
-                    if self.reference_dict and ind in self.reference_dict:
-                        function_results[ind] = self.agg_methods_dict[ind](
-                            custom_values, self.reference_df[self.reference_dict[ind]]
-                        )
-                    else:
-                        function_results[ind] = self.agg_methods_dict[ind](
-                            custom_values
-                        )
+        # Calculate custom indicators
+        for ind in self.indicators:
+            if ind not in function_results and ind in self.custom_ind_dict:
+                ind_info = self.custom_ind_dict[ind]
+                if all(output in res for output in ind_info["depends_on"]):
+                    custom_values = ind_info["function"](
+                        *[res[output] for output in ind_info["depends_on"]]
+                    )
+                    function_results[ind] = custom_values
+
+        # Aggregate the indicators
+        for ind in self.indicators:
+            if ind in function_results and ind in self.agg_methods_dict:
+                if self.reference_dict and ind in self.reference_dict:
+                    ref_values = self.reference_df[self.reference_dict[ind]]
+                    function_results[ind] = self.agg_methods_dict[ind](function_results[ind], ref_values)
+
                 else:
-                    function_results[ind] = np.mean(custom_values)
-
-        # Include the values calculated by custom functions
-        # for func_name, func_info in self.indicators.items():
-        #     if func_name not in function_results:
-        #         custom_values = func_info["function"](
-        #             *[res[output] for output in func_info["depends_on"]]
-        #         )
-        #         function_results[func_name] = custom_values
-
-        # Include the reference indicators
-        if self.reference_dict:
-            for k in self.reference_dict.keys():
-                function_results[k] = self.agg_methods_dict[k](
-                    res[k], self.reference_df[self.reference_dict[k]]
-                )
+                    function_results[ind] = self.agg_methods_dict[ind](function_results[ind])
 
         res_series = pd.Series(function_results, dtype="float64")
-
         return res_series
+
