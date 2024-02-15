@@ -19,7 +19,7 @@ from sklearn.svm import SVR
 from sklearn.neural_network import MLPRegressor
 
 from fastprogress.fastprogress import force_console_behavior
-
+from corrai.base.parameter import Parameter
 master_bar, progress_bar = force_console_behavior()
 
 
@@ -84,7 +84,7 @@ class SimulationSampler:
 
         return np.array(
             [
-                [par["interval"][i] for par, i in zip(self.parameters, line)]
+                [par[Parameter.INTERVAL][i] for par, i in zip(self.parameters, line)]
                 for line in iter_index
             ]
         )
@@ -98,15 +98,12 @@ class SimulationSampler:
                 (
                     new_sample_value,
                     [
-                        par["interval"][0]
-                        + val * par["interval"][1]
-                        - par["interval"][0]
+                        par[Parameter.INTERVAL][0]
+                        + val * (par[Parameter.INTERVAL][1] - par[Parameter.INTERVAL][0])
                         for par, val in zip(self.parameters, s)
                     ],
                 )
             )
-
-        # return new_sample_value
 
         if self.sample.size == 0:
             bound_sample = self.get_boundary_sample()
@@ -115,7 +112,7 @@ class SimulationSampler:
         prog_bar = progress_bar(range(new_sample_value.shape[0]))
         for pb, simul in zip(prog_bar, new_sample_value):
             sim_config = {
-                param["name"]: val for param, val in zip(self.parameters, simul)
+                param[Parameter.NAME]: val for param, val in zip(self.parameters, simul)
             }
             prog_bar.comment = "Simulations"
             self.simulator.set_param_dict(sim_config)
@@ -245,10 +242,9 @@ class SurrogateModel:
         def objective_function(x):
             return self.predict(x)[0, 0]
 
-        return differential_evolution(
-            objective_function,
-            bounds=[
-                (param["interval"][0], param["interval"][1])
-                for param in self.simulation_sampler.parameters
-            ],
-        )
+        bounds = [
+            (param[Parameter.INTERVAL][0], param[Parameter.INTERVAL][1])
+            for param in self.simulation_sampler.parameters
+        ]
+
+        return differential_evolution(objective_function, bounds=bounds)
