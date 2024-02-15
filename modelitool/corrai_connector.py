@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 from corrai.base.parameter import Parameter
 
-
 from typing import Any
+
 
 class ScikitFunction:
     """
@@ -90,6 +90,15 @@ class ModelicaFunction:
             reference values for each reference indicator specified in reference_dict.
             The DataFrame should have the same length as the simulation results.
             Default is None.
+        custom_ind_dict (dict, optional): A dictionary that maps indicator names to custom
+        indicator information. Each custom indicator information should be a dictionary
+        containing the following keys:
+            - "depends_on": A list of indicator names that the custom function depends on.
+            They should be in output list of simulator
+            - "function": A function that computes the custom indicator values based on the
+              values of indicators specified in "depends_on".
+            If provided, the function will calculate custom indicators in addition to regular
+            indicators. Default is None.
 
     Returns:
         pandas.Series: A pandas Series containing the function results.
@@ -109,6 +118,7 @@ class ModelicaFunction:
         agg_methods_dict=None,
         reference_dict=None,
         reference_df=None,
+        custom_ind_dict=None,
     ):
         self.simulator = simulator
         self.param_list = param_list
@@ -126,35 +136,57 @@ class ModelicaFunction:
             raise ValueError("Both reference_dict and reference_df should be provided")
         self.reference_dict = reference_dict
         self.reference_df = reference_df
+        self.custom_ind_dict = custom_ind_dict
 
     def function(self, x_dict):
         """
-        Calculates the function value for the given input dictionary.
+        Calculates the function values for the given input dictionary.
 
         Args:
         - x_dict (dict): A dictionary of input values.
 
         Returns:
-        - res_series (Series): A pandas Series object containing the function values.
-
+        - res_series (Series): A pandas Series object containing
+        the function values with function names as indices.
         """
-        temp_dict = {param[Parameter.NAME]: x_dict[param[Parameter.NAME]] for param in self.param_list}
+        temp_dict = {
+            param[Parameter.NAME]: x_dict[param[Parameter.NAME]]
+            for param in self.param_list
+        }
         self.simulator.set_param_dict(temp_dict)
         self.simulator.simulate()
         res = self.simulator.get_results()
 
-        res_series = pd.Series(dtype="float64")
-        solo_ind_names = self.indicators
-        if self.reference_dict is not None:
-            for k in self.reference_dict.keys():
-                res_series[k] = self.agg_methods_dict[k](
-                    res[k], self.reference_df[self.reference_dict[k]]
-                )
+        function_results = {}
 
-            solo_ind_names = [
-                i for i in self.indicators if i not in self.reference_dict.keys()
-            ]
+        # Calculate regular indicators
+        for ind in self.indicators:
+            if ind in res:
+                function_results[ind] = res[ind]
 
-        for ind in solo_ind_names:
-            res_series[ind] = self.agg_methods_dict[ind](res[ind])
+        # Calculate custom indicators
+        for ind in self.indicators:
+            if ind not in function_results and ind in self.custom_ind_dict:
+                ind_info = self.custom_ind_dict[ind]
+                if all(output in res for output in ind_info["depends_on"]):
+                    custom_values = ind_info["function"](
+                        *[res[output] for output in ind_info["depends_on"]]
+                    )
+                    function_results[ind] = custom_values
+
+        # Aggregate the indicators
+        for ind in self.indicators:
+            if ind in function_results and ind in self.agg_methods_dict:
+                if self.reference_dict and ind in self.reference_dict:
+                    ref_values = self.reference_df[self.reference_dict[ind]]
+                    function_results[ind] = self.agg_methods_dict[ind](
+                        function_results[ind], ref_values
+                    )
+
+                else:
+                    function_results[ind] = self.agg_methods_dict[ind](
+                        function_results[ind]
+                    )
+
+        res_series = pd.Series(function_results, dtype="float64")
         return res_series
