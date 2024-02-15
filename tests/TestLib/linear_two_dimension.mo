@@ -1,4 +1,4 @@
-within TestLib;
+//within TestLib;
 
 model linear_two_dimension
 Modelica.Blocks.Sources.Constant x(k=2);
