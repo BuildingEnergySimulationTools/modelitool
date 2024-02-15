@@ -9,13 +9,16 @@ from modelitool.surrogate import get_aggregated_indicator
 from modelitool.surrogate import SurrogateModel
 
 from sklearn.metrics import mean_absolute_error
-
+from corrai.base.parameter import Parameter
 import pytest
 import datetime as dt
 
-PACKAGE_PATH = Path(__file__).parent / "TestLib/package.mo"
+PACKAGE_PATH = Path(__file__).parent / "TestLib"
 
-PARAM_DICT = {"x.k": [0, 10], "y.k": [0, 10]}
+PARAM = [
+    {Parameter.NAME: "x.k", Parameter.INTERVAL: [0, 10]},
+    {Parameter.NAME: "y.k", Parameter.INTERVAL: [0, 10]}
+]
 
 SIMULATION_OPTIONS = {
     "startTime": 0,
@@ -23,6 +26,7 @@ SIMULATION_OPTIONS = {
     "stepSize": 1,
     "tolerance": 1e-06,
     "solver": "dassl",
+    "outputFormat":"csv"
 }
 
 OUTPUTS = ["res.showNumber"]
@@ -31,8 +35,7 @@ OUTPUTS = ["res.showNumber"]
 @pytest.fixture(scope="session")
 def rosen(tmp_path_factory):
     simu = Simulator(
-        model_path="TestLib.rosen",
-        package_path=PACKAGE_PATH,
+        model_path=PACKAGE_PATH / "rosen.mo",
         lmodel=["Modelica"],
         simulation_options=SIMULATION_OPTIONS,
         output_list=OUTPUTS,
@@ -43,8 +46,7 @@ def rosen(tmp_path_factory):
 @pytest.fixture(scope="session")
 def linear_2d(tmp_path_factory):
     simu = Simulator(
-        model_path="TestLib.linear_2d",
-        package_path=PACKAGE_PATH,
+        model_path=PACKAGE_PATH / "linear_2d.mo",
         lmodel=["Modelica"],
         simulation_options=SIMULATION_OPTIONS,
         output_list=OUTPUTS,
@@ -56,7 +58,7 @@ class TestSurrogate:
     def test_simulation_sampler(self, rosen):
         sampler = SimulationSampler(
             simulator=rosen,
-            parameters=PARAM_DICT,
+            parameters=PARAM,
         )
 
         sampler.add_sample(1, seed=42)
@@ -70,7 +72,7 @@ class TestSurrogate:
     def test_get_aggregated_indicator(self, rosen):
         sampler = SimulationSampler(
             simulator=rosen,
-            parameters=PARAM_DICT,
+            parameters=PARAM,
         )
 
         sampler.add_sample(1, seed=42)
@@ -103,7 +105,7 @@ class TestSurrogate:
         surrogate = SurrogateModel(
             simulation_sampler=SimulationSampler(
                 simulator=linear_2d,
-                parameters=PARAM_DICT,
+                parameters=PARAM,
             )
         )
 
