@@ -308,6 +308,14 @@ class Simulator:
         # t2 = time()
         # print(f"Setting new parameters took {t2-t1}s")
 
+    def get_parameters(self):
+        """
+        Get parameters of the model or a loaded library.
+        Returns:
+            dict: Dictionary containing the parameters.
+        """
+        return self.model.getParameters()
+
     def simulate(self, simflags=None):
         self.simflags = simflags
         if self.simulation_options["outputFormat"] == "csv":
@@ -401,24 +409,7 @@ class Simulator:
                 file_path = os.path.join(root, file)
                 print(file_path)
 
-    def get_parameters(self, model_or_library="model"):
-        """
-        Get parameters of the model or a loaded library.
 
-        Args:
-            model_or_library (str): Specify whether to get parameters of the model or a loaded library.
-                                    Possible values: "model" (default) or the name of a loaded library.
-
-        Returns:
-            dict: Dictionary containing the parameters.
-        """
-        if model_or_library == "model":
-            return self.model.getParameters()
-        elif model_or_library in self.loaded_libraries:
-            library = self.loaded_libraries[model_or_library]
-            return library.getParameters()
-        else:
-            raise ValueError(f"Library '{model_or_library}' not loaded.")
 
     def modify_model_parameters(self, package_name, model_name, parameters):
         package_path = os.path.join(self.library_path, package_name)
