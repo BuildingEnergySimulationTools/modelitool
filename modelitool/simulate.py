@@ -194,6 +194,7 @@ class Simulator:
             lmodel=[],
     ):
 
+        self.library_path = None
         self.model_path = model_path if isinstance(model_path, Path) else Path(model_path)
         self.simulation_options = simulation_options
         self.output_list = output_list
@@ -302,12 +303,6 @@ class Simulator:
                 "Please verify that Dataframe index is a datetime"
             )
 
-    def set_param_dict(self, param_dict):
-        # t1 = time()
-        self.model.setParameters([f"{item}={val}" for item, val in param_dict.items()])
-        # t2 = time()
-        # print(f"Setting new parameters took {t2-t1}s")
-
     def get_parameters(self):
         """
         Get parameters of the model or a loaded library.
@@ -372,7 +367,6 @@ class Simulator:
         if isinstance(lib_path, str):
             lib_path = Path(lib_path)
 
-        self.library_path = lib_path
         if not lib_path.exists() or not lib_path.is_dir():
             print(f"Library directory '{lib_path}' not found.")
             return False
@@ -395,7 +389,7 @@ class Simulator:
         library_name = lib_path.stem
         self.loaded_libraries[library_name] = library_modelica_system
 
-        # print(f"Library '{library_name}' loaded successfully.")
+        print(f"Library '{library_name}' loaded successfully.")
 
     def print_library_contents(self, library_path):
         """
@@ -409,45 +403,53 @@ class Simulator:
                 file_path = os.path.join(root, file)
                 print(file_path)
 
+    def set_param_dict(
+            self,
+            parameters,
+            library_path=None,
+            package_name=None,
+            model_name=None
+    ):
 
+        if package_name is None and model_name is None:
+            self.model.setParameters([f"{item}={val}" for item, val in parameters.items()])
 
-    def modify_model_parameters(self, package_name, model_name, parameters):
-        package_path = os.path.join(self.library_path, package_name)
-        model_file_path = os.path.join(package_path, f"{model_name}.mo")
-        if not os.path.exists(model_file_path):
-            print(f"File .mo for model {model_name} not found in library.")
-            return
+        else:
+            lib_path = Path(library_path)
+            self.library_path=lib_path
+            package_path = os.path.join(self.library_path, package_name)
+            model_file_path = os.path.join(package_path, f"{model_name}.mo")
+            if not os.path.exists(model_file_path):
+                print(f"File .mo for model {model_name} not found in library.")
+                return
 
-        with open(model_file_path, "r") as file:
-            content = file.read()
+            with open(model_file_path, "r") as file:
+                content = file.read()
 
-        for param_name, param_value in parameters.items():
-            pattern = re.compile(rf"(\b{re.escape(param_name)}\b\s*=\s*)([^;]*)")
-            match = pattern.search(content)
+            for param_name, param_value in parameters.items():
+                pattern = re.compile(rf"(\b{re.escape(param_name)}\b\s*=\s*)([^;]*)")
+                match = pattern.search(content)
 
-            if match:
-                start, end = match.span()
-                content = content[:start] + f"{param_name} = {param_value}" + content[end:]
+                if match:
+                    start, end = match.span()
+                    content = content[:start] + f"{param_name} = {param_value}" + content[end:]
 
-            else:
-                print(f"Parameter {param_name} not found in model {model_name}.")
+                else:
+                    print(f"Parameter {param_name} not found in model {model_name}.")
 
-        with open(model_file_path, "w") as file:
-            file.write(content)
+            with open(model_file_path, "w") as file:
+                file.write(content)
 
-        # #reload library
-        # self.load_library(self.library_path)
-
-        # Restart of OMCSession
-        self.omc = OMCSessionZMQ()
-        self.__init__(
-            model_path=self.model_path,
-            simulation_options=self.simulation_options,
-            output_list=self.output_list,
-            init_parameters=getattr(self, 'init_parameters', None),
-            simulation_path=getattr(self, '_simulation_path', None),
-            boundary_df=getattr(self, 'boundary_df', None),
-            year=getattr(self, 'year', None),
-            package_path=getattr(self, 'package_path', None),
-            lmodel=getattr(self, 'lmodel', [])
-        )
+            # Restart of OMCSession
+            self.omc = OMCSessionZMQ()
+            self.__init__(
+                model_path=self.model_path,
+                simulation_options=self.simulation_options,
+                output_list=self.output_list,
+                init_parameters=getattr(self, 'init_parameters', None),
+                simulation_path=getattr(self, '_simulation_path', None),
+                boundary_df=getattr(self, 'boundary_df', None),
+                year=getattr(self, 'year', None),
+                package_path=getattr(self, 'package_path', None),
+                lmodel=getattr(self, 'lmodel', [])
+            )
