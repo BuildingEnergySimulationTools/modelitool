@@ -13,7 +13,7 @@ from corrai.base.model import Model
 
 from modelitool.combitabconvert import df_to_combitimetable
 from modelitool.combitabconvert import seconds_to_datetime
-
+import re
 
 # TODO Create a debug mode to print time
 
@@ -373,7 +373,7 @@ class Simulator:
         library_name = lib_path.stem
         self.loaded_libraries[library_name] = library_modelica_system
 
-        print(f"Library '{library_name}' loaded successfully.")
+        # print(f"Library '{library_name}' loaded successfully.")
 
     def print_library_contents(self, library_path):
         """
@@ -405,3 +405,30 @@ class Simulator:
             return library.getParameters()
         else:
             raise ValueError(f"Library '{model_or_library}' not loaded.")
+
+    def modify_model_parameters(self, package_name, model_name, parameters):
+        package_path = os.path.join(self.library_path, package_name)
+        model_file_path = os.path.join(package_path, f"{model_name}.mo")
+        if not os.path.exists(model_file_path):
+            print(f"File .mo for model {model_name} not found in library.")
+            return
+
+        with open(model_file_path, "r") as file:
+            content = file.read()
+
+        for param_name, param_value in parameters.items():
+            pattern = re.compile(rf"(\b{re.escape(param_name)}\b\s*=\s*)([^;]*)")
+            match = pattern.search(content)
+
+            if match:
+                start, end = match.span()
+                content = content[:start] + f"{param_name} = {param_value}" + content[end:]
+
+            else:
+                print(f"Parameter {param_name} not found in model {model_name}.")
+
+        with open(model_file_path, "w") as file:
+            file.write(content)
+
+        #reload library
+        self.load_library(self.library_path)
