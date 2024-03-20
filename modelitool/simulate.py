@@ -20,16 +20,16 @@ from modelitool.combitabconvert import seconds_to_datetime
 
 class OMModel(Model):
     def __init__(
-        self,
-        model_path,
-        simulation_options,
-        output_list,
-        init_parameters=None,
-        simulation_path=None,
-        boundary_df=None,
-        year=None,
-        package_path=None,
-        lmodel=[],
+            self,
+            model_path,
+            simulation_options,
+            output_list,
+            init_parameters=None,
+            simulation_path=None,
+            boundary_df=None,
+            year=None,
+            package_path=None,
+            lmodel=[],
     ):
         if type(model_path) == str:
             model_path = Path(model_path)
@@ -43,6 +43,7 @@ class OMModel(Model):
 
         self.omc = OMCSessionZMQ()
         self.omc.sendExpression(f'cd("{simulation_path.as_posix()}")')
+        self.loaded_libraries = {}
 
         # A bit dirty but the only way I found to change the simulation dir
         # ModelicaSystem take cwd as currDirectory
@@ -171,26 +172,30 @@ class OMModel(Model):
         return res
 
     def simulate(
-    self, parameter_dict: dict = None, simulation_options: dict = None
+            self, parameter_dict: dict = None, simulation_options: dict = None
     ) -> pd.DataFrame:
         self.set_param_dict(parameter_dict)
         self.set_simulation_options(simulation_options)
         self.run()
         return self.get_results()
 
+
 class Simulator:
     def __init__(
-        self,
-        model_path,
-        simulation_options,
-        output_list,
-        init_parameters=None,
-        simulation_path=None,
-        boundary_df=None,
-        year=None,
-        package_path=None,
-        lmodel=[],
+            self,
+            model_path,
+            simulation_options,
+            output_list,
+            init_parameters=None,
+            simulation_path=None,
+            boundary_df=None,
+            year=None,
+            package_path=None,
+            lmodel=[],
     ):
+
+        self.loaded_libraries = {}
+
         if type(model_path) == str:
             model_path = Path(model_path)
 
@@ -203,6 +208,8 @@ class Simulator:
 
         self.omc = OMCSessionZMQ()
         self.omc.sendExpression(f'cd("{simulation_path.as_posix()}")')
+
+        self.model_path = model_path
 
         # A bit dirty but the only way I found to change the simulation dir
         # ModelicaSystem take cwd as currDirectory
@@ -329,3 +336,72 @@ class Simulator:
         # t2 = time()
         # print(f"Getting results took {t2-t1}s")
         return res
+
+    def load_library(self, lib_path):
+        """
+        Load a Modelica library.
+
+        Args:
+            lib_path (str): Path to the library directory.
+
+        Returns:
+            bool: True if the library is loaded successfully, False otherwise.
+        """
+        if isinstance(lib_path, str):
+            lib_path = Path(lib_path)
+
+        self.library_path = lib_path
+        if not lib_path.exists() or not lib_path.is_dir():
+            print(f"Library directory '{lib_path}' not found.")
+            return False
+
+        # Create an instance of ModelicaSystem for the library
+        library_modelica_system = ModelicaSystem()
+
+        # Connect to the OpenModelica session
+        omc = OMCSessionZMQ()
+
+        # Walk through the library directory
+        for root, dirs, files in os.walk(lib_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                if file.endswith(".mo"):
+                    # Load the Modelica file using the OMC session
+                    omc.loadFile(file_path)
+
+        # Store the ModelicaSystem instance in self.loaded_libraries
+        library_name = lib_path.stem
+        self.loaded_libraries[library_name] = library_modelica_system
+
+        print(f"Library '{library_name}' loaded successfully.")
+
+    def print_library_contents(self, library_path):
+        """
+        Print all files in the library recursively.
+
+        Args:
+            library_path (str): Path to the library directory.
+        """
+        for root, dirs, files in os.walk(library_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                print(file_path)
+
+    def get_parameters(self, model_or_library="model"):
+        """
+        Get parameters of the model or a loaded library.
+
+        Args:
+            model_or_library (str): Specify whether to get parameters of the model or a loaded library.
+                                    Possible values: "model" (default) or the name of a loaded library.
+
+        Returns:
+            dict: Dictionary containing the parameters.
+        """
+        if model_or_library == "model":
+            return self.model.getParameters()
+        elif model_or_library in self.loaded_libraries:
+            library = self.loaded_libraries[model_or_library]
+            return library.getParameters()
+        else:
+            raise ValueError(f"Library '{model_or_library}' not loaded.")
