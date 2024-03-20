@@ -194,6 +194,20 @@ class Simulator:
             lmodel=[],
     ):
 
+        self.model_path = model_path if isinstance(model_path, Path) else Path(model_path)
+        self.simulation_options = simulation_options
+        self.output_list = output_list
+        self.init_parameters = init_parameters or {}
+        self.simulation_path = Path(tempfile.mkdtemp()) if simulation_path is None else Path(simulation_path)
+        self.boundary_df = boundary_df
+        self.year = year or dt.date.today().year
+        self.package_path = package_path
+        self.lmodel = lmodel
+
+        self.simulation_path.mkdir(parents=True, exist_ok=True)
+
+        self.omc = OMCSessionZMQ()
+
         self.loaded_libraries = {}
 
         if type(model_path) == str:
@@ -430,5 +444,19 @@ class Simulator:
         with open(model_file_path, "w") as file:
             file.write(content)
 
-        #reload library
-        self.load_library(self.library_path)
+        # #reload library
+        # self.load_library(self.library_path)
+
+        # Restart of OMCSession
+        self.omc = OMCSessionZMQ()
+        self.__init__(
+            model_path=self.model_path,
+            simulation_options=self.simulation_options,
+            output_list=self.output_list,
+            init_parameters=getattr(self, 'init_parameters', None),
+            simulation_path=getattr(self, '_simulation_path', None),
+            boundary_df=getattr(self, 'boundary_df', None),
+            year=getattr(self, 'year', None),
+            package_path=getattr(self, 'package_path', None),
+            lmodel=getattr(self, 'lmodel', [])
+        )
