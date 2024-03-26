@@ -22,6 +22,17 @@ SIMULATION_OPTIONS = {
 
 OUTPUTS = ["res.showNumber"]
 
+@pytest.fixture(scope="session")
+def simul_param():
+    simu = Simulator(
+        model_path="TestLib.paramModel",
+        package_path=PACKAGE_DIR / "package.mo",
+        simulation_options=SIMULATION_OPTIONS,
+        output_list=OUTPUTS,
+        simulation_path=None,
+        lmodel=["Modelica"],
+    )
+    return simu
 
 @pytest.fixture(scope="session")
 def simul(tmp_path_factory):
@@ -135,3 +146,20 @@ class TestSimulator:
         res = simul_boundaries.get_results()
 
         pd.testing.assert_frame_equal(new_bounds, res)
+
+    def test_load_and_print_library(self, simul, capfd):
+        libpath = PACKAGE_DIR
+        try:
+            simul.load_library(libpath)
+            assert True
+        except ValueError:
+            assert False, "library not loaded, failed test"
+
+        simul.print_library_contents(libpath)
+        out, err = capfd.readouterr()
+        assert "package.mo" in out
+
+    def test_get_parameters(self, simul_param):
+        param = simul_param.get_parameters()
+        expected_param = {'k': '1.0'}
+        assert param == expected_param
