@@ -287,6 +287,14 @@ class Simulator:
         # t2 = time()
         # print(f"Setting new parameters took {t2-t1}s")
 
+    def get_parameters(self):
+        """
+        Get parameters of the model or a loaded library.
+        Returns:
+            dict: Dictionary containing the parameters.
+        """
+        return self.model.getParameters()
+
     def simulate(self, simflags=None):
         self.simflags = simflags
         if self.simulation_options["outputFormat"] == "csv":
