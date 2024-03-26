@@ -20,16 +20,16 @@ from modelitool.combitabconvert import seconds_to_datetime
 
 class OMModel(Model):
     def __init__(
-        self,
-        model_path,
-        simulation_options,
-        output_list,
-        init_parameters=None,
-        simulation_path=None,
-        boundary_df=None,
-        year=None,
-        package_path=None,
-        lmodel=[],
+            self,
+            model_path,
+            simulation_options,
+            output_list,
+            init_parameters=None,
+            simulation_path=None,
+            boundary_df=None,
+            year=None,
+            package_path=None,
+            lmodel=[],
     ):
         if type(model_path) == str:
             model_path = Path(model_path)
@@ -171,26 +171,28 @@ class OMModel(Model):
         return res
 
     def simulate(
-    self, parameter_dict: dict = None, simulation_options: dict = None
+            self, parameter_dict: dict = None, simulation_options: dict = None
     ) -> pd.DataFrame:
         self.set_param_dict(parameter_dict)
         self.set_simulation_options(simulation_options)
         self.run()
         return self.get_results()
 
+
 class Simulator:
     def __init__(
-        self,
-        model_path,
-        simulation_options,
-        output_list,
-        init_parameters=None,
-        simulation_path=None,
-        boundary_df=None,
-        year=None,
-        package_path=None,
-        lmodel=[],
+            self,
+            model_path,
+            simulation_options,
+            output_list,
+            init_parameters=None,
+            simulation_path=None,
+            boundary_df=None,
+            year=None,
+            package_path=None,
+            lmodel=[],
     ):
+
         if type(model_path) == str:
             model_path = Path(model_path)
 
@@ -287,6 +289,14 @@ class Simulator:
         # t2 = time()
         # print(f"Setting new parameters took {t2-t1}s")
 
+    def get_parameters(self):
+        """
+        Get parameters of the model or a loaded library.
+        Returns:
+            dict: Dictionary containing the parameters.
+        """
+        return self.model.getParameters()
+
     def simulate(self, simflags=None):
         self.simflags = simflags
         if self.simulation_options["outputFormat"] == "csv":
@@ -329,3 +339,51 @@ class Simulator:
         # t2 = time()
         # print(f"Getting results took {t2-t1}s")
         return res
+
+
+def load_library(lib_path):
+    """
+    Load a Modelica library.
+
+    Args:
+        lib_path (str | Path): Path to the library directory.
+
+    Returns:
+        ModelicaSystem: An instance of ModelicaSystem if the library is loaded successfully.
+
+    Raises:
+        ValueError: If the library directory is not found.
+    """
+    if isinstance(lib_path, str):
+        lib_path = Path(lib_path)
+
+    if not lib_path.exists() or not lib_path.is_dir():
+        raise ValueError(f"Library directory '{lib_path}' not found.")
+
+    omc = OMCSessionZMQ()
+
+    for root, dirs, files in os.walk(lib_path):
+        for file in files:
+            if file.endswith(".mo"):
+                file_path = os.path.join(root, file)
+                omc.sendExpression(f"loadFile(\"{file_path}\")")
+
+    print(f"Library '{lib_path.stem}' loaded successfully.")
+
+
+def library_contents(library_path):
+    """
+    Print all files in the library recursively.
+
+    Args:
+        library_path (str | Path): Path to the library directory.
+    """
+    library_path = Path(library_path) if isinstance(library_path, str) else library_path
+
+    if not library_path.exists() or not library_path.is_dir():
+        raise ValueError(f"Library directory '{library_path}' not found.")
+
+    for root, dirs, files in os.walk(library_path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            print(file_path)
