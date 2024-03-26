@@ -191,6 +191,9 @@ class Simulator:
         package_path=None,
         lmodel=[],
     ):
+        self.library_path = None
+        self.loaded_libraries = {}
+
         if type(model_path) == str:
             model_path = Path(model_path)
 
@@ -337,3 +340,49 @@ class Simulator:
         # t2 = time()
         # print(f"Getting results took {t2-t1}s")
         return res
+
+    def load_library(self, lib_path):
+        """
+        Load a Modelica library.
+
+        Args:
+            lib_path (str): Path to the library directory.
+
+        Returns:
+            bool: True if the library is loaded successfully, False otherwise.
+        """
+        if isinstance(lib_path, str):
+            lib_path = Path(lib_path)
+
+        self.library_path = lib_path
+        if not lib_path.exists() or not lib_path.is_dir():
+            raise ValueError(f"Library directory '{lib_path}' not found.")
+
+        library_modelica_system = ModelicaSystem()
+
+        omc = OMCSessionZMQ()
+
+        for root, dirs, files in os.walk(lib_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                if file.endswith(".mo"):
+                    # Load the Modelica file using the OMC session
+                    omc.loadFile(file_path)
+
+        # Store the ModelicaSystem instance in self.loaded_libraries
+        library_name = lib_path.stem
+        self.loaded_libraries[library_name] = library_modelica_system
+
+        print(f"Library '{library_name}' loaded successfully.")
+
+    def print_library_contents(self, library_path):
+        """
+        Print all files in the library recursively.
+
+        Args:
+            library_path (str): Path to the library directory.
+        """
+        for root, dirs, files in os.walk(library_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                print(file_path)
