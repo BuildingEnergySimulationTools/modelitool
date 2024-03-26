@@ -368,8 +368,7 @@ class Simulator:
             lib_path = Path(lib_path)
 
         if not lib_path.exists() or not lib_path.is_dir():
-            print(f"Library directory '{lib_path}' not found.")
-            return False
+            raise ValueError(f"Library directory '{lib_path}' not found.")
 
         # Create an instance of ModelicaSystem for the library
         library_modelica_system = ModelicaSystem()

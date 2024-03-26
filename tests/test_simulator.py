@@ -6,7 +6,6 @@ from modelitool.simulate import Simulator, OMModel
 
 from tempfile import mkdtemp
 
-
 import pandas as pd
 
 PACKAGE_DIR = Path(__file__).parent / "TestLib"
@@ -32,6 +31,19 @@ def simul(tmp_path_factory):
         simulation_options=SIMULATION_OPTIONS,
         output_list=OUTPUTS,
         simulation_path=test_run_path,
+        lmodel=["Modelica"],
+    )
+    return simu
+
+
+@pytest.fixture(scope="session")
+def simul_param():
+    simu = Simulator(
+        model_path="TestLib.paramModel",
+        package_path=PACKAGE_DIR / "package.mo",
+        simulation_options=SIMULATION_OPTIONS,
+        output_list=OUTPUTS,
+        simulation_path=None,
         lmodel=["Modelica"],
     )
     return simu
@@ -103,8 +115,8 @@ class TestSimulator:
 
         res = ommodel.simulate(test_dict, SIMULATION_OPTIONS)
         ref = pd.DataFrame(
-                {"res.showNumber": [401.0, 401.0, 401.0],"res.numberPort": [401.0, 401.0, 401.0]},
-                           index=pd.date_range("2009-01-01 00:00:00", freq='H', periods=3)
+            {"res.showNumber": [401.0, 401.0, 401.0], "res.numberPort": [401.0, 401.0, 401.0]},
+            index=pd.date_range("2009-01-01 00:00:00", freq='H', periods=3)
         )
 
         pd.testing.assert_frame_equal(res, ref)
@@ -135,3 +147,20 @@ class TestSimulator:
         res = simul_boundaries.get_results()
 
         pd.testing.assert_frame_equal(new_bounds, res)
+
+    def test_load_and_print_library(self, simul, capfd):
+        libpath = PACKAGE_DIR
+        try:
+            simul.load_library(libpath)
+            assert True
+        except ValueError:
+            assert False, "library not loaded, failed test"
+
+        simul.print_library_contents(libpath)
+        out, err = capfd.readouterr()
+        assert "package.mo" in out
+
+    def test_get_parameters(self, simul_param):
+        param = simul_param.get_parameters()
+        expected_param = {'k': '1.0'}
+        assert param == expected_param
