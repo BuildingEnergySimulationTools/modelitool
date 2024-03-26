@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from modelitool.simulate import Simulator, OMModel
-
+from modelitool.simulate import load_library, library_contents
 from tempfile import mkdtemp
 
 
@@ -150,12 +150,12 @@ class TestSimulator:
     def test_load_and_print_library(self, simul, capfd):
         libpath = PACKAGE_DIR
         try:
-            simul.load_library(libpath)
+            load_library(libpath)
             assert True
         except ValueError:
             assert False, "library not loaded, failed test"
 
-        simul.print_library_contents(libpath)
+        library_contents(libpath)
         out, err = capfd.readouterr()
         assert "package.mo" in out
 
