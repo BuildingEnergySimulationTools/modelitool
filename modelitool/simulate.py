@@ -16,7 +16,7 @@ from modelitool.combitabconvert import seconds_to_datetime
 import re
 
 # TODO Create a debug mode to print time
-
+# TODO change sensitivity method to take into account library parameters (and not only model parameters)
 
 class OMModel(Model):
     def __init__(
