@@ -20,33 +20,31 @@ from modelitool.combitabconvert import seconds_to_datetime
 
 class OMModel(Model):
     def __init__(
-            self,
-            model_path,
-            simulation_options,
-            output_list,
-            init_parameters=None,
-            simulation_path=None,
-            boundary_df=None,
-            year=None,
-            package_path=None,
-            lmodel=[],
+        self,
+        model_path: Path,
+        simulation_options: dict[str, float | str | int],
+        x: pd.DataFrame = None,
+        output_list: list[str] = None,
+        simulation_path: Path = None,
+        x_combitimetable_name: str = None,
+        package_path: Path = None,
+        lmodel: list[str] = None,
     ):
-        if type(model_path) == str:
-            model_path = Path(model_path)
-
         if simulation_path is None:
-            simulation_path = tempfile.mkdtemp()
-            simulation_path = Path(simulation_path)
+            self._simulation_path = Path(tempfile.mkdtemp())
+        else:
+            self._simulation_path = simulation_path
 
-        if not os.path.exists(simulation_path):
+        if not os.path.exists(self._simulation_path):
             os.mkdir(simulation_path)
 
         self.omc = OMCSessionZMQ()
-        self.omc.sendExpression(f'cd("{simulation_path.as_posix()}")')
+        self.omc.sendExpression(f'cd("{self._simulation_path.as_posix()}")')
 
         # A bit dirty but the only way I found to change the simulation dir
         # ModelicaSystem take cwd as currDirectory
-        os.chdir(simulation_path)
+        os.chdir(self._simulation_path)
+        lmodel = [] if lmodel is None else lmodel
         if package_path is None:
             model_system_args = {
                 "fileName": model_path.as_posix(),
@@ -63,25 +61,7 @@ class OMModel(Model):
             }
 
         self.model = ModelicaSystem(**model_system_args)
-
-        self._simulation_path = simulation_path
         self.output_list = output_list
-
-        if boundary_df is not None:
-            self.set_boundaries_df(boundary_df)
-            if year is not None:
-                warnings.warn(
-                    "Simulator year is read from boundary"
-                    "DAtaFrame. Argument year is ignored"
-                )
-        elif year is not None:
-            self.year = year
-        else:
-            self.year = dt.date.today().year
-
-        if init_parameters:
-            self.set_param_dict(init_parameters)
-
         self.set_simulation_options(simulation_options)
 
     def get_available_outputs(self):
@@ -171,7 +151,7 @@ class OMModel(Model):
         return res
 
     def simulate(
-            self, parameter_dict: dict = None, simulation_options: dict = None
+        self, parameter_dict: dict = None, simulation_options: dict = None
     ) -> pd.DataFrame:
         self.set_param_dict(parameter_dict)
         self.set_simulation_options(simulation_options)
@@ -181,16 +161,16 @@ class OMModel(Model):
 
 class Simulator:
     def __init__(
-            self,
-            model_path,
-            simulation_options,
-            output_list,
-            init_parameters=None,
-            simulation_path=None,
-            boundary_df=None,
-            year=None,
-            package_path=None,
-            lmodel=[],
+        self,
+        model_path,
+        simulation_options,
+        output_list,
+        init_parameters=None,
+        simulation_path=None,
+        boundary_df=None,
+        year=None,
+        package_path=None,
+        lmodel=[],
     ):
 
         if type(model_path) == str:
@@ -366,7 +346,7 @@ def load_library(lib_path):
         for file in files:
             if file.endswith(".mo"):
                 file_path = os.path.join(root, file)
-                omc.sendExpression(f"loadFile(\"{file_path}\")")
+                omc.sendExpression(f'loadFile("{file_path}")')
 
     print(f"Library '{lib_path.stem}' loaded successfully.")
 
