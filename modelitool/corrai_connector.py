@@ -5,61 +5,6 @@ from corrai.base.parameter import Parameter
 from typing import Any
 
 
-class ScikitFunction:
-    """
-    A class that represents a scikit-learn function.
-
-    Parameters:
-    - simulator (object): The simulator object used for the function.
-    - surrogate (object): The surrogate object used for prediction.
-    - param_list (list): A list of parameter names.
-    - indicators (list, optional): A list of indicator names. Defaults to None.
-
-    Attributes:
-    - simulator (object): The simulator object used for the function.
-    - surrogate (object): The surrogate object used for prediction.
-    - param_list (list): A list of parameter names.
-    - indicators (list): A list of indicator names.
-
-    Methods:
-    - function(x_dict): Calculates the function value for the given input dictionary.
-
-    """
-
-    def __init__(
-        self,
-        simulator,
-        surrogate,
-        param_list: list[dict[Parameter, Any]],
-        indicators=None,
-    ):
-        self.simulator = simulator
-        self.surrogate = surrogate
-        self.param_list = param_list
-        if indicators is None:
-            self.indicators = simulator.output_list
-        else:
-            self.indicators = indicators
-
-    def function(self, x_dict):
-        """
-        Calculates the function value for the given input dictionary.
-
-        Args:
-        - x_dict (dict): A dictionary of input values.
-
-        Returns:
-        - res_series (Series): A pandas Series object containing the function values.
-        """
-
-        temp_array = np.array(list(x_dict.values()))
-        res = self.surrogate.predict(x_array=temp_array)
-        res_series = pd.Series(data=res[0, 0], dtype="float64")
-        res_series.index = [self.indicators]
-
-        return res_series
-
-
 class ModelicaFunction:
     """
     A class that defines a function based on a Modelitool Simulator.
