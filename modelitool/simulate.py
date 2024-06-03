@@ -16,61 +16,50 @@ from modelitool.combitabconvert import seconds_to_datetime
 
 class OMModel(Model):
     def __init__(
-            self,
-            model_path: Path | str,
-            simulation_options: dict[str, float | str | int]= None,
-            x: pd.DataFrame = None,
-            output_list: list[str] = None,
-            simulation_path: Path = None,
-            x_combitimetable_name: str = None,
-            package_path: Path = None,
-            lmodel: list[str] = None,
+        self,
+        model_path: Path | str,
+        simulation_options: dict[str, float | str | int] = None,
+        x: pd.DataFrame = None,
+        output_list: list[str] = None,
+        simulation_path: Path = None,
+        x_combitimetable_name: str = None,
+        package_path: Path = None,
+        lmodel: list[str] = None,
     ):
         self.x_combitimetable_name = (
             x_combitimetable_name if x_combitimetable_name is not None else "Boundaries"
         )
-
-        if simulation_path is None:
-            self._simulation_path = Path(tempfile.mkdtemp())
-        else:
-            self._simulation_path = simulation_path
+        self._simulation_path = (
+            simulation_path if simulation_path is not None else Path(tempfile.mkdtemp())
+        )
 
         if not os.path.exists(self._simulation_path):
             os.mkdir(simulation_path)
 
         self._x = x if x is not None else pd.DataFrame()
-
+        self.output_list = output_list
         self.omc = OMCSessionZMQ()
         self.omc.sendExpression(f'cd("{self._simulation_path.as_posix()}")')
 
-        lmodel = [] if lmodel is None else lmodel
-        if package_path is None:
-            model_system_args = {
-                "fileName": model_path.as_posix(),
-                "modelName": model_path.stem,
-                "lmodel": lmodel,
-                "variableFilter": "|".join(output_list),
-            }
-        else:
-            model_system_args = {
-                "fileName": package_path.as_posix(),
-                "modelName": model_path,
-                "lmodel": lmodel,
-                "variableFilter": "|".join(output_list),
-            }
+        model_system_args = {
+            "fileName": (package_path or model_path).as_posix(),
+            "modelName": model_path.stem if package_path is None else model_path,
+            "lmodel": lmodel,
+            "variableFilter": ".*" if output_list is None else "|".join(output_list),
+        }
 
         self.model = ModelicaSystem(**model_system_args)
-        self.output_list = output_list
         if simulation_options is not None:
             self._set_simulation_options(simulation_options)
 
     def simulate(
-            self,
-            parameter_dict: dict = None,
-            simulation_options: dict = None,
-            x: pd.DataFrame = None,
-            simflags=None,
-            year: int = None
+        self,
+        parameter_dict: dict = None,
+        simulation_options: dict = None,
+        x: pd.DataFrame = None,
+        verbose: bool = True,
+        simflags=None,
+        year: int = None,
     ) -> pd.DataFrame:
 
         if parameter_dict is not None:
@@ -86,20 +75,29 @@ class OMModel(Model):
         result_file = "res.csv" if output_format == "csv" else "res.mat"
         self.model.simulate(
             resultfile=(self._simulation_path / result_file).as_posix(),
-            simflags=simflags
+            simflags=simflags,
+            verbose=verbose,
         )
 
         if output_format == "csv":
             res = pd.read_csv(self._simulation_path / "res.csv", index_col=0)
-            res = res.loc[:, self.output_list]
+            if self.output_list is not None:
+                res = res.loc[:, self.output_list]
         else:
-            sol_list = self.model.getSolutions(
-                ["time"] + self.output_list, resultfile="res.mat").T
+            if self.output_list is None:
+                var_list = list(self.model.getSolutions())
+            else:
+                var_list = ["time"] + self.output_list
+
             res = pd.DataFrame(
-                sol_list[:, 1:],
-                index=sol_list[:, 0].flatten(),
-                columns=self.output_list,
+                data=self.model.getSolutions(
+                    varList=var_list,
+                    resultfile=(self._simulation_path / result_file).as_posix(),
+                ).T,
+                columns=var_list,
             )
+
+            res.set_index("time", inplace=True)
 
         res.index = pd.to_timedelta(res.index, unit="second")
         res = res.resample(
@@ -126,6 +124,14 @@ class OMModel(Model):
 
         return self.model.getSolutions()
 
+    def get_parameters(self):
+        """
+        Get parameters of the model or a loaded library.
+        Returns:
+            dict: Dictionary containing the parameters.
+        """
+        return self.model.getParameters()
+
     def _set_simulation_options(self, simulation_options):
         self.model.setSimulationOptions(
             [
@@ -144,10 +150,10 @@ class OMModel(Model):
         if not self._x.equals(df):
             new_bounds_path = self._simulation_path / "boundaries.txt"
             df_to_combitimetable(df, new_bounds_path)
-            full_path = win32api.GetLongPathName((self._simulation_path / "boundaries.txt").as_posix())
-            self._set_param_dict(
-                {f"{self.x_combitimetable_name}.fileName": full_path}
+            full_path = win32api.GetLongPathName(
+                (self._simulation_path / "boundaries.txt").as_posix()
             )
+            self._set_param_dict({f"{self.x_combitimetable_name}.fileName": full_path})
             self._x = df
 
     def _set_param_dict(self, param_dict):
@@ -156,16 +162,16 @@ class OMModel(Model):
 
 class Simulator:
     def __init__(
-            self,
-            model_path,
-            simulation_options,
-            output_list,
-            init_parameters=None,
-            simulation_path=None,
-            boundary_df=None,
-            year=None,
-            package_path=None,
-            lmodel=[],
+        self,
+        model_path,
+        simulation_options,
+        output_list,
+        init_parameters=None,
+        simulation_path=None,
+        boundary_df=None,
+        year=None,
+        package_path=None,
+        lmodel=[],
     ):
 
         if type(model_path) == str:
