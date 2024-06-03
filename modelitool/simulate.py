@@ -58,7 +58,7 @@ class OMModel(Model):
         simulation_options: dict = None,
         x: pd.DataFrame = None,
         verbose: bool = True,
-        simflags=None,
+        simflags: str = None,
         year: int = None,
     ) -> pd.DataFrame:
 
@@ -120,9 +120,9 @@ class OMModel(Model):
         if self.model.getSolutions() is None:
             # A bit dirty but simulation must be run once so
             # getSolutions() can access results
-            self.simulate()
+            self.simulate(verbose=False)
 
-        return self.model.getSolutions()
+        return list(self.model.getSolutions())
 
     def get_parameters(self):
         """
@@ -158,6 +158,7 @@ class OMModel(Model):
 
     def _set_param_dict(self, param_dict):
         self.model.setParameters([f"{item}={val}" for item, val in param_dict.items()])
+
 
 def load_library(lib_path):
     """

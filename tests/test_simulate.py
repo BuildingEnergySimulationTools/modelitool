@@ -2,7 +2,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from modelitool.simulate import Simulator, OMModel
+from modelitool.simulate import OMModel
 from modelitool.simulate import load_library, library_contents
 
 
@@ -19,7 +19,7 @@ def simul(tmp_path_factory):
         "stepSize": 1,
         "tolerance": 1e-06,
         "solver": "dassl",
-        "outputFormat": "mat",
+        "outputFormat": "csv",
     }
 
     outputs = ["res.showNumber"]
@@ -48,7 +48,22 @@ class TestSimulator:
         for key in test_dict.keys():
             assert float(test_dict[key]) == float(simul.model.getParameters()[key])
 
+        assert simul.get_parameters() == {
+            "x.k": "2.0",
+            "x.y": None,
+            "y.k": "2.0",
+            "y.y": None,
+            "res.significantDigits": "2",
+            "res.use_numberPort": "true",
+        }
+
     def test_simulate_get_results(self, simul):
+
+        assert simul.get_available_outputs() == [
+            "time",
+            "res.numberPort",
+            "res.showNumber",
+        ]
         res = simul.simulate()
         ref = pd.DataFrame({"res.showNumber": [401.0, 401.0, 401.0]})
         assert ref.equals(res)
@@ -67,7 +82,14 @@ class TestSimulator:
 
     def test_get_parameters(self, simul):
         param = simul.get_parameters()
-        expected_param = {'res.significantDigits': '2', 'res.use_numberPort': 'true', 'x.k': '2.0', 'x.y': None, 'y.k': '2.0', 'y.y': None}
+        expected_param = {
+            "res.significantDigits": "2",
+            "res.use_numberPort": "true",
+            "x.k": "2.0",
+            "x.y": None,
+            "y.k": "2.0",
+            "y.y": None,
+        }
         assert param == expected_param
 
     def test_set_boundaries_df(self):
@@ -77,7 +99,7 @@ class TestSimulator:
             "stepSize": 1 * 3600,
             "tolerance": 1e-06,
             "solver": "dassl",
-            "outputFormat": "csv",
+            "outputFormat": "mat",
         }
 
         x = pd.DataFrame(
@@ -92,9 +114,7 @@ class TestSimulator:
         )
 
         res = simu.simulate(simulation_options=simulation_options, x=x)
-
+        res = res.loc[:, ["Boundaries.y[1]", "Boundaries.y[2]"]]
         assert np.all([x.index[i] == res.index[i] for i in range(len(x.index))])
         np.testing.assert_allclose(x.to_numpy(), res.to_numpy())
         assert np.all([x.columns[i] == res.columns[i] for i in range(len(x.columns))])
-
-
