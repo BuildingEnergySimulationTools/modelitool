@@ -11,7 +11,7 @@ def seconds_to_datetime(index_second, ref_year):
 def datetime_to_seconds(index_datetime):
     time_start = dt.datetime(index_datetime[0].year, 1, 1, tzinfo=dt.timezone.utc)
     new_index = index_datetime.to_frame().diff().squeeze()
-    new_index[0] = dt.timedelta(
+    new_index.iloc[0] = dt.timedelta(
         seconds=index_datetime[0].timestamp() - time_start.timestamp()
     )
     sec_dt = [elmt.total_seconds() for elmt in new_index]
@@ -36,7 +36,8 @@ def df_to_combitimetable(df, filename):
     """
     Write a text file compatible with modelica Combitimetables object from a
     Pandas DataFrame with a DatetimeIndex. DataFrames with non monotonically increasing
-    datetime index will raise a ValueError to prevent bugs when file is used in Modelica.
+    datetime index will raise a ValueError to prevent bugs when file is used in
+    Modelica.
     @param df: DataFrame with DatetimeIndex
     @param filename: string or Path to the output file
     @return: None

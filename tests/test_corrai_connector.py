@@ -5,9 +5,7 @@ from pathlib import Path
 import pytest
 
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-from modelitool.simulate import Simulator
-from modelitool.surrogate import SimulationSampler
-from modelitool.surrogate import SurrogateModel
+from modelitool.simulate import OMModel
 from corrai.base.parameter import Parameter
 
 from modelitool.corrai_connector import ModelicaFunction
@@ -15,9 +13,8 @@ from modelitool.corrai_connector import ModelicaFunction
 
 PACKAGE_DIR = Path(__file__).parent / "TestLib"
 
-outputs = ["res1.showNumber", "res2.showNumber"]
 
-parameters = [
+PARAMETERS = [
     {Parameter.NAME: "x.k", Parameter.INTERVAL: (1.0, 3.0)},
     {Parameter.NAME: "y.k", Parameter.INTERVAL: (1.0, 3.0)},
 ]
@@ -29,24 +26,8 @@ agg_methods_dict = {
 
 reference_dict = {"res1.showNumber": "meas1", "res2.showNumber": "meas2"}
 
-simu_options = {
-    "startTime": 0,
-    "stopTime": 1,
-    "stepSize": 1,
-    "tolerance": 1e-06,
-    "solver": "dassl",
-    "outputFormat": "csv",
-}
 
-simu = Simulator(
-    model_path=PACKAGE_DIR / "ishigami_two_outputs.mo",
-    simulation_options=simu_options,
-    output_list=outputs,
-    simulation_path=None,
-    lmodel=["Modelica"],
-)
-
-x_dict = {"x.k": 2, "y.k": 2}
+X_DICT = {"x.k": 2, "y.k": 2}
 
 dataset = pd.DataFrame(
     {
@@ -65,18 +46,42 @@ expected_res = pd.DataFrame(
 )
 
 
+@pytest.fixture(scope="session")
+def ommodel(tmp_path_factory):
+    simu_options = {
+        "startTime": 0,
+        "stopTime": 1,
+        "stepSize": 1,
+        "tolerance": 1e-06,
+        "solver": "dassl",
+        "outputFormat": "csv",
+    }
+
+    outputs = ["res1.showNumber", "res2.showNumber"]
+
+    simu = OMModel(
+        model_path="TestLib.ishigami_two_outputs",
+        package_path=PACKAGE_DIR / "package.mo",
+        simulation_options=simu_options,
+        output_list=outputs,
+        lmodel=["Modelica"],
+    )
+
+    return simu
+
+
 class TestModelicaFunction:
-    def test_function_indicators(self):
+    def test_function_indicators(self, ommodel):
         mf = ModelicaFunction(
-            simulator=simu,
-            param_list=parameters,
+            om_model=ommodel,
+            param_list=PARAMETERS,
             agg_methods_dict=agg_methods_dict,
             indicators=["res1.showNumber", "res2.showNumber"],
             reference_df=dataset,
             reference_dict=reference_dict,
         )
 
-        res = mf.function(x_dict)
+        res = mf.function(X_DICT)
 
         np.testing.assert_allclose(
             np.array([res["res1.showNumber"], res["res2.showNumber"]]),
@@ -89,10 +94,10 @@ class TestModelicaFunction:
             rtol=0.01,
         )
 
-    def test_custom_indicators(self):
+    def test_custom_indicators(self, ommodel):
         mf = ModelicaFunction(
-            simulator=simu,
-            param_list=parameters,
+            om_model=ommodel,
+            param_list=PARAMETERS,
             indicators=["res1.showNumber", "res2.showNumber", "custom_indicator"],
             custom_ind_dict={
                 "custom_indicator": {
@@ -102,7 +107,7 @@ class TestModelicaFunction:
             },
         )
 
-        res = mf.function(x_dict)
+        res = mf.function(X_DICT)
 
         # Test custom indicator
         np.testing.assert_allclose(
@@ -111,17 +116,17 @@ class TestModelicaFunction:
             rtol=0.01,
         )
 
-    def test_function_no_indicators(self):
+    def test_function_no_indicators(self, ommodel):
         mf = ModelicaFunction(
-            simulator=simu,
-            param_list=parameters,
+            om_model=ommodel,
+            param_list=PARAMETERS,
             agg_methods_dict=None,
             indicators=None,
             reference_df=None,
             reference_dict=None,
         )
 
-        res = mf.function(x_dict)
+        res = mf.function(X_DICT)
 
         np.testing.assert_allclose(
             np.array([res["res1.showNumber"], res["res2.showNumber"]]),
@@ -129,12 +134,12 @@ class TestModelicaFunction:
             rtol=0.01,
         )
 
-    def test_warning_error(self):
+    def test_warning_error(self, ommodel):
         # reference_df is not provided
         with pytest.raises(ValueError):
             ModelicaFunction(
-                simulator=simu,
-                param_list=parameters,
+                om_model=ommodel,
+                param_list=PARAMETERS,
                 reference_df=None,
                 reference_dict=dataset,
             )
@@ -142,27 +147,8 @@ class TestModelicaFunction:
         # reference_dict is not provided
         with pytest.raises(ValueError):
             ModelicaFunction(
-                simulator=simu,
-                param_list=parameters,
+                om_model=ommodel,
+                param_list=PARAMETERS,
                 reference_df=dataset,
                 reference_dict=None,
             )
-
-
-class TestScikitFunction:
-    def test_function(self):
-        surrogate = SurrogateModel(
-            simulation_sampler=SimulationSampler(
-                simulator=simu,
-                parameters=parameters,
-            )
-        )
-
-        surrogate.add_samples(100, seed=42)
-        surrogate.fit_sample(
-            indicator="res1.showNumber",
-            aggregation_method=np.mean,
-        )
-
-        res = surrogate.predict(np.array([2, 2]))
-        np.testing.assert_almost_equal(res, 8.15, decimal=1)
