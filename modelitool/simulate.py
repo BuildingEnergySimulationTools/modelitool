@@ -1,7 +1,5 @@
-import datetime as dt
 import os
 import tempfile
-import warnings
 from pathlib import Path
 import win32api
 
@@ -61,7 +59,6 @@ class OMModel(Model):
         simflags: str = None,
         year: int = None,
     ) -> pd.DataFrame:
-
         if parameter_dict is not None:
             self._set_param_dict(parameter_dict)
 
@@ -168,7 +165,8 @@ def load_library(lib_path):
         lib_path (str | Path): Path to the library directory.
 
     Returns:
-        ModelicaSystem: An instance of ModelicaSystem if the library is loaded successfully.
+        ModelicaSystem: An instance of ModelicaSystem if the library is loaded
+        successfully.
 
     Raises:
         ValueError: If the library directory is not found.
@@ -181,7 +179,7 @@ def load_library(lib_path):
 
     omc = OMCSessionZMQ()
 
-    for root, dirs, files in os.walk(lib_path):
+    for root, _, files in os.walk(lib_path):
         for file in files:
             if file.endswith(".mo"):
                 file_path = os.path.join(root, file)
@@ -202,7 +200,7 @@ def library_contents(library_path):
     if not library_path.exists() or not library_path.is_dir():
         raise ValueError(f"Library directory '{library_path}' not found.")
 
-    for root, dirs, files in os.walk(library_path):
+    for root, _, files in os.walk(library_path):
         for file in files:
             file_path = os.path.join(root, file)
             print(file_path)

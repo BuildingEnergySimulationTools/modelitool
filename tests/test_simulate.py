@@ -58,7 +58,6 @@ class TestSimulator:
         }
 
     def test_simulate_get_results(self, simul):
-
         assert simul.get_available_outputs() == [
             "time",
             "res.numberPort",
@@ -74,7 +73,7 @@ class TestSimulator:
             load_library(libpath)
             assert True
         except ValueError:
-            assert False, "library not loaded, failed test"
+            raise AssertionError("library not loaded, failed test")
 
         library_contents(libpath)
         out, err = capfd.readouterr()

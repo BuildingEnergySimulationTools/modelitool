@@ -59,7 +59,7 @@ class TestCombitabconvert:
 
         df_to_combitimetable(df, tmpdir / "test.txt")
 
-        with open(tmpdir / "test.txt", "r") as file:
+        with open(tmpdir / "test.txt") as file:
             contents = file.read()
 
         assert contents == ref
