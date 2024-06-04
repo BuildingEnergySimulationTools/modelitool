@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
 from corrai.base.parameter import Parameter
-
-from typing import Any
+from modelitool.simulate import OMModel
 
 
 class ModelicaFunction:
@@ -10,7 +9,7 @@ class ModelicaFunction:
     A class that defines a function based on a Modelitool Simulator.
 
     Args:
-        simulator (object): A fully configured Modelitool Simulator object.
+        om_model (object): A fully configured Modelitool Simulator object.
         param_list (list): A list of parameter defined as dictionaries. At least , each
             parameter dict must have the following keys : "names", "interval".
         indicators (list, optional): A list of indicators to be returned by the
@@ -57,7 +56,7 @@ class ModelicaFunction:
 
     def __init__(
         self,
-        simulator,
+        om_model: OMModel,
         param_list,
         indicators=None,
         agg_methods_dict=None,
@@ -65,10 +64,10 @@ class ModelicaFunction:
         reference_df=None,
         custom_ind_dict=None,
     ):
-        self.simulator = simulator
+        self.om_model = om_model
         self.param_list = param_list
         if indicators is None:
-            self.indicators = simulator.output_list
+            self.indicators = om_model.get_available_outputs()
         else:
             self.indicators = indicators
         if agg_methods_dict is None:
@@ -81,7 +80,7 @@ class ModelicaFunction:
             raise ValueError("Both reference_dict and reference_df should be provided")
         self.reference_dict = reference_dict
         self.reference_df = reference_df
-        self.custom_ind_dict = custom_ind_dict
+        self.custom_ind_dict = custom_ind_dict if custom_ind_dict is not None else []
 
     def function(self, x_dict):
         """
@@ -98,9 +97,8 @@ class ModelicaFunction:
             param[Parameter.NAME]: x_dict[param[Parameter.NAME]]
             for param in self.param_list
         }
-        self.simulator.set_param_dict(temp_dict)
-        self.simulator.simulate()
-        res = self.simulator.get_results()
+        self.om_model._set_param_dict(temp_dict)
+        res = self.om_model.simulate()
 
         function_results = {}
 
