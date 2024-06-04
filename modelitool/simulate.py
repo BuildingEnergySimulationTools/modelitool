@@ -101,7 +101,7 @@ class OMModel(Model):
 
         res.index = pd.to_timedelta(res.index, unit="second")
         res = res.resample(
-            f"{int(self.model.getSimulationOptions()['stepSize'])}S"
+            f"{int(self.model.getSimulationOptions()['stepSize'])}s"
         ).mean()
         res.index = res.index.to_series().dt.total_seconds()
 

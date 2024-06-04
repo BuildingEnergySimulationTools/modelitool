@@ -11,7 +11,7 @@ import pytest
 
 class TestCombitabconvert:
     def test_get_dymo_time_index(self):
-        time_index = pd.date_range("2021-01-01 01:00:00", freq="H", periods=3)
+        time_index = pd.date_range("2021-01-01 01:00:00", freq="h", periods=3)
         df = pd.DataFrame({"dumb_column": [0] * time_index.shape[0]}, index=time_index)
         assert datetime_to_seconds(df.index) == [3600.0, 7200.0, 10800.0]
 
@@ -39,7 +39,7 @@ class TestCombitabconvert:
                 tmpdir / "test.txt",
             )
 
-        time_index = pd.date_range("2021-01-01 01:00:00", freq="H", periods=3)
+        time_index = pd.date_range("2021-01-01 01:00:00", freq="h", periods=3)
         df = pd.DataFrame(
             {
                 "dumb_column": [0] * time_index.shape[0],
