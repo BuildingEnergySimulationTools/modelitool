@@ -1,7 +1,6 @@
 import os
 import tempfile
 from pathlib import Path
-import win32api
 
 import pandas as pd
 from OMPython import ModelicaSystem
@@ -191,9 +190,7 @@ class OMModel(Model):
         if not self._x.equals(df):
             new_bounds_path = self._simulation_path / "boundaries.txt"
             df_to_combitimetable(df, new_bounds_path)
-            full_path = win32api.GetLongPathName(
-                (self._simulation_path / "boundaries.txt").as_posix()
-            )
+            full_path = (self._simulation_path / "boundaries.txt").resolve().as_posix()
             self._set_param_dict({f"{self.x_combitimetable_name}.fileName": full_path})
             self._x = df
 
