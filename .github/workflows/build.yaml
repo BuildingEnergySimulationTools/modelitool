@@ -37,7 +37,8 @@ jobs:
           https://build.openmodelica.org/apt \
           $(cat /etc/os-release | grep "\(UBUNTU\\|DEBIAN\\|VERSION\)_CODENAME" | sort | cut -d= -f 2 | head -1) \
           stable" | sudo tee /etc/apt/sources.list.d/openmodelica.list
-          sudo apt install --no-install-recommends omc
+          sudo apt update
+          sudo apt install openmodelica
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
