@@ -27,17 +27,28 @@ jobs:
           - { name: '3.12', python: '3.12', tox: py312 }
           - { name: 'min', python: '3.10', tox: min }
     steps:
-      - name: Install OpenModelica
-        run:
-          sudo apt-get update
-          sudo apt-get install ca-certificates curl gnupg
-          sudo curl -sSL http://build.openmodelica.org/apt/openmodelica.asc | sudo gpg --dearmor -o /usr/share/keyrings/openmodelica-keyring.gpg
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/openmodelica-keyring.gpg]
-          https://build.openmodelica.org/apt \
-          $(cat /etc/os-release | grep "\(UBUNTU\\|DEBIAN\\|VERSION\)_CODENAME" | sort | cut -d= -f 2 | head -1) \
-          stable" | sudo tee /etc/apt/sources.list.d/openmodelica.list
-          sudo apt update
-          sudo apt install openmodelica
+      - name: "Set up OpenModelica Compiler"
+        uses: OpenModelica/setup-openmodelica@v1.0
+        with:
+          version: 'stable'
+          packages: |
+            omc
+          libraries: |
+            'Modelica 4.0.0'
+
+      - run: "omc --version"
+      #      - name: Install OpenModelica
+      #        run: |
+      #          sudo apt-get update
+      #          sudo apt-get install ca-certificates curl gnupg
+      #          sudo curl -fsSL http://build.openmodelica.org/apt/openmodelica.asc | \
+      #          sudo gpg --dearmor -o /usr/share/keyrings/openmodelica-keyring.gpg
+      #          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/openmodelica-keyring.gpg] \
+      #          https://build.openmodelica.org/apt \
+      #          $(cat /etc/os-release | grep "\(UBUNTU\\|DEBIAN\\|VERSION\)_CODENAME" | sort | cut -d= -f 2 | head -1) \
+      #          stable" | sudo tee /etc/apt/sources.list.d/openmodelica.list
+      #          sudo apt update
+      #          sudo apt install --no-install-recommends omc
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
