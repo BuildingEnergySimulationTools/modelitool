@@ -24,6 +24,31 @@ class OMModel(Model):
         package_path: Path = None,
         lmodel: list[str] = None,
     ):
+        """
+        A class to wrap ompython to simulate Modelica system.
+        Make it easier to change parameters values and simulation options.
+        Allows specification of boundary conditions using Pandas Dataframe.
+        The class inherits from corrai Model base class, and can be used with the
+        module.
+
+        - model_path (Path | str): Path to the Modelica model file.
+        - simulation_options (dict[str, float | str | int], optional):
+            Options for the simulation. May include values for "startTime",
+            "stopTime", "stepSize", "tolerance", "solver", "outputFormat".
+        - x (pd.DataFrame, optional): Input data for the simulation. Index shall
+            be a DatetimeIndex or integers. Columns must match the combi time table
+            used to specify boundary conditions in the Modelica System.
+        - output_list (list[str], optional): List of output variables. Default
+            will output all available variables.
+        - simulation_path (Path, optional): Path to run the simulation and
+            save the simulation results.
+        - x_combitimetable_name (str, optional): Name of the Modelica System
+            combi timetable object name, that is used to set the boundary condition.
+        - package_path (Path, optional): Path to the Modelica package directory
+            if necessary (package.mo).
+        - lmodel (list[str], optional): List of Modelica libraries to load.
+        """
+
         self.x_combitimetable_name = (
             x_combitimetable_name if x_combitimetable_name is not None else "Boundaries"
         )
@@ -59,6 +84,25 @@ class OMModel(Model):
         simflags: str = None,
         year: int = None,
     ) -> pd.DataFrame:
+        """
+        Runs the simulation with the provided parameters, simulation options and
+        boundariy conditions.
+        - parameter_dict (dict, optional): Dictionary of parameters.
+        - simulation_options (dict, optional): Will update simulation options if it
+            had been given at the init phase. May include values for "startTime",
+            "stopTime", "stepSize", "tolerance", "solver", "outputFormat".
+        - x (pd.DataFrame, optional): Input data for the simulation. Index shall
+            be a DatetimeIndex or integers. Columns must match the combi time table
+            used to specify boundary conditions in the Modelica System.
+        - verbose (bool, optional): If True, prints simulation progress. Defaults to
+            True.
+        - simflags (str, optional): Additional simulation flags.
+        - year (int, optional): If x boundary conditions is not specified or do not
+            have a DateTime index (seconds int), a year can be specified to convert
+            int seconds index to a datetime index. If simulation spans overs several
+            years, it shall be the year when it begins.
+        """
+
         if parameter_dict is not None:
             self._set_param_dict(parameter_dict)
 
