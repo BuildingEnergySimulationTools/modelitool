@@ -31,7 +31,7 @@ setup(
     install_requires=[
         "pandas>=1.5.0",
         "numpy>=1.17.3",
-        "OMPython>=3.4.0",
+        "OMPython>=3.5.2",
         "corrai>=0.3.0",
     ],
     packages=find_packages(exclude=["tests*"]),
