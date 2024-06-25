@@ -1,6 +1,8 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
+
 from corrai.base.parameter import Parameter
+
 from modelitool.simulate import OMModel
 
 

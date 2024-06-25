@@ -1,6 +1,9 @@
-import requests
 import json
+
 import pandas as pd
+
+import requests
+
 from .combitabconvert import get_dymo_time_index
 
 # TODO

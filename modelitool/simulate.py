@@ -3,12 +3,11 @@ import tempfile
 from pathlib import Path
 
 import pandas as pd
-from OMPython import ModelicaSystem
-from OMPython import OMCSessionZMQ
+from OMPython import ModelicaSystem, OMCSessionZMQ
+
 from corrai.base.model import Model
 
-from modelitool.combitabconvert import df_to_combitimetable
-from modelitool.combitabconvert import seconds_to_datetime
+from modelitool.combitabconvert import df_to_combitimetable, seconds_to_datetime
 
 
 class OMModel(Model):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Modelitool"""
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 # Get the long description from the README file
 with open("README.md", encoding="utf-8") as f:
@@ -31,7 +31,7 @@ setup(
     install_requires=[
         "pandas>=1.5.0",
         "numpy>=1.17.3",
-        "OMPython>=3.4.0",
+        "OMPython>=3.5.2",
         "corrai>=0.3.0",
     ],
     packages=find_packages(exclude=["tests*"]),
