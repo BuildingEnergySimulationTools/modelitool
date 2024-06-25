@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Modelitool"""
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 # Get the long description from the README file
 with open("README.md", encoding="utf-8") as f:

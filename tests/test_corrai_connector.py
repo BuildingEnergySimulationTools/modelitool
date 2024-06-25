@@ -1,15 +1,16 @@
-import numpy as np
-import pandas as pd
 from pathlib import Path
 
 import pytest
 
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-from modelitool.simulate import OMModel
+import numpy as np
+import pandas as pd
+
 from corrai.base.parameter import Parameter
 
-from modelitool.corrai_connector import ModelicaFunction
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
+from modelitool.corrai_connector import ModelicaFunction
+from modelitool.simulate import OMModel
 
 PACKAGE_DIR = Path(__file__).parent / "TestLib"
 

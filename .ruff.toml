@@ -1,0 +1,25 @@
+fix = true
+show-fixes = true
+output-format = "full"
+
+[format]
+docstring-code-format = true
+
+[lint]
+ignore = []
+select = [
+  "B",  # flake8-bugbear
+  "E",  # pycodestyle error
+  "F",  # pyflakes
+  "I",  # isort
+  "UP", # pyupgrade
+  "W",  # pycodestyle warning
+]
+
+[lint.isort]
+section-order = ["future", "standard-library", "testing", "science", "corrai", "third-party", "first-party", "local-folder"]
+
+[lint.isort.sections]
+testing = ["pytest"]
+science = ["numpy", "pandas", "OMPython"]
+corrai = ["corrai"]

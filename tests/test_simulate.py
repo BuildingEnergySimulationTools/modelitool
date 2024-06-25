@@ -1,12 +1,11 @@
 from pathlib import Path
-import numpy as np
+
 import pytest
 
-from modelitool.simulate import OMModel
-from modelitool.simulate import load_library, library_contents
-
-
+import numpy as np
 import pandas as pd
+
+from modelitool.simulate import OMModel, library_contents, load_library
 
 PACKAGE_DIR = Path(__file__).parent / "TestLib"
 
@@ -72,8 +71,8 @@ class TestSimulator:
         try:
             load_library(libpath)
             assert True
-        except ValueError:
-            raise AssertionError("library not loaded, failed test")
+        except ValueError as exc:
+            raise AssertionError("library not loaded, failed test") from exc
 
         library_contents(libpath)
         out, err = capfd.readouterr()

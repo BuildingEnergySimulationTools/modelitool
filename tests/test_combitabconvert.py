@@ -1,12 +1,14 @@
-import pandas as pd
-
-from modelitool.combitabconvert import df_to_combitimetable
-from modelitool.combitabconvert import seconds_to_datetime
-from modelitool.combitabconvert import datetime_to_seconds
-
 from datetime import timedelta
 
 import pytest
+
+import pandas as pd
+
+from modelitool.combitabconvert import (
+    datetime_to_seconds,
+    df_to_combitimetable,
+    seconds_to_datetime,
+)
 
 
 class TestCombitabconvert:
