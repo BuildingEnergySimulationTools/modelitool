@@ -9,7 +9,7 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="modelitool",
-    version="0.2",
+    version="0.1.0",
     description="Tools for Modelica",
     long_description=long_description,
     url="https://github.com/BuildingEnergySimulationTools/modelitool",
@@ -25,7 +25,6 @@ setup(
         "Topic :: Scientific/Engineering",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
     ],
     python_requires=">=3.10",
     install_requires=[
