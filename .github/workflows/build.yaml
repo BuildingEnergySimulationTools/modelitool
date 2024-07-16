@@ -26,20 +26,8 @@ jobs:
             'Modelica 4.0.0'
 
       - run: "omc --version"
-      #      - name: Install OpenModelica
-      #        run: |
-      #          sudo apt-get update
-      #          sudo apt-get install ca-certificates curl gnupg
-      #          sudo curl -fsSL http://build.openmodelica.org/apt/openmodelica.asc | \
-      #          sudo gpg --dearmor -o /usr/share/keyrings/openmodelica-keyring.gpg
-      #          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/openmodelica-keyring.gpg] \
-      #          https://build.openmodelica.org/apt \
-      #          $(cat /etc/os-release | grep "\(UBUNTU\\|DEBIAN\\|VERSION\)_CODENAME" | sort | cut -d= -f 2 | head -1) \
-      #          stable" | sudo tee /etc/apt/sources.list.d/openmodelica.list
-      #          sudo apt update
-      #          sudo apt install --no-install-recommends omc
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
       - name: Run test
@@ -52,27 +40,54 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
+  build:
+    name: Build package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pypa/build
+        run: python -m pip install build
+      - name: Build a binary wheel and a source tarball
+        run: python -m build
+      - name: Install twine
+        run: python -m pip install twine
+      - name: Check build
+        run: python -m twine check --strict dist/*
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
   # this duplicates pre-commit.ci, so only run it on tags
   # it guarantees that linting is passing prior to a release
   lint-pre-release:
     if: startsWith(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.0.0
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - run: python -m pip install tox
       - run: python -m tox -e lint
-  release:
-    needs: [ tests, lint-pre-release ]
+  publish-to-pypi:
     name: PyPI release
-    if: startsWith(github.ref, 'refs/tags')
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [ build, tests, lint-pre-release ]
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/modelitool
+    permissions:
+      id-token: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-      - run: python -m pip install --upgrade pip wheel
-      - run: pip install twine
-      - run: python setup.py sdist bdist_wheel
-      - run: twine upload -u __token__ -p ${{ secrets.PYPI_API_TOKEN }} dist/*
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

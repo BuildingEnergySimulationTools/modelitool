@@ -9,9 +9,10 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="modelitool",
-    version="0.1.0",
+    version="0.1.1",
     description="Tools for Modelica",
     long_description=long_description,
+    long_description_content_type="text/markdown",
     url="https://github.com/BuildingEnergySimulationTools/modelitool",
     author="Nobatek/INEF4",
     author_email="bdurandestebe@nobatek.com",
