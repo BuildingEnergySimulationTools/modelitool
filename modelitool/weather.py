@@ -272,7 +272,7 @@ class OikolabWeatherData:
         )
 
         file.write(
-            tmy_df.to_csv(header=False, index=False, sep="\t", line_terminator="\n")
+            tmy_df.to_csv(header=False, index=False, sep="\t", lineterminator="\n")
         )
         file.close()
 

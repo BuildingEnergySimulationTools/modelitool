@@ -26,7 +26,7 @@ def get_dymo_time_index(df):
     """
     time_start = dt.datetime(df.index[0].year, 1, 1, tzinfo=dt.timezone.utc)
     new_index = df.index.to_frame().diff().squeeze()
-    new_index[0] = dt.timedelta(
+    new_index.iloc[0] = dt.timedelta(
         seconds=df.index[0].timestamp() - time_start.timestamp()
     )
     sec_dt = [elmt.total_seconds() for elmt in new_index]
