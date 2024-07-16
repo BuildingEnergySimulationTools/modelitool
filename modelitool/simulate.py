@@ -65,7 +65,7 @@ class OMModel(Model):
         model_system_args = {
             "fileName": (package_path or model_path).as_posix(),
             "modelName": model_path.stem if package_path is None else model_path,
-            "lmodel": lmodel,
+            "lmodel": lmodel if lmodel is not None else [],
             "variableFilter": ".*" if output_list is None else "|".join(output_list),
         }
 
