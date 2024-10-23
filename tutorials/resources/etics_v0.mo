@@ -60,7 +60,7 @@ model etics_v0
     Placement(visible = true, transformation(origin = {110, -10}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Sources.PrescribedTemperature T_in annotation(
     Placement(visible = true, transformation(origin = {150, -10}, extent = {{10, -10}, {-10, 10}}, rotation = 0)));
-  Modelica.Blocks.Sources.CombiTimeTable Boundaries(columns = 2:7, fileName = "C:/Users/bdurandestebe/PycharmProjects/modelitool/tutorials/ressources/boundary_temp.txt", tableName = "table1", tableOnFile = true) annotation(
+  Modelica.Blocks.Sources.CombiTimeTable Boundaries(columns = 2:7, fileName = "C:/Users/thubert/PycharmProjects/modelitool/tutorials/resources/boundary_temp.txt", tableName = "table1", tableOnFile = true) annotation(
     Placement(visible = true, transformation(origin = {-170, 90}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   Modelica.Thermal.HeatTransfer.Celsius.ToKelvin Kelvin_Ext annotation(
     Placement(visible = true, transformation(origin = {-130, 110}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
@@ -144,7 +144,7 @@ equation
   connect(T_ext.port, Conv_ext.fluid) annotation(
     Line(points = {{-300, -30}, {-260, -30}}, color = {191, 0, 0}));
   annotation(
-    uses(Modelica(version = "3.2.3")),
+    uses(Modelica(version = "4.0.0")),
     Diagram(coordinateSystem(extent = {{-360, 160}, {180, -80}})),
     version = "",
     experiment(StartTime = 6.912e+06, StopTime = 7.0845e+06, Tolerance = 1e-06, Interval = 300),
