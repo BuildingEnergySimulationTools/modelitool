@@ -174,12 +174,12 @@ class OMModel(Model):
     def _set_simulation_options(self, simulation_options):
         self.model.setSimulationOptions(
             [
-                f'startTime={simulation_options["startTime"]}',
-                f'stopTime={simulation_options["stopTime"]}',
-                f'stepSize={simulation_options["stepSize"]}',
-                f'tolerance={simulation_options["tolerance"]}',
-                f'solver={simulation_options["solver"]}',
-                f'outputFormat={simulation_options["outputFormat"]}',
+                f"startTime={simulation_options['startTime']}",
+                f"stopTime={simulation_options['stopTime']}",
+                f"stepSize={simulation_options['stepSize']}",
+                f"tolerance={simulation_options['tolerance']}",
+                f"solver={simulation_options['solver']}",
+                f"outputFormat={simulation_options['outputFormat']}",
             ]
         )
         self.simulation_options = simulation_options
