@@ -81,14 +81,16 @@ class OMModel(Model):
     ) -> pd.DataFrame:
         """
         Runs the simulation with the provided parameters, simulation options and
-        boundariy conditions.
+        boundary conditions.
         - parameter_dict (dict, optional): Dictionary of parameters.
-        - simulation_options (dict, optional): Will update simulation options if it
-            had been given at the init phase. May include values for "startTime",
-            "stopTime", "stepSize", "tolerance", "solver", "outputFormat".
+        - simulation_options (dict, optional): May include values for "startTime",
+            "stopTime", "stepSize", "tolerance", "solver", "outputFormat". Can
+            also include 'x' with a DataFrame for boundary conditions.
         - x (pd.DataFrame, optional): Input data for the simulation. Index shall
-            be a DatetimeIndex or integers. Columns must match the combi time table
-            used to specify boundary conditions in the Modelica System.
+            be a DatetimeIndex or integers. Columns must match the combitimetable
+            used to specify boundary conditions in the Modelica System. If 'x' is
+            provided both in simulation_options and as a direct parameter, the one
+            provided as direct parameter will be used.
         - verbose (bool, optional): If True, prints simulation progress. Defaults to
             True.
         - simflags (str, optional): Additional simulation flags.
@@ -185,12 +187,10 @@ class OMModel(Model):
             'outputFormat': simulation_options.get('outputFormat')
         }
 
-        # Filtrer les options None
         options = [f'{k}={v}' for k, v in standard_options.items() if v is not None]
         self.model.setSimulationOptions(options)
         self.simulation_options = simulation_options
 
-        # Gérer x s'il est présent dans les options
         if 'x' in simulation_options:
             self._set_x(simulation_options['x'])
 
