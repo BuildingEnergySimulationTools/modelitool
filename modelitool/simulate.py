@@ -104,11 +104,11 @@ class OMModel(Model):
             self.set_param_dict(parameter_dict)
 
         if simulation_options is not None:
-            if x is not None and 'x' in simulation_options:
+            if x is not None and "x" in simulation_options:
                 warnings.warn(
                     "Boundary file 'x' specified both in simulation_options and as a direct parameter."
                     " The 'x' provided in simulate() will be used.",
-                    UserWarning
+                    UserWarning,
                 )
 
             self._set_simulation_options(simulation_options)
@@ -179,20 +179,20 @@ class OMModel(Model):
 
     def _set_simulation_options(self, simulation_options):
         standard_options = {
-            'startTime': simulation_options.get('startTime'),
-            'stopTime': simulation_options.get('stopTime'),
-            'stepSize': simulation_options.get('stepSize'),
-            'tolerance': simulation_options.get('tolerance'),
-            'solver': simulation_options.get('solver'),
-            'outputFormat': simulation_options.get('outputFormat')
+            "startTime": simulation_options.get("startTime"),
+            "stopTime": simulation_options.get("stopTime"),
+            "stepSize": simulation_options.get("stepSize"),
+            "tolerance": simulation_options.get("tolerance"),
+            "solver": simulation_options.get("solver"),
+            "outputFormat": simulation_options.get("outputFormat"),
         }
 
-        options = [f'{k}={v}' for k, v in standard_options.items() if v is not None]
+        options = [f"{k}={v}" for k, v in standard_options.items() if v is not None]
         self.model.setSimulationOptions(options)
         self.simulation_options = simulation_options
 
-        if 'x' in simulation_options:
-            self._set_x(simulation_options['x'])
+        if "x" in simulation_options:
+            self._set_x(simulation_options["x"])
 
     def _set_x(self, df: pd.DataFrame):
         """Sets the input data for the simulation and updates the corresponding file."""
@@ -254,4 +254,3 @@ def library_contents(library_path):
         for file in files:
             file_path = os.path.join(root, file)
             print(file_path)
-

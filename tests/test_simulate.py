@@ -1,5 +1,7 @@
 from pathlib import Path
+
 import pytest
+
 import numpy as np
 import pandas as pd
 
@@ -114,12 +116,19 @@ class TestSimulator:
         )
 
         simulation_options_with_x = simulation_options.copy()
-        simulation_options_with_x['x'] = x_options
+        simulation_options_with_x["x"] = x_options
         res1 = simu.simulate(simulation_options=simulation_options_with_x)
         res1 = res1.loc[:, ["Boundaries.y[1]", "Boundaries.y[2]"]]
         np.testing.assert_allclose(x_options.to_numpy(), res1.to_numpy())
-        assert np.all([x_options.index[i] == res1.index[i] for i in range(len(x_options.index))])
-        assert np.all([x_options.columns[i] == res1.columns[i] for i in range(len(x_options.columns))])
+        assert np.all(
+            [x_options.index[i] == res1.index[i] for i in range(len(x_options.index))]
+        )
+        assert np.all(
+            [
+                x_options.columns[i] == res1.columns[i]
+                for i in range(len(x_options.columns))
+            ]
+        )
 
         simu = OMModel(
             model_path="TestLib.boundary_test",
@@ -129,17 +138,28 @@ class TestSimulator:
         res2 = simu.simulate(simulation_options=simulation_options, x=x_direct)
         res2 = res2.loc[:, ["Boundaries.y[1]", "Boundaries.y[2]"]]
         np.testing.assert_allclose(x_direct.to_numpy(), res2.to_numpy())
-        assert np.all([x_direct.index[i] == res2.index[i] for i in range(len(x_direct.index))])
-        assert np.all([x_direct.columns[i] == res2.columns[i] for i in range(len(x_direct.columns))])
+        assert np.all(
+            [x_direct.index[i] == res2.index[i] for i in range(len(x_direct.index))]
+        )
+        assert np.all(
+            [
+                x_direct.columns[i] == res2.columns[i]
+                for i in range(len(x_direct.columns))
+            ]
+        )
 
         simu = OMModel(
             model_path="TestLib.boundary_test",
             package_path=PACKAGE_DIR / "package.mo",
             lmodel=["Modelica"],
         )
-        with pytest.warns(UserWarning,
-                          match="Boundary file 'x' specified both in simulation_options and as a direct parameter"):
-            res3 = simu.simulate(simulation_options=simulation_options_with_x, x=x_direct)
+        with pytest.warns(
+            UserWarning,
+            match="Boundary file 'x' specified both in simulation_options and as a direct parameter",
+        ):
+            res3 = simu.simulate(
+                simulation_options=simulation_options_with_x, x=x_direct
+            )
             res3 = res3.loc[:, ["Boundaries.y[1]", "Boundaries.y[2]"]]
             np.testing.assert_allclose(x_direct.to_numpy(), res3.to_numpy())
             with pytest.raises(AssertionError):
