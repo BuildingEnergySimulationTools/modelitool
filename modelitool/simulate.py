@@ -102,7 +102,7 @@ class OMModel(Model):
         """
 
         if parameter_dict is not None:
-            self._set_param_dict(parameter_dict)
+            self.set_param_dict(parameter_dict)
 
         if simulation_options is not None:
             self._set_simulation_options(simulation_options)
@@ -190,10 +190,10 @@ class OMModel(Model):
             new_bounds_path = self._simulation_path / "boundaries.txt"
             df_to_combitimetable(df, new_bounds_path)
             full_path = (self._simulation_path / "boundaries.txt").resolve().as_posix()
-            self._set_param_dict({f"{self.x_combitimetable_name}.fileName": full_path})
+            self.set_param_dict({f"{self.x_combitimetable_name}.fileName": full_path})
             self._x = df
 
-    def _set_param_dict(self, param_dict):
+    def set_param_dict(self, param_dict):
         self.model.setParameters([f"{item}={val}" for item, val in param_dict.items()])
 
 

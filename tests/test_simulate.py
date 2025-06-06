@@ -1,7 +1,5 @@
 from pathlib import Path
-
 import pytest
-
 import numpy as np
 import pandas as pd
 
@@ -42,7 +40,7 @@ class TestSimulator:
             "y.k": 2.0,
         }
 
-        simul._set_param_dict(test_dict)
+        simul.set_param_dict(test_dict)
 
         for key in test_dict.keys():
             assert float(test_dict[key]) == float(simul.model.getParameters()[key])
