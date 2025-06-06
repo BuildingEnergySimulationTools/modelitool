@@ -154,9 +154,9 @@ class TestSimulator:
             lmodel=["Modelica"],
         )
         with pytest.warns(
-                UserWarning,
-                match="Boundary file 'x' specified both in simulation_options and as a "
-                      "direct parameter",
+            UserWarning,
+            match="Boundary file 'x' specified both in simulation_options and as a "
+            "direct parameter",
         ):
             res3 = simu.simulate(
                 simulation_options=simulation_options_with_x, x=x_direct
