@@ -106,9 +106,10 @@ class OMModel(Model):
         if simulation_options is not None:
             if x is not None and 'x' in simulation_options:
                 warnings.warn(
-                    "Boundary file 'x' specified both in simulation_options and as a direct parameter."
-                    " The 'x' provided in simulate() will be used.",
-                    UserWarning
+                    "Boundary file 'x' specified both in simulation_options and as a "
+                    "direct parameter. The 'x' provided in simulate() will be used.",
+                    UserWarning,
+                    stacklevel=2
                 )
 
             self._set_simulation_options(simulation_options)
