@@ -99,7 +99,7 @@ class ModelicaFunction:
             param[Parameter.NAME]: x_dict[param[Parameter.NAME]]
             for param in self.param_list
         }
-        self.om_model._set_param_dict(temp_dict)
+        self.om_model.set_param_dict(temp_dict)
         res = self.om_model.simulate()
 
         function_results = {}

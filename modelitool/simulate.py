@@ -1,5 +1,6 @@
 import os
 import tempfile
+import warnings
 from pathlib import Path
 
 import pandas as pd
@@ -15,7 +16,6 @@ class OMModel(Model):
         self,
         model_path: Path | str,
         simulation_options: dict[str, float | str | int] = None,
-        x: pd.DataFrame = None,
         output_list: list[str] = None,
         simulation_path: Path = None,
         x_combitimetable_name: str = None,
@@ -33,9 +33,6 @@ class OMModel(Model):
         - simulation_options (dict[str, float | str | int], optional):
             Options for the simulation. May include values for "startTime",
             "stopTime", "stepSize", "tolerance", "solver", "outputFormat".
-        - x (pd.DataFrame, optional): Input data for the simulation. Index shall
-            be a DatetimeIndex or integers. Columns must match the combi time table
-            used to specify boundary conditions in the Modelica System.
         - output_list (list[str], optional): List of output variables. Default
             will output all available variables.
         - simulation_path (Path, optional): Path to run the simulation and
@@ -57,7 +54,7 @@ class OMModel(Model):
         if not os.path.exists(self._simulation_path):
             os.mkdir(simulation_path)
 
-        self._x = x if x is not None else pd.DataFrame()
+        self._x = pd.DataFrame()
         self.output_list = output_list
         self.omc = OMCSessionZMQ()
         self.omc.sendExpression(f'cd("{self._simulation_path.as_posix()}")')
@@ -84,14 +81,16 @@ class OMModel(Model):
     ) -> pd.DataFrame:
         """
         Runs the simulation with the provided parameters, simulation options and
-        boundariy conditions.
+        boundary conditions.
         - parameter_dict (dict, optional): Dictionary of parameters.
-        - simulation_options (dict, optional): Will update simulation options if it
-            had been given at the init phase. May include values for "startTime",
-            "stopTime", "stepSize", "tolerance", "solver", "outputFormat".
+        - simulation_options (dict, optional): May include values for "startTime",
+            "stopTime", "stepSize", "tolerance", "solver", "outputFormat". Can
+            also include 'x' with a DataFrame for boundary conditions.
         - x (pd.DataFrame, optional): Input data for the simulation. Index shall
-            be a DatetimeIndex or integers. Columns must match the combi time table
-            used to specify boundary conditions in the Modelica System.
+            be a DatetimeIndex or integers. Columns must match the combitimetable
+            used to specify boundary conditions in the Modelica System. If 'x' is
+            provided both in simulation_options and as a direct parameter, the one
+            provided as direct parameter will be used.
         - verbose (bool, optional): If True, prints simulation progress. Defaults to
             True.
         - simflags (str, optional): Additional simulation flags.
@@ -102,9 +101,17 @@ class OMModel(Model):
         """
 
         if parameter_dict is not None:
-            self._set_param_dict(parameter_dict)
+            self.set_param_dict(parameter_dict)
 
         if simulation_options is not None:
+            if x is not None and "x" in simulation_options:
+                warnings.warn(
+                    "Boundary file 'x' specified both in simulation_options and as a "
+                    "direct parameter. The 'x' provided in simulate() will be used.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
             self._set_simulation_options(simulation_options)
 
         if x is not None:
@@ -172,17 +179,21 @@ class OMModel(Model):
         return self.model.getParameters()
 
     def _set_simulation_options(self, simulation_options):
-        self.model.setSimulationOptions(
-            [
-                f'startTime={simulation_options["startTime"]}',
-                f'stopTime={simulation_options["stopTime"]}',
-                f'stepSize={simulation_options["stepSize"]}',
-                f'tolerance={simulation_options["tolerance"]}',
-                f'solver={simulation_options["solver"]}',
-                f'outputFormat={simulation_options["outputFormat"]}',
-            ]
-        )
+        standard_options = {
+            "startTime": simulation_options.get("startTime"),
+            "stopTime": simulation_options.get("stopTime"),
+            "stepSize": simulation_options.get("stepSize"),
+            "tolerance": simulation_options.get("tolerance"),
+            "solver": simulation_options.get("solver"),
+            "outputFormat": simulation_options.get("outputFormat"),
+        }
+
+        options = [f"{k}={v}" for k, v in standard_options.items() if v is not None]
+        self.model.setSimulationOptions(options)
         self.simulation_options = simulation_options
+
+        if "x" in simulation_options:
+            self._set_x(simulation_options["x"])
 
     def _set_x(self, df: pd.DataFrame):
         """Sets the input data for the simulation and updates the corresponding file."""
@@ -190,10 +201,10 @@ class OMModel(Model):
             new_bounds_path = self._simulation_path / "boundaries.txt"
             df_to_combitimetable(df, new_bounds_path)
             full_path = (self._simulation_path / "boundaries.txt").resolve().as_posix()
-            self._set_param_dict({f"{self.x_combitimetable_name}.fileName": full_path})
+            self.set_param_dict({f"{self.x_combitimetable_name}.fileName": full_path})
             self._x = df
 
-    def _set_param_dict(self, param_dict):
+    def set_param_dict(self, param_dict):
         self.model.setParameters([f"{item}={val}" for item, val in param_dict.items()])
 
 
