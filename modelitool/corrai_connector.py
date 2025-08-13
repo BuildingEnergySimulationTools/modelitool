@@ -1,137 +1,162 @@
+from typing import Callable, Iterable
 import numpy as np
 import pandas as pd
 
 from corrai.base.parameter import Parameter
-
 from modelitool.simulate import OMModel
 
 
 class ModelicaFunction:
     """
-    A class that defines a function based on a Modelitool Simulator.
+    Objective-like wrapper around a Modelitool `OMModel` to compute
+    aggregated indicators for calibration / optimisation, with the same
+    ergonomics as `ObjectiveFunction`.
 
-    Args:
-        om_model (object): A fully configured Modelitool Simulator object.
-        param_list (list): A list of parameter defined as dictionaries. At least , each
-            parameter dict must have the following keys : "names", "interval".
-        indicators (list, optional): A list of indicators to be returned by the
-            function. An indicator must be one of the Simulator outputs. If not
-            provided, all indicators in the simulator's output list will be returned.
-            Default is None.
-        agg_methods_dict (dict, optional): A dictionary that maps indicator names to
-            aggregation methods. Each aggregation method should be a function that takes
-            an array of values and returns a single value. It can also be an error
-            function that will return an error indicator between the indicator results
-            and a reference array of values defined in reference_df.
-            If not provided, the default aggregation method for each indicator is
-            numpy.mean. Default is None.
-        reference_dict (dict, optional): When using an error function as agg_method, a
-            reference_dict must be used to map indicator names to reference indicator
-            names. The specified reference name will be used to locate the value in
-            reference_df.
-            If provided, the function will compute each indicator's deviation from its
-            reference indicator using the corresponding aggregation method.
-            Default is None.
-        reference_df (pandas.DataFrame, optional): A pandas DataFrame containing the
-            reference values for each reference indicator specified in reference_dict.
-            The DataFrame should have the same length as the simulation results.
-            Default is None.
-        custom_ind_dict (dict, optional): A dictionary that maps indicator names to
-        custom indicator information. Each custom indicator information should be
-        a dictionary containing the following keys:
-            - "depends_on": A list of indicator names that the custom function
-                depends on. They should be in output list of simulator
-            - "function": A function that computes the custom indicator values based
-                on the values of indicators specified in "depends_on".
-            If provided, the function will calculate custom indicators in addition
-            to regular indicators. Default is None.
+    Parameters
+    ----------
+    om_model : OMModel
+        A configured Modelitool simulator (must expose `set_param_dict` and `simulate`).
+    parameters : list[Parameter]
+        Parameter definitions (name, interval/values, model_property, etc.).
+    indicators_config : dict[str, Callable | tuple[Callable, pd.Series | pd.DataFrame | None]]
+        For each indicator (i.e. a column returned by the simulation),
+        either:
+          - an aggregation function, e.g. np.mean, np.sum, custom metric; or
+          - a tuple (func, reference) if the function requires a reference
+            (e.g. sklearn.metrics.mean_squared_error).
+    simulation_options : dict | None, default None
+        Stored for consistency with ObjectiveFunction. Not directly passed to OMModel
+        (which usually reads its own inputs), but kept here if you want to align APIs.
+    scipy_obj_indicator : str | None, default None
+        Which indicator to use as scalar objective for `scipy_obj_function`.
+        Defaults to the first key of `indicators_config`.
 
-    Returns:
-        pandas.Series: A pandas Series containing the function results.
-        The index is the indicator names and the values are the aggregated simulation
-        results.
-
-    Raises:
-        ValueError: If reference_dict and reference_df are not both provided or both
-        None.
+    Notes
+    -----
+    - Parameter values are converted to a `property_dict` using `Parameter.model_property`
+      when provided; otherwise the `Parameter.name` is used.
+    - If `model_property` is a tuple of paths, the same scalar value is assigned to each path.
     """
 
     def __init__(
         self,
         om_model: OMModel,
-        param_list,
-        indicators=None,
-        agg_methods_dict=None,
-        reference_dict=None,
-        reference_df=None,
-        custom_ind_dict=None,
+        parameters: list[Parameter],
+        indicators_config: dict[str, Callable | tuple[Callable, pd.Series | pd.DataFrame | None]],
+        simulation_options: dict | None = None,
+        scipy_obj_indicator: str | None = None,
     ):
         self.om_model = om_model
-        self.param_list = param_list
-        if indicators is None:
-            self.indicators = om_model.get_available_outputs()
-        else:
-            self.indicators = indicators
-        if agg_methods_dict is None:
-            self.agg_methods_dict = {ind: np.mean for ind in self.indicators}
-        else:
-            self.agg_methods_dict = agg_methods_dict
-        if (reference_dict is not None and reference_df is None) or (
-            reference_dict is None and reference_df is not None
-        ):
-            raise ValueError("Both reference_dict and reference_df should be provided")
-        self.reference_dict = reference_dict
-        self.reference_df = reference_df
-        self.custom_ind_dict = custom_ind_dict if custom_ind_dict is not None else []
+        self.parameters = list(parameters)
+        self.indicators_config = dict(indicators_config)
+        self.simulation_options = {} if simulation_options is None else simulation_options
+        self.scipy_obj_indicator = (
+            next(iter(self.indicators_config)) if scipy_obj_indicator is None else scipy_obj_indicator
+        )
 
-    def function(self, x_dict):
-        """
-        Calculates the function values for the given input dictionary.
+    @property
+    def bounds(self) -> list[tuple[float, float]]:
+        """List of (low, high) bounds for Real/Integer parameters with intervals."""
+        bnds: list[tuple[float, float]] = []
+        for p in self.parameters:
+            if p.interval is None:
+                raise ValueError(
+                    f"Parameter {p.name!r} has no 'interval'; cannot expose numeric bounds."
+                )
+            lo, hi = p.interval
+            bnds.append((float(lo), float(hi)))
+        return bnds
 
-        Args:
-        - x_dict (dict): A dictionary of input values.
-
-        Returns:
-        - res_series (Series): A pandas Series object containing
-        the function values with function names as indices.
-        """
-        temp_dict = {
-            param[Parameter.NAME]: x_dict[param[Parameter.NAME]]
-            for param in self.param_list
-        }
-        self.om_model.set_param_dict(temp_dict)
-        res = self.om_model.simulate()
-
-        function_results = {}
-
-        # Calculate regular indicators
-        for ind in self.indicators:
-            if ind in res:
-                function_results[ind] = res[ind]
-
-        # Calculate custom indicators
-        for ind in self.indicators:
-            if ind not in function_results and ind in self.custom_ind_dict:
-                ind_info = self.custom_ind_dict[ind]
-                if all(output in res for output in ind_info["depends_on"]):
-                    custom_values = ind_info["function"](
-                        *[res[output] for output in ind_info["depends_on"]]
-                    )
-                    function_results[ind] = custom_values
-
-        # Aggregate the indicators
-        for ind in self.indicators:
-            if ind in function_results and ind in self.agg_methods_dict:
-                if self.reference_dict and ind in self.reference_dict:
-                    ref_values = self.reference_df[self.reference_dict[ind]]
-                    function_results[ind] = self.agg_methods_dict[ind](
-                        function_results[ind], ref_values
-                    )
-
+    @property
+    def init_values(self) -> list[float] | None:
+        """Initial values if every parameter defines `init_value`, else None."""
+        if all(p.init_value is not None for p in self.parameters):
+            vals: list[float] = []
+            for p in self.parameters:
+                iv = p.init_value
+                if isinstance(iv, (list, tuple)):
+                    vals.append(float(iv[0]))
                 else:
-                    function_results[ind] = self.agg_methods_dict[ind](
-                        function_results[ind]
-                    )
+                    vals.append(float(iv))  # type: ignore[arg-type]
+            return vals
+        return None
 
-        res_series = pd.Series(function_results, dtype="float64")
-        return res_series
+    def _as_vector(self, param_values: dict | Iterable[float] | np.ndarray) -> np.ndarray:
+        """
+        Normalise l'entrée paramètres en vecteur numpy, dans l'ordre `self.parameters`.
+        - dict : {name: value}
+        - iterable / np.ndarray : déjà ordonné (même ordre que self.parameters)
+        """
+        if isinstance(param_values, dict):
+            vec = np.array([param_values[p.name] for p in self.parameters], dtype=float)
+        else:
+            vec = np.asarray(list(param_values), dtype=float)
+        if vec.size != len(self.parameters):
+            raise ValueError(
+                f"Expected {len(self.parameters)} parameter values, got {vec.size}."
+            )
+        return vec
+
+    def _to_property_dict(self, vec: np.ndarray) -> dict[str, float]:
+        """
+        Construit le dict de propriétés pour OMModel.set_param_dict.
+        - Si `model_property` est défini, on l’utilise (str ou tuple de str).
+        - Sinon on utilise `Parameter.name`.
+        Si un tuple de propriétés est donné, on affecte la même valeur scalaire à chaque propriété.
+        """
+        prop_dict: dict[str, float] = {}
+        for p, v in zip(self.parameters, vec):
+            target = p.model_property if p.model_property is not None else p.name
+            if isinstance(target, tuple):
+                for path in target:
+                    prop_dict[str(path)] = float(v)
+            else:
+                prop_dict[str(target)] = float(v)
+        return prop_dict
+
+    def function(self, param_values: dict | Iterable[float] | np.ndarray, kwargs: dict | None = None) -> dict[str, float]:
+        _ = {} if kwargs is None else kwargs
+
+        vec = self._as_vector(param_values)
+        property_dict = self._to_property_dict(vec)
+
+        self.om_model.set_param_dict(property_dict)
+
+        sim_df = self.om_model.simulate()
+
+        if not isinstance(sim_df, (pd.DataFrame, pd.Series)):
+            raise TypeError("OMModel.simulate must return a pandas DataFrame or Series.")
+
+        sim_df = sim_df if isinstance(sim_df, pd.DataFrame) else sim_df.to_frame()
+
+        out: dict[str, float] = {}
+        for ind, spec in self.indicators_config.items():
+            if ind not in sim_df.columns:
+                raise KeyError(f"Indicator {ind!r} not found in simulation outputs: {list(sim_df.columns)}.")
+
+            series = sim_df[ind]
+            if isinstance(spec, tuple):
+                func, ref = spec
+                out[ind] = float(func(series, ref))
+            else:
+                func = spec
+                out[ind] = float(func(series))
+
+        return out
+
+    def scipy_obj_function(self, x: float | Iterable[float] | np.ndarray, kwargs: dict | None = None) -> float:
+        if isinstance(x, (float, int)):
+            x_vec = np.array([x], dtype=float)
+        else:
+            x_vec = np.asarray(list(x), dtype=float)
+
+        if x_vec.size != len(self.parameters):
+            raise ValueError("Length of x does not match number of parameters.")
+
+        res = self.function(x_vec, kwargs)
+        if self.scipy_obj_indicator not in res:
+            raise KeyError(
+                f"scipy_obj_indicator {self.scipy_obj_indicator!r} not computed. "
+                f"Available: {list(res.keys())}"
+            )
+        return float(res[self.scipy_obj_indicator])

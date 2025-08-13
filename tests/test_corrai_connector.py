@@ -16,8 +16,8 @@ PACKAGE_DIR = Path(__file__).parent / "TestLib"
 
 
 PARAMETERS = [
-    {Parameter.NAME: "x.k", Parameter.INTERVAL: (1.0, 3.0)},
-    {Parameter.NAME: "y.k", Parameter.INTERVAL: (1.0, 3.0)},
+    Parameter(name= "x.k", interval= (1.0, 3.0)),
+    Parameter(name= "y.k", interval= (1.0, 3.0)),
 ]
 
 agg_methods_dict = {
@@ -75,11 +75,12 @@ class TestModelicaFunction:
     def test_function_indicators(self, ommodel):
         mf = ModelicaFunction(
             om_model=ommodel,
-            param_list=PARAMETERS,
-            agg_methods_dict=agg_methods_dict,
-            indicators=["res1.showNumber", "res2.showNumber"],
-            reference_df=dataset,
-            reference_dict=reference_dict,
+            parameters=PARAMETERS,
+            indicators_config={
+                "res1.showNumber": ( mean_squared_error, dataset["meas1"]),
+                "res2.showNumber": ( mean_absolute_error, dataset["meas2"]),
+            },
+            scipy_obj_indicator=["res1.showNumber", "res2.showNumber"],
         )
 
         res = mf.function(X_DICT)
@@ -95,61 +96,44 @@ class TestModelicaFunction:
             rtol=0.01,
         )
 
-    def test_custom_indicators(self, ommodel):
+    def test_scipy_obj_function_and_bounds(self, ommodel):
         mf = ModelicaFunction(
             om_model=ommodel,
-            param_list=PARAMETERS,
-            indicators=["res1.showNumber", "res2.showNumber", "custom_indicator"],
-            custom_ind_dict={
-                "custom_indicator": {
-                    "depends_on": ["res1.showNumber", "res2.showNumber"],
-                    "function": lambda x, y: x + y,
-                }
-            },
+            parameters=PARAMETERS,
+            indicators_config={"res1.showNumber": (mean_squared_error, dataset["meas1"])},
+            scipy_obj_indicator="res1.showNumber",
         )
 
-        res = mf.function(X_DICT)
+        val1 = mf.scipy_obj_function([2.0, 2.0])
+        assert isinstance(val1, float)
+        with pytest.raises(ValueError):
+            mf.scipy_obj_function([1.0])
+        mf.scipy_obj_indicator = "unknown"
+        with pytest.raises(KeyError):
+            mf.scipy_obj_function([2.0, 2.0])
 
-        # Test custom indicator
-        np.testing.assert_allclose(
-            res["custom_indicator"],
-            expected_res["meas1"] + expected_res["meas2"],
-            rtol=0.01,
-        )
+        bnds = mf.bounds
+        assert bnds == [(1.0, 3.0), (1.0, 3.0)]
 
-    def test_function_no_indicators(self, ommodel):
+    def test_init_values(self, ommodel):
+        params_with_init = [
+            Parameter(name="x.k", interval=(0, 1), init_value=0.5),
+            Parameter(name="y.k", interval=(1, 2), init_value=1.5),
+        ]
         mf = ModelicaFunction(
             om_model=ommodel,
-            param_list=PARAMETERS,
-            agg_methods_dict=None,
-            indicators=None,
-            reference_df=None,
-            reference_dict=None,
+            parameters=params_with_init,
+            indicators_config={"res1.showNumber": (mean_squared_error, dataset["meas1"])},
         )
+        assert mf.init_values == [0.5, 1.5]
 
-        res = mf.function(X_DICT)
-
-        np.testing.assert_allclose(
-            np.array([res["res1.showNumber"], res["res2.showNumber"]]),
-            np.array([np.mean(expected_res["meas1"]), np.mean(expected_res["meas2"])]),
-            rtol=0.01,
+        params_without_init = [
+            Parameter(name="x.k", interval=(0, 1)),
+            Parameter(name="y.k", interval=(1, 2)),
+        ]
+        mf2 = ModelicaFunction(
+            om_model=ommodel,
+            parameters=params_without_init,
+            indicators_config={"res1.showNumber": (mean_squared_error, dataset["meas1"])},
         )
-
-    def test_warning_error(self, ommodel):
-        # reference_df is not provided
-        with pytest.raises(ValueError):
-            ModelicaFunction(
-                om_model=ommodel,
-                param_list=PARAMETERS,
-                reference_df=None,
-                reference_dict=dataset,
-            )
-
-        # reference_dict is not provided
-        with pytest.raises(ValueError):
-            ModelicaFunction(
-                om_model=ommodel,
-                param_list=PARAMETERS,
-                reference_df=dataset,
-                reference_dict=None,
-            )
+        assert mf2.init_values is None
