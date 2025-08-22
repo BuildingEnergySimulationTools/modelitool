@@ -72,7 +72,7 @@ class OMModel(Model):
 
     def simulate(
         self,
-        parameter_dict: dict = None,
+        property_dict: dict[str, str | int | float] = None,
         simulation_options: dict = None,
         x: pd.DataFrame = None,
         verbose: bool = True,
@@ -80,38 +80,57 @@ class OMModel(Model):
         year: int = None,
     ) -> pd.DataFrame:
         """
-        Runs the simulation with the provided parameters, simulation options and
-        boundary conditions.
-        - parameter_dict (dict, optional): Dictionary of parameters.
-        - simulation_options (dict, optional): May include values for "startTime",
-            "stopTime", "stepSize", "tolerance", "solver", "outputFormat". Can
-            also include 'x' with a DataFrame for boundary conditions.
-        - x (pd.DataFrame, optional): Input data for the simulation. Index shall
-            be a DatetimeIndex or integers. Columns must match the combitimetable
-            used to specify boundary conditions in the Modelica System. If 'x' is
-            provided both in simulation_options and as a direct parameter, the one
-            provided as direct parameter will be used.
-        - verbose (bool, optional): If True, prints simulation progress. Defaults to
-            True.
-        - simflags (str, optional): Additional simulation flags.
-        - year (int, optional): If x boundary conditions is not specified or do not
-            have a DateTime index (seconds int), a year can be specified to convert
-            int seconds index to a datetime index. If simulation spans overs several
-            years, it shall be the year when it begins.
+        Run a simulation of the Modelica system.
+
+        Parameters
+        ----------
+        property_dict : dict[str, int | float | str], optional
+            Dictionary of model parameters to override before starting the simulation.
+
+        simulation_options : dict, optional
+            Standard OpenModelica simulation options. May include:
+            - "startTime" (float): Simulation start time
+            - "stopTime" (float): Simulation stop time
+            - "stepSize" (float): Integration step size
+            - "tolerance" (float): Numerical tolerance
+            - "solver" (str): Solver name
+            - "outputFormat" (str): Output format, e.g. "csv" or "mat"
+            Note: the `override` flag cannot be used here, as it is already handled
+            internally by OMModel.
+
+        "simflags" (str): Additional OpenModelica simulation flags.
+          See https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/simulationflags.html
+
+        "x" (pd.DataFrame): Boundary condition input data. The index can be
+          a DatetimeIndex or integer seconds. Columns must match the Modelica
+          CombiTimeTable object used in the model.
+
+        "year" (int): If `x` uses integer seconds as index, specifies the
+          base year to convert it into a DatetimeIndex. For multi-year
+          simulations, provide the year when the simulation begins.
+
+        "verbose" (bool): Whether to print simulation progress (default: True).
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing the simulation results. The time index is
+            either in seconds or converted to a datetime index if boundary
+            conditions or a reference year are provided. If an `output_list`
+            was specified when creating the model, only those outputs are included.
         """
 
-        if parameter_dict is not None:
-            self.set_param_dict(parameter_dict)
+        if property_dict is not None:
+            self.set_param_dict(property_dict)
 
         if simulation_options is not None:
             if x is not None and "x" in simulation_options:
                 warnings.warn(
-                    "Boundary file 'x' specified both in simulation_options and as a "
-                    "direct parameter. The 'x' provided in simulate() will be used.",
+                    "Boundary file 'x' specified both in simulation_options and as a direct parameter. "
+                    "The 'x' provided in simulation_kwargs will be used.",
                     UserWarning,
                     stacklevel=2,
                 )
-
             self._set_simulation_options(simulation_options)
 
         if x is not None:
@@ -159,8 +178,8 @@ class OMModel(Model):
             res.index = res.index.astype("int")
         return res
 
-    def save(self, file_path: Path):
-        pass
+    def get_property_values(self, property_list: tuple[str, ...]) -> list[str | int | float]:
+        return [self.model.getParameters(prop) for prop in property_list]
 
     def get_available_outputs(self):
         if self.model.getSolutions() is None:
