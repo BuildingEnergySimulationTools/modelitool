@@ -9,7 +9,6 @@ from modelitool.simulate import OMModel, library_contents, load_library
 
 PACKAGE_DIR = Path(__file__).parent / "TestLib"
 
-
 @pytest.fixture(scope="session")
 def simul(tmp_path_factory):
     simulation_options = {
@@ -36,6 +35,16 @@ def simul(tmp_path_factory):
 
 
 class TestSimulator:
+    def test_get_property_values(self, simul):
+        values = simul.get_property_values(["x.k", "y.k"])
+        assert isinstance(values, list)
+        assert len(values) == 2
+        assert values[0],  values[1] == ["2.0"]
+
+        values = simul.get_property_values("nonexistent.param")
+        assert values[0] == ['NotExist']
+
+
     def test_set_param_dict(self, simul):
         test_dict = {
             "x.k": 2.0,
@@ -113,55 +122,36 @@ class TestSimulator:
             model_path="TestLib.boundary_test",
             package_path=PACKAGE_DIR / "package.mo",
             lmodel=["Modelica"],
+            boundary_table="Boundaries",
         )
 
-        simulation_options_with_x = simulation_options.copy()
-        simulation_options_with_x["x"] = x_options
-        res1 = simu.simulate(simulation_options=simulation_options_with_x)
+        simulation_options_with_boundary = simulation_options.copy()
+        simulation_options_with_boundary["boundary"] = x_options
+        res1 = simu.simulate(simulation_options=simulation_options_with_boundary)
         res1 = res1.loc[:, ["Boundaries.y[1]", "Boundaries.y[2]"]]
         np.testing.assert_allclose(x_options.to_numpy(), res1.to_numpy())
-        assert np.all(
-            [x_options.index[i] == res1.index[i] for i in range(len(x_options.index))]
-        )
-        assert np.all(
-            [
-                x_options.columns[i] == res1.columns[i]
-                for i in range(len(x_options.columns))
-            ]
-        )
+        assert all(x_options.index == res1.index)
+        assert all(x_options.columns == res1.columns)
 
         simu = OMModel(
             model_path="TestLib.boundary_test",
             package_path=PACKAGE_DIR / "package.mo",
             lmodel=["Modelica"],
+            boundary_table="Boundaries",
         )
-        res2 = simu.simulate(simulation_options=simulation_options, x=x_direct)
+        simulation_options_with_boundary = simulation_options.copy()
+        simulation_options_with_boundary["boundary"] = x_direct
+        res2 = simu.simulate(simulation_options=simulation_options_with_boundary)
         res2 = res2.loc[:, ["Boundaries.y[1]", "Boundaries.y[2]"]]
         np.testing.assert_allclose(x_direct.to_numpy(), res2.to_numpy())
-        assert np.all(
-            [x_direct.index[i] == res2.index[i] for i in range(len(x_direct.index))]
-        )
-        assert np.all(
-            [
-                x_direct.columns[i] == res2.columns[i]
-                for i in range(len(x_direct.columns))
-            ]
-        )
+        assert all(x_direct.index == res2.index)
+        assert all(x_direct.columns == res2.columns)
 
         simu = OMModel(
             model_path="TestLib.boundary_test",
             package_path=PACKAGE_DIR / "package.mo",
             lmodel=["Modelica"],
+            boundary_table=None,
         )
-        with pytest.warns(
-            UserWarning,
-            match="Boundary file 'x' specified both in simulation_options and as a "
-            "direct parameter",
-        ):
-            res3 = simu.simulate(
-                simulation_options=simulation_options_with_x, x=x_direct
-            )
-            res3 = res3.loc[:, ["Boundaries.y[1]", "Boundaries.y[2]"]]
-            np.testing.assert_allclose(x_direct.to_numpy(), res3.to_numpy())
-            with pytest.raises(AssertionError):
-                np.testing.assert_allclose(x_options.to_numpy(), res3.to_numpy())
+        with pytest.warns(UserWarning, match="Boundary provided but no combitimetable name set"):
+            simu.simulate(simulation_options=simulation_options_with_boundary)

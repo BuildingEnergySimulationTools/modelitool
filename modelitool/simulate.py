@@ -3,6 +3,7 @@ import tempfile
 import warnings
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from OMPython import ModelicaSystem, OMCSessionZMQ
 
@@ -12,50 +13,65 @@ from modelitool.combitabconvert import df_to_combitimetable, seconds_to_datetime
 
 
 class OMModel(Model):
+    """
+    Wrap OpenModelica (via OMPython) in the corrai Model formalism.
+
+    Parameters
+    ----------
+    model_path : Path | str
+        Path to the Modelica model file.
+    simulation_options : dict, optional
+        Dictionary of simulation options including:
+        ``startTime``, ``stopTime``, ``stepSize``, ``tolerance``,
+        ``solver``, ``outputFormat``.
+        Can also include ``boundary`` (pd.DataFrame) if the model
+        uses a CombiTimeTable.
+    output_list : list of str, optional
+        List of variables to record during simulation.
+    simulation_path : Path, optional
+        Directory where simulation files will be written.
+    boundary_table : str or None, optional
+        Name of the CombiTimeTable object in the Modelica model
+        that is used to provide boundary conditions.
+
+        - If a string is provided, boundary data can be passed through
+          ``simulation_options["boundary"]``.
+        - If None (default), no CombiTimeTable will be set and any
+          provided ``boundary`` will be ignored.
+    package_path : Path, optional
+        Path to the Modelica package directory (package.mo).
+    lmodel : list of str, optional
+        List of Modelica libraries to load.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> from corrai.om import OMModel
+    >>> model = OMModel("MyModel.mo", output_list=["y"], boundary_table="Boundaries")
+    >>> x = pd.DataFrame({"y": [1, 2, 3]}, index=[0, 1, 2])
+    >>> res = model.simulate(simulation_options={"boundary": x, "stepSize": 1})
+    """
+
     def __init__(
         self,
         model_path: Path | str,
         simulation_options: dict[str, float | str | int] = None,
         output_list: list[str] = None,
         simulation_path: Path = None,
-        x_combitimetable_name: str = None,
+        boundary_table: str | None = None,
         package_path: Path = None,
         lmodel: list[str] = None,
     ):
-        """
-        A class to wrap ompython to simulate Modelica system.
-        Make it easier to change parameters values and simulation options.
-        Allows specification of boundary conditions using Pandas Dataframe.
-        The class inherits from corrai Model base class, and can be used with the
-        module.
-
-        - model_path (Path | str): Path to the Modelica model file.
-        - simulation_options (dict[str, float | str | int], optional):
-            Options for the simulation. May include values for "startTime",
-            "stopTime", "stepSize", "tolerance", "solver", "outputFormat".
-        - output_list (list[str], optional): List of output variables. Default
-            will output all available variables.
-        - simulation_path (Path, optional): Path to run the simulation and
-            save the simulation results.
-        - x_combitimetable_name (str, optional): Name of the Modelica System
-            combi timetable object name, that is used to set the boundary condition.
-        - package_path (Path, optional): Path to the Modelica package directory
-            if necessary (package.mo).
-        - lmodel (list[str], optional): List of Modelica libraries to load.
-        """
-
-        self.x_combitimetable_name = (
-            x_combitimetable_name if x_combitimetable_name is not None else "Boundaries"
-        )
+        self.boundary_table = boundary_table
         self._simulation_path = (
             simulation_path if simulation_path is not None else Path(tempfile.mkdtemp())
         )
-
-        if not os.path.exists(self._simulation_path):
-            os.mkdir(simulation_path)
-
         self._x = pd.DataFrame()
         self.output_list = output_list
+
+        if not os.path.exists(self._simulation_path):
+            os.mkdir(self._simulation_path)
+
         self.omc = OMCSessionZMQ()
         self.omc.sendExpression(f'cd("{self._simulation_path.as_posix()}")')
 
@@ -65,76 +81,58 @@ class OMModel(Model):
             "lmodel": lmodel if lmodel is not None else [],
             "variableFilter": ".*" if output_list is None else "|".join(output_list),
         }
-
         self.model = ModelicaSystem(**model_system_args)
+
         if simulation_options is not None:
-            self._set_simulation_options(simulation_options)
+            self.set_simulation_options(simulation_options)
+
+    def set_simulation_options(self, simulation_options: dict | None = None):
+        if simulation_options is None:
+            return
+
+        if "boundary" in simulation_options:
+            if self.boundary_table is None:
+                warnings.warn(
+                    "Boundary provided but no combitimetable name set -> ignoring.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            else:
+                self.set_boundary(simulation_options["boundary"])
+
+        standard_options = {
+            "startTime": simulation_options.get("startTime"),
+            "stopTime": simulation_options.get("stopTime"),
+            "stepSize": simulation_options.get("stepSize"),
+            "tolerance": simulation_options.get("tolerance"),
+            "solver": simulation_options.get("solver"),
+            "outputFormat": simulation_options.get("outputFormat"),
+        }
+        options = [f"{k}={v}" for k, v in standard_options.items() if v is not None]
+        self.model.setSimulationOptions(options)
+        self.simulation_options = simulation_options
+
+    def set_boundary(self, df: pd.DataFrame):
+        """Set boundary data and update parameters accordingly."""
+        if not self._x.equals(df):
+            new_bounds_path = self._simulation_path / "boundaries.txt"
+            df_to_combitimetable(df, new_bounds_path)
+            full_path = new_bounds_path.resolve().as_posix()
+            self.set_param_dict({f"{self.boundary_table}.fileName": full_path})
+            self._x = df
 
     def simulate(
         self,
         property_dict: dict[str, str | int | float] = None,
         simulation_options: dict = None,
-        x: pd.DataFrame = None,
         verbose: bool = True,
         simflags: str = None,
         year: int = None,
     ) -> pd.DataFrame:
-        """
-        Run a simulation of the Modelica system.
-
-        Parameters
-        ----------
-        property_dict : dict[str, int | float | str], optional
-            Dictionary of model parameters to override before starting the simulation.
-
-        simulation_options : dict, optional
-            Standard OpenModelica simulation options. May include:
-            - "startTime" (float): Simulation start time
-            - "stopTime" (float): Simulation stop time
-            - "stepSize" (float): Integration step size
-            - "tolerance" (float): Numerical tolerance
-            - "solver" (str): Solver name
-            - "outputFormat" (str): Output format, e.g. "csv" or "mat"
-            Note: the `override` flag cannot be used here, as it is already handled
-            internally by OMModel.
-
-        "simflags" (str): Additional OpenModelica simulation flags.
-          See https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/simulationflags.html
-
-        "x" (pd.DataFrame): Boundary condition input data. The index can be
-          a DatetimeIndex or integer seconds. Columns must match the Modelica
-          CombiTimeTable object used in the model.
-
-        "year" (int): If `x` uses integer seconds as index, specifies the
-          base year to convert it into a DatetimeIndex. For multi-year
-          simulations, provide the year when the simulation begins.
-
-        "verbose" (bool): Whether to print simulation progress (default: True).
-
-        Returns
-        -------
-        pd.DataFrame
-            A DataFrame containing the simulation results. The time index is
-            either in seconds or converted to a datetime index if boundary
-            conditions or a reference year are provided. If an `output_list`
-            was specified when creating the model, only those outputs are included.
-        """
-
         if property_dict is not None:
             self.set_param_dict(property_dict)
 
-        if simulation_options is not None:
-            if x is not None and "x" in simulation_options:
-                warnings.warn(
-                    "Boundary file 'x' specified both in simulation_options and as a direct parameter. "
-                    "The 'x' provided in simulation_kwargs will be used.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-            self._set_simulation_options(simulation_options)
-
-        if x is not None:
-            self._set_x(x)
+        self.set_simulation_options(simulation_options)
 
         output_format = self.model.getSimulationOptions()["outputFormat"]
         result_file = "res.csv" if output_format == "csv" else "res.mat"
@@ -149,25 +147,23 @@ class OMModel(Model):
             if self.output_list is not None:
                 res = res.loc[:, self.output_list]
         else:
-            if self.output_list is None:
-                var_list = list(self.model.getSolutions())
-            else:
-                var_list = ["time"] + self.output_list
-
-            res = pd.DataFrame(
-                data=self.model.getSolutions(
-                    varList=var_list,
-                    resultfile=(self._simulation_path / result_file).as_posix(),
-                ).T,
-                columns=var_list,
+            var_list = ["time"] + (self.output_list or list(self.model.getSolutions()))
+            raw = self.model.getSolutions(
+                varList=var_list,
+                resultfile=(self._simulation_path / result_file).as_posix(),
             )
 
+            arr = np.atleast_2d(raw).T
+
+            _, unique_idx = np.unique(var_list, return_index=True)
+            var_list = [var_list[i] for i in sorted(unique_idx)]
+            arr = arr[:, sorted(unique_idx)]
+
+            res = pd.DataFrame(arr, columns=var_list)
             res.set_index("time", inplace=True)
 
         res.index = pd.to_timedelta(res.index, unit="second")
-        res = res.resample(
-            f"{int(self.model.getSimulationOptions()['stepSize'])}s"
-        ).mean()
+        res = res.resample(f"{int(self.model.getSimulationOptions()['stepSize'])}s").mean()
         res.index = res.index.to_series().dt.total_seconds()
 
         if not self._x.empty:
@@ -176,52 +172,24 @@ class OMModel(Model):
             res.index = seconds_to_datetime(res.index, year)
         else:
             res.index = res.index.astype("int")
+
         return res
 
-    def get_property_values(self, property_list: tuple[str, ...]) -> list[str | int | float]:
+
+    def get_property_values(
+        self, property_list: str | tuple[str, ...] | list[str]
+    ) -> list[str | int | float | None]:
+        if isinstance(property_list, str):
+            property_list = (property_list,)
         return [self.model.getParameters(prop) for prop in property_list]
 
     def get_available_outputs(self):
         if self.model.getSolutions() is None:
-            # A bit dirty but simulation must be run once so
-            # getSolutions() can access results
             self.simulate(verbose=False)
-
         return list(self.model.getSolutions())
 
     def get_parameters(self):
-        """
-        Get parameters of the model or a loaded library.
-        Returns:
-            dict: Dictionary containing the parameters.
-        """
         return self.model.getParameters()
-
-    def _set_simulation_options(self, simulation_options):
-        standard_options = {
-            "startTime": simulation_options.get("startTime"),
-            "stopTime": simulation_options.get("stopTime"),
-            "stepSize": simulation_options.get("stepSize"),
-            "tolerance": simulation_options.get("tolerance"),
-            "solver": simulation_options.get("solver"),
-            "outputFormat": simulation_options.get("outputFormat"),
-        }
-
-        options = [f"{k}={v}" for k, v in standard_options.items() if v is not None]
-        self.model.setSimulationOptions(options)
-        self.simulation_options = simulation_options
-
-        if "x" in simulation_options:
-            self._set_x(simulation_options["x"])
-
-    def _set_x(self, df: pd.DataFrame):
-        """Sets the input data for the simulation and updates the corresponding file."""
-        if not self._x.equals(df):
-            new_bounds_path = self._simulation_path / "boundaries.txt"
-            df_to_combitimetable(df, new_bounds_path)
-            full_path = (self._simulation_path / "boundaries.txt").resolve().as_posix()
-            self.set_param_dict({f"{self.x_combitimetable_name}.fileName": full_path})
-            self._x = df
 
     def set_param_dict(self, param_dict):
         self.model.setParameters([f"{item}={val}" for item, val in param_dict.items()])
