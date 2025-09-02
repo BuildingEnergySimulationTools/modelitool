@@ -32,7 +32,7 @@ setup(
         "pandas>=1.5.0",
         "numpy>=1.17.3",
         "OMPython>=3.5.2",
-        "corrai>=0.3.0",
+        "corrai>=1.0.0",
     ],
     packages=find_packages(exclude=["tests*"]),
     include_package_data=True,
