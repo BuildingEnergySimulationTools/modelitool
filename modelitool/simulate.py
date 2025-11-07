@@ -61,6 +61,8 @@ class OMModel(Model):
         boundary_table: str | None = None,
         package_path: Path = None,
         lmodel: list[str] = None,
+        omhome: Path | str = None,
+        is_dynamic=True,
     ):
         self.boundary_table = boundary_table
         self._simulation_path = (
@@ -85,6 +87,9 @@ class OMModel(Model):
 
         if simulation_options is not None:
             self.set_simulation_options(simulation_options)
+
+        self.is_dynamic = is_dynamic
+
 
     def set_simulation_options(self, simulation_options: dict | None = None):
         if simulation_options is None:
@@ -125,7 +130,6 @@ class OMModel(Model):
         self,
         property_dict: dict[str, str | int | float] = None,
         simulation_options: dict = None,
-        verbose: bool = True,
         simflags: str = None,
         year: int = None,
     ) -> pd.DataFrame:
@@ -139,7 +143,6 @@ class OMModel(Model):
         self.model.simulate(
             resultfile=(self._simulation_path / result_file).as_posix(),
             simflags=simflags,
-            verbose=verbose,
         )
 
         if output_format == "csv":
