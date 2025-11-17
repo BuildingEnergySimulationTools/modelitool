@@ -77,6 +77,9 @@ class OMModel(Model):
         self.omc = OMCSessionZMQ()
         self.omc.sendExpression(f'cd("{self._simulation_path.as_posix()}")')
 
+        self._time_index_mode = "seconds"
+        self._ref_year = 2024
+
         model_system_args = {
             "fileName": (package_path or model_path).as_posix(),
             "modelName": model_path.stem if package_path is None else model_path,
@@ -104,6 +107,19 @@ class OMModel(Model):
             else:
                 self.set_boundary(simulation_options["boundary"])
 
+        if "time_index" in simulation_options:
+            mode = simulation_options["time_index"]
+            if mode not in ("seconds", "datetime"):
+                raise ValueError("time_index must be 'seconds' or 'datetime'")
+            self._time_index_mode = mode
+
+        if "ref_year" in simulation_options:
+            year = simulation_options["ref_year"]
+            if not isinstance(year, int):
+                raise ValueError("ref_year must be an integer")
+            self._ref_year = year
+            self._time_index_mode = "datetime"
+
         standard_options = {
             "startTime": simulation_options.get("startTime"),
             "stopTime": simulation_options.get("stopTime"),
@@ -113,7 +129,8 @@ class OMModel(Model):
             "outputFormat": simulation_options.get("outputFormat"),
         }
         options = [f"{k}={v}" for k, v in standard_options.items() if v is not None]
-        self.model.setSimulationOptions(options)
+        if options:
+            self.model.setSimulationOptions(options)
         self.simulation_options = simulation_options
 
     def set_boundary(self, df: pd.DataFrame):
@@ -199,12 +216,32 @@ class OMModel(Model):
         step = float(self.model.getSimulationOptions()["stepSize"])
         res = res.resample(f"{int(step)}s").mean()
 
-        if not self._x.empty:
-            year_ref = self._x.index[0].year
+        mode = None
+        if simulation_options is not None:
+            mode = simulation_options.get("time_index", None)
+
+        if mode == "seconds":
+            res.index = res.index.total_seconds().astype(int)
+
+        elif mode == "datetime":
+            if not self._x.empty:
+                year_ref = self._x.index[0].year
+            else:
+                year_ref = getattr(self, "default_year", 2024)
             base_date = pd.Timestamp(year_ref, 1, 1)
             res.index = base_date + res.index
+
+        elif isinstance(mode, int):  # explicit year
+            base_date = pd.Timestamp(mode, 1, 1)
+            res.index = base_date + res.index
+
         else:
-            res.index = res.index.total_seconds().astype(int)
+            if not self._x.empty:
+                year_ref = self._x.index[0].year
+                base_date = pd.Timestamp(year_ref, 1, 1)
+                res.index = base_date + res.index
+            else:
+                res.index = res.index.total_seconds().astype(int)
 
         res.index.name = "time"
         return res
