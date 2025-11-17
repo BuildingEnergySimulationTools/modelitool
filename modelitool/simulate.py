@@ -131,6 +131,38 @@ class OMModel(Model):
             simulation_options: dict = None,
             simflags: str = None,
     ) -> pd.DataFrame:
+
+        """
+            Run an OpenModelica simulation and return results as a pandas DataFrame.
+
+            Parameters
+            ----------
+            property_dict : dict, optional
+                Dictionary of model parameters to update before simulation.
+                Keys must match Modelica parameter names.
+            simulation_options : dict, optional
+                Simulation options in the same format as in ``OMModel.__init__``.
+                If ``simulation_options["boundary"]`` is provided and the model has
+                a ``boundary_table`` name, the DataFrame is exported as a
+                CombiTimeTable-compatible text file and injected into the model.
+            simflags : str, optional
+                Additional simulator flags passed directly to OpenModelica.
+
+            Returns
+            -------
+            pandas.DataFrame
+                Simulation results indexed either by:
+
+                - a timestamp index if a boundary table is used
+                  (the year is inferred from ``boundary.index[0].year``), or
+                - integer seconds since the simulation start otherwise.
+
+                The DataFrame columns include either:
+                - the variables listed in ``output_list``, or
+                - all variables produced by OpenModelica.
+
+            """
+
         if property_dict is not None:
             self.set_param_dict(property_dict)
 
