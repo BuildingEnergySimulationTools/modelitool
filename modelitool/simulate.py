@@ -6,10 +6,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from OMPython import ModelicaSystem, OMCSessionZMQ
+from OMPython.ModelicaSystem import ModelicaSystemError
 
 from corrai.base.model import Model
-
-from modelitool.combitabconvert import df_to_combitimetable, seconds_to_datetime
+from modelitool.combitabconvert import df_to_combitimetable
 
 
 class OMModel(Model):
@@ -90,7 +90,6 @@ class OMModel(Model):
 
         self.is_dynamic = is_dynamic
 
-
     def set_simulation_options(self, simulation_options: dict | None = None):
         if simulation_options is None:
             return
@@ -127,11 +126,10 @@ class OMModel(Model):
             self._x = df
 
     def simulate(
-        self,
-        property_dict: dict[str, str | int | float] = None,
-        simulation_options: dict = None,
-        simflags: str = None,
-        year: int = None,
+            self,
+            property_dict: dict[str, str | int | float] = None,
+            simulation_options: dict = None,
+            simflags: str = None,
     ) -> pd.DataFrame:
         if property_dict is not None:
             self.set_param_dict(property_dict)
@@ -162,22 +160,22 @@ class OMModel(Model):
             var_list = [var_list[i] for i in sorted(unique_idx)]
             arr = arr[:, sorted(unique_idx)]
 
-            res = pd.DataFrame(arr, columns=var_list)
-            res.set_index("time", inplace=True)
+            res = pd.DataFrame(arr, columns=var_list).set_index("time")
 
-        res.index = pd.to_timedelta(res.index, unit="second")
-        res = res.resample(f"{int(self.model.getSimulationOptions()['stepSize'])}s").mean()
-        res.index = res.index.to_series().dt.total_seconds()
+        res.index = pd.to_timedelta(res.index, unit="s")
+
+        step = float(self.model.getSimulationOptions()["stepSize"])
+        res = res.resample(f"{int(step)}s").mean()
 
         if not self._x.empty:
-            res.index = seconds_to_datetime(res.index, self._x.index[0].year)
-        elif year is not None:
-            res.index = seconds_to_datetime(res.index, year)
+            year_ref = self._x.index[0].year
+            base_date = pd.Timestamp(year_ref, 1, 1)
+            res.index = base_date + res.index
         else:
-            res.index = res.index.astype("int")
+            res.index = res.index.total_seconds().astype(int)
 
+        res.index.name = "time"
         return res
-
 
     def get_property_values(
         self, property_list: str | tuple[str, ...] | list[str]
@@ -187,9 +185,12 @@ class OMModel(Model):
         return [self.model.getParameters(prop) for prop in property_list]
 
     def get_available_outputs(self):
-        if self.model.getSolutions() is None:
-            self.simulate(verbose=False)
-        return list(self.model.getSolutions())
+        try:
+            sols = self.model.getSolutions()
+        except ModelicaSystemError:
+            self.simulate()
+            sols = self.model.getSolutions()
+        return list(sols)
 
     def get_parameters(self):
         return self.model.getParameters()
