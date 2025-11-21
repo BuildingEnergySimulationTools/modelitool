@@ -217,10 +217,17 @@ class OMModel(Model):
         res = res.resample(f"{int(step)}s").mean()
 
         mode = None
+        ref_year = None
+
         if simulation_options is not None:
             mode = simulation_options.get("time_index", None)
+            ref_year = simulation_options.get("ref_year", None)
 
-        if mode == "seconds":
+        if isinstance(ref_year, int):
+            base_date = pd.Timestamp(ref_year, 1, 1)
+            res.index = base_date + res.index
+
+        elif mode == "seconds":
             res.index = res.index.total_seconds().astype(int)
 
         elif mode == "datetime":
@@ -229,10 +236,6 @@ class OMModel(Model):
             else:
                 year_ref = getattr(self, "default_year", 2024)
             base_date = pd.Timestamp(year_ref, 1, 1)
-            res.index = base_date + res.index
-
-        elif isinstance(mode, int):  # explicit year
-            base_date = pd.Timestamp(mode, 1, 1)
             res.index = base_date + res.index
 
         else:

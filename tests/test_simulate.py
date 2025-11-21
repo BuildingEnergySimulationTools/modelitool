@@ -103,14 +103,27 @@ class TestSimulator:
         res = simul.simulate()
         assert isinstance(res.index[0], (int, np.integer))
 
-        simul.set_simulation_options({"time_index": "datetime"})
-        res_dt = simul.simulate()
+        res_dt = simul.simulate(simulation_options={
+            "startTime": 0,
+            "stopTime": 2,
+            "stepSize": 1,
+            "tolerance": 1e-06,
+            "solver": "dassl",
+            "outputFormat": "csv",
+            "time_index": "datetime",
+        })
         assert isinstance(res_dt.index, pd.DatetimeIndex)
 
-        simul.set_simulation_options({"ref_year": 2023})
-        res_year = simul.simulate()
+        res_year = simul.simulate(simulation_options={
+            "startTime": 0,
+            "stopTime": 2,
+            "stepSize": 1,
+            "tolerance": 1e-06,
+            "solver": "dassl",
+            "outputFormat": "csv",
+            "ref_year": 2023,
+        })
         assert isinstance(res_year.index, pd.DatetimeIndex)
-
         assert res_year.index[0].year == 2023
 
 # TODO to be fixed with new version of OMPYTHON
