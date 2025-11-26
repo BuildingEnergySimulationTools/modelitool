@@ -211,6 +211,8 @@ class OMModel(Model):
 
             res = pd.DataFrame(arr, columns=var_list).set_index("time")
 
+        start = float(self.model.getSimulationOptions()["startTime"])
+        res.index = res.index + start
         res.index = pd.to_timedelta(res.index, unit="s")
 
         step = float(self.model.getSimulationOptions()["stepSize"])
