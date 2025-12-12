@@ -120,6 +120,10 @@ class OMModel(Model):
             self._ref_year = year
             self._time_index_mode = "datetime"
 
+        if "start_date" in simulation_options:
+            self._start_date = pd.Timestamp(simulation_options["start_date"])
+            self._time_index_mode = "datetime"
+
         standard_options = {
             "startTime": simulation_options.get("startTime"),
             "stopTime": simulation_options.get("stopTime"),
@@ -220,12 +224,18 @@ class OMModel(Model):
 
         mode = None
         ref_year = None
+        start_date = None
 
         if simulation_options is not None:
             mode = simulation_options.get("time_index", None)
             ref_year = simulation_options.get("ref_year", None)
+            start_date = simulation_options.get("start_date", None)
 
-        if isinstance(ref_year, int):
+        if start_date is not None:
+            base_date = pd.Timestamp(start_date)
+            res.index = base_date + res.index
+
+        elif isinstance(ref_year, int):
             base_date = pd.Timestamp(ref_year, 1, 1)
             res.index = base_date + res.index
 
@@ -234,16 +244,15 @@ class OMModel(Model):
 
         elif mode == "datetime":
             if not self._x.empty:
-                year_ref = self._x.index[0].year
+                base_date = pd.Timestamp(self._x.index[0])
             else:
                 year_ref = getattr(self, "default_year", 2024)
-            base_date = pd.Timestamp(year_ref, 1, 1)
+                base_date = pd.Timestamp(year_ref, 1, 1)
             res.index = base_date + res.index
 
         else:
             if not self._x.empty:
-                year_ref = self._x.index[0].year
-                base_date = pd.Timestamp(year_ref, 1, 1)
+                base_date = pd.Timestamp(self._x.index[0])
                 res.index = base_date + res.index
             else:
                 res.index = res.index.total_seconds().astype(int)
