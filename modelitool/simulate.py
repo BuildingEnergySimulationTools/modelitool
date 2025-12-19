@@ -1,3 +1,4 @@
+import datetime as dt
 import os
 import tempfile
 import warnings
@@ -6,10 +7,26 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from OMPython import ModelicaSystem, OMCSessionZMQ
-from OMPython.ModelicaSystem import ModelicaSystemError
 
 from corrai.base.model import Model
+from corrai.fmu import (
+    datetime_index_to_seconds_index,
+    parse_simulation_times,
+    seconds_index_to_datetime_index,
+)
+
+from sklearn.pipeline import Pipeline
+
 from modelitool.combitabconvert import df_to_combitimetable
+
+DEFAULT_SIMULATION_OPTIONS = {
+    "startTime": 0,
+    "stopTime": 24 * 3600,
+    "stepSize": 60,
+    "solver": "dassl",
+    "tolerance": 1e-6,
+    "outputFormat": "mat",
+}
 
 
 class OMModel(Model):
@@ -55,30 +72,23 @@ class OMModel(Model):
     def __init__(
         self,
         model_path: Path | str,
-        simulation_options: dict[str, float | str | int] = None,
         output_list: list[str] = None,
-        simulation_path: Path = None,
-        boundary_table: str | None = None,
+        simulation_dir: Path = None,
+        boundary_table_name: str | None = None,
         package_path: Path = None,
         lmodel: list[str] = None,
-        omhome: Path | str = None,
-        is_dynamic=True,
     ):
-        self.boundary_table = boundary_table
-        self._simulation_path = (
-            simulation_path if simulation_path is not None else Path(tempfile.mkdtemp())
-        )
-        self._x = pd.DataFrame()
+        super().__init__(is_dynamic=True)
+        self.boundary_file_path = None
+        self.boundary_table_name = boundary_table_name
         self.output_list = output_list
 
-        if not os.path.exists(self._simulation_path):
-            os.mkdir(self._simulation_path)
+        self.simulation_dir = (
+            Path(tempfile.mkdtemp()) if simulation_dir is None else simulation_dir
+        )
 
         self.omc = OMCSessionZMQ()
-        self.omc.sendExpression(f'cd("{self._simulation_path.as_posix()}")')
-
-        self._time_index_mode = "seconds"
-        self._ref_year = 2024
+        self.omc.sendExpression(f'cd("{self.simulation_dir.as_posix()}")')
 
         model_system_args = {
             "fileName": (package_path or model_path).as_posix(),
@@ -87,55 +97,7 @@ class OMModel(Model):
             "variableFilter": ".*" if output_list is None else "|".join(output_list),
         }
         self.model = ModelicaSystem(**model_system_args)
-
-        if simulation_options is not None:
-            self.set_simulation_options(simulation_options)
-
-        self.is_dynamic = is_dynamic
-
-    def set_simulation_options(self, simulation_options: dict | None = None):
-        if simulation_options is None:
-            return
-
-        if "boundary" in simulation_options:
-            if self.boundary_table is None:
-                warnings.warn(
-                    "Boundary provided but no combitimetable name set -> ignoring.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-            else:
-                self.set_boundary(simulation_options["boundary"])
-
-        if "time_index" in simulation_options:
-            mode = simulation_options["time_index"]
-            if mode not in ("seconds", "datetime"):
-                raise ValueError("time_index must be 'seconds' or 'datetime'")
-            self._time_index_mode = mode
-
-        if "ref_year" in simulation_options:
-            year = simulation_options["ref_year"]
-            if not isinstance(year, int):
-                raise ValueError("ref_year must be an integer")
-            self._ref_year = year
-            self._time_index_mode = "datetime"
-
-        if "start_date" in simulation_options:
-            self._start_date = pd.Timestamp(simulation_options["start_date"])
-            self._time_index_mode = "datetime"
-
-        standard_options = {
-            "startTime": simulation_options.get("startTime"),
-            "stopTime": simulation_options.get("stopTime"),
-            "stepSize": simulation_options.get("stepSize"),
-            "tolerance": simulation_options.get("tolerance"),
-            "solver": simulation_options.get("solver"),
-            "outputFormat": simulation_options.get("outputFormat"),
-        }
-        options = [f"{k}={v}" for k, v in standard_options.items() if v is not None]
-        if options:
-            self.model.setSimulationOptions(options)
-        self.simulation_options = simulation_options
+        self.property_dict = self.get_property_dict()
 
     def set_boundary(self, df: pd.DataFrame):
         """Set boundary data and update parameters accordingly."""
@@ -143,68 +105,121 @@ class OMModel(Model):
             new_bounds_path = self._simulation_path / "boundaries.txt"
             df_to_combitimetable(df, new_bounds_path)
             full_path = new_bounds_path.resolve().as_posix()
-            self.set_param_dict({f"{self.boundary_table}.fileName": full_path})
+            self.set_property_dict({f"{self.boundary_table}.fileName": full_path})
             self._x = df
 
     def simulate(
-            self,
-            property_dict: dict[str, str | int | float] = None,
-            simulation_options: dict = None,
-            simflags: str = None,
+        self,
+        property_dict: dict[str, str | int | float] = None,
+        simulation_options: dict = None,
+        solver_duplicated_keep: str = "last",
+        post_process_pipeline: Pipeline = None,
+        simflags: str = None,
     ) -> pd.DataFrame:
+        """
+        Run an OpenModelica simulation and return results as a pandas DataFrame.
+
+        Parameters
+        ----------
+        property_dict : dict, optional
+            Dictionary of model parameters to update before simulation.
+            Keys must match Modelica parameter names.
+        simulation_options : dict, optional
+            Simulation options in the same format as in ``OMModel.__init__``.
+            If ``simulation_options["boundary"]`` is provided and the model has
+            a ``boundary_table`` name, the DataFrame is exported as a
+            CombiTimeTable-compatible text file and injected into the model.
+        simflags : str, optional
+            Additional simulator flags passed directly to OpenModelica.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Simulation results indexed either by:
+
+            - a timestamp index if a boundary table is used
+              (the year is inferred from ``boundary.index[0].year``), or
+            - integer seconds since the simulation start otherwise.
+
+            The DataFrame columns include either:
+            - the variables listed in ``output_list``, or
+            - all variables produced by OpenModelica.
 
         """
-            Run an OpenModelica simulation and return results as a pandas DataFrame.
 
-            Parameters
-            ----------
-            property_dict : dict, optional
-                Dictionary of model parameters to update before simulation.
-                Keys must match Modelica parameter names.
-            simulation_options : dict, optional
-                Simulation options in the same format as in ``OMModel.__init__``.
-                If ``simulation_options["boundary"]`` is provided and the model has
-                a ``boundary_table`` name, the DataFrame is exported as a
-                CombiTimeTable-compatible text file and injected into the model.
-            simflags : str, optional
-                Additional simulator flags passed directly to OpenModelica.
+        simu_property = self.property_dict.copy()
+        simu_property.update(dict(property_dict or {}))
 
-            Returns
-            -------
-            pandas.DataFrame
-                Simulation results indexed either by:
+        simulation_options = {
+            **DEFAULT_SIMULATION_OPTIONS,
+            **(simulation_options or {}),
+        }
 
-                - a timestamp index if a boundary table is used
-                  (the year is inferred from ``boundary.index[0].year``), or
-                - integer seconds since the simulation start otherwise.
+        start, stop, step = (
+            simulation_options.get(it, None)
+            for it in ["startTime", "stopTime", "stepSize"]
+        )
 
-                The DataFrame columns include either:
-                - the variables listed in ``output_list``, or
-                - all variables produced by OpenModelica.
+        # Output step cannot be used in ompython
+        start_sec, stop_sec, step_sec, _ = parse_simulation_times(
+            start, stop, step, step
+        )
+        om_simu_opt = simulation_options | {
+            "startTime": start_sec,
+            "stopTime": stop_sec,
+            "stepSize": step_sec,
+        }
 
-            """
+        boundary_df = None
+        if simu_property:
+            boundary_df = simu_property.pop("boundary", boundary_df)
 
-        if property_dict is not None:
-            self.set_param_dict(property_dict)
+        if simulation_options:
+            sim_boundary = simulation_options.pop("boundary", boundary_df)
 
-        self.set_simulation_options(simulation_options)
+            if boundary_df is None and sim_boundary is not None:
+                boundary_df = sim_boundary
+            elif boundary_df is not None and sim_boundary is not None:
+                warnings.warn(
+                    "Boundary specified in both property_dict and "
+                    "simulation_options. The one in property_dict will be used.",
+                    UserWarning,
+                    stacklevel=2,
+                )
 
+        if boundary_df is not None:
+            boundary_df = boundary_df.copy()
+            if isinstance(boundary_df.index, pd.DatetimeIndex):
+                boundary_df.index = datetime_index_to_seconds_index(boundary_df.index)
+
+            if not (
+                boundary_df.index[0] <= start_sec <= boundary_df.index[-1]
+                and boundary_df.index[0] <= stop_sec <= boundary_df.index[-1]
+            ):
+                raise ValueError(
+                    "'startTime' and 'stopTime' are outside boundary DataFrame"
+                )
+
+            self.boundary_file_path = self.simulation_dir / "boundaries.txt"
+            df_to_combitimetable(boundary_df, self.boundary_file_path)
+
+        self.model.setSimulationOptions(om_simu_opt)
         output_format = self.model.getSimulationOptions()["outputFormat"]
         result_file = "res.csv" if output_format == "csv" else "res.mat"
         self.model.simulate(
-            resultfile=(self._simulation_path / result_file).as_posix(),
+            resultfile=(self.simulation_dir / result_file).as_posix(),
             simflags=simflags,
         )
 
         if output_format == "csv":
-            res = pd.read_csv(self._simulation_path / "res.csv", index_col=0)
+            res = pd.read_csv(self.simulation_dir / "res.csv", index_col=0)
             if self.output_list is not None:
                 res = res.loc[:, self.output_list]
         else:
             var_list = ["time"] + (self.output_list or list(self.model.getSolutions()))
             raw = self.model.getSolutions(
                 varList=var_list,
-                resultfile=(self._simulation_path / result_file).as_posix(),
+                resultfile=(self.simulation_dir / result_file).as_posix(),
             )
 
             arr = np.atleast_2d(raw).T
@@ -215,49 +230,56 @@ class OMModel(Model):
 
             res = pd.DataFrame(arr, columns=var_list).set_index("time")
 
-        start = float(self.model.getSimulationOptions()["startTime"])
-        res.index = res.index + start
-        res.index = pd.to_timedelta(res.index, unit="s")
+        res = res.loc[~res.index.duplicated(keep=solver_duplicated_keep)]
 
-        step = float(self.model.getSimulationOptions()["stepSize"])
-        res = res.resample(f"{int(step)}s").mean()
-
-        mode = None
-        ref_year = None
-        start_date = None
-
-        if simulation_options is not None:
-            mode = simulation_options.get("time_index", None)
-            ref_year = simulation_options.get("ref_year", None)
-            start_date = simulation_options.get("start_date", None)
-
-        if start_date is not None:
-            base_date = pd.Timestamp(start_date)
-            res.index = base_date + res.index
-
-        elif isinstance(ref_year, int):
-            base_date = pd.Timestamp(ref_year, 1, 1)
-            res.index = base_date + res.index
-
-        elif mode == "seconds":
-            res.index = res.index.total_seconds().astype(int)
-
-        elif mode == "datetime":
-            if not self._x.empty:
-                base_date = pd.Timestamp(self._x.index[0])
-            else:
-                year_ref = getattr(self, "default_year", 2024)
-                base_date = pd.Timestamp(year_ref, 1, 1)
-            res.index = base_date + res.index
-
+        if isinstance(start, (pd.Timestamp, dt.datetime)):
+            res.index = seconds_index_to_datetime_index(res.index, start.year)
+            res.index = res.index.round("s")
+            res = res.tz_localize(start.tz)
+            res.index.freq = res.index.inferred_freq
         else:
-            if not self._x.empty:
-                base_date = pd.Timestamp(self._x.index[0])
-                res.index = base_date + res.index
-            else:
-                res.index = res.index.total_seconds().astype(int)
+            res.index = round(res.index.to_series(), 2)
 
-        res.index.name = "time"
+        # mode = None
+        # ref_year = None
+        # start_date = None
+        #
+        # if simulation_options is not None:
+        #     mode = simulation_options.get("time_index", None)
+        #     ref_year = simulation_options.get("ref_year", None)
+        #     start_date = simulation_options.get("start_date", None)
+        #
+        # if start_date is not None:
+        #     base_date = pd.Timestamp(start_date)
+        #     res.index = base_date + res.index
+        #
+        # elif isinstance(ref_year, int):
+        #     base_date = pd.Timestamp(ref_year, 1, 1)
+        #     res.index = base_date + res.index
+        #
+        # elif mode == "seconds":
+        #     res.index = res.index.total_seconds().astype(int)
+        #
+        # elif mode == "datetime":
+        #     if not self._x.empty:
+        #         base_date = pd.Timestamp(self._x.index[0])
+        #     else:
+        #         year_ref = getattr(self, "default_year", 2024)
+        #         base_date = pd.Timestamp(year_ref, 1, 1)
+        #     res.index = base_date + res.index
+        #
+        # else:
+        #     if not self._x.empty:
+        #         base_date = pd.Timestamp(self._x.index[0])
+        #         res.index = base_date + res.index
+        #     else:
+        #         res.index = res.index.total_seconds().astype(int)
+        #
+        # res.index.name = "time"
+
+        if post_process_pipeline is not None:
+            res = post_process_pipeline.fit_transform(res)
+
         return res
 
     def get_property_values(
@@ -267,19 +289,22 @@ class OMModel(Model):
             property_list = (property_list,)
         return [self.model.getParameters(prop) for prop in property_list]
 
-    def get_available_outputs(self):
-        try:
-            sols = self.model.getSolutions()
-        except ModelicaSystemError:
-            self.simulate()
-            sols = self.model.getSolutions()
-        return list(sols)
+    # TODO Find a way to get output without simulation
+    # def get_available_outputs(self):
+    #     try:
+    #         sols = self.model.getSolutions()
+    #     except ModelicaSystemError:
+    #         self.simulate()
+    #         sols = self.model.getSolutions()
+    #     return list(sols)
 
-    def get_parameters(self):
+    def get_property_dict(self):
         return self.model.getParameters()
 
-    def set_param_dict(self, param_dict):
-        self.model.setParameters([f"{item}={val}" for item, val in param_dict.items()])
+    def set_property_dict(self, property_dict):
+        self.model.setParameters(
+            [f"{item}={val}" for item, val in property_dict.items()]
+        )
 
 
 def load_library(lib_path):
