@@ -6,8 +6,8 @@ import pandas as pd
 
 from modelitool.combitabconvert import (
     datetime_to_seconds,
-    df_to_combitimetable,
     seconds_to_datetime,
+    write_combitt_from_df,
 )
 
 
@@ -19,15 +19,10 @@ class TestCombitabconvert:
 
     def test_df_to_combitimetable(self, tmpdir):
         with pytest.raises(ValueError):
-            df_to_combitimetable([1, 2, 3], tmpdir / "test.txt")
+            write_combitt_from_df([1, 2, 3], tmpdir / "test.txt")
 
         with pytest.raises(ValueError):
-            df_to_combitimetable(
-                pd.DataFrame(data=[1, 2, 3], index=[1, 2, 3]), tmpdir / "test.txt"
-            )
-
-        with pytest.raises(ValueError):
-            df_to_combitimetable(
+            write_combitt_from_df(
                 pd.DataFrame(
                     data=[1, 2, 3],
                     index=pd.DatetimeIndex(
@@ -59,7 +54,7 @@ class TestCombitabconvert:
             "10800.0\t0\t1\n"
         )
 
-        df_to_combitimetable(df, tmpdir / "test.txt")
+        write_combitt_from_df(df, tmpdir / "test.txt")
 
         with open(tmpdir / "test.txt") as file:
             contents = file.read()

@@ -1,4 +1,5 @@
 import datetime as dt
+from pathlib import Path
 
 import pandas as pd
 
@@ -33,7 +34,7 @@ def get_dymo_time_index(df):
     return list(pd.Series(sec_dt).cumsum())
 
 
-def df_to_combitimetable(df, filename):
+def write_combitt_from_df(df: pd.DataFrame, file_path: Path | str):
     """
     Write a text file compatible with modelica Combitimetables object from a
     Pandas DataFrame with a DatetimeIndex. DataFrames with non monotonically increasing
@@ -45,10 +46,7 @@ def df_to_combitimetable(df, filename):
     """
     if not isinstance(df, pd.DataFrame):
         raise ValueError(f"df must be an instance of pandas DataFrame. Got {type(df)}")
-    if not isinstance(df.index, pd.DatetimeIndex):
-        raise ValueError(
-            f"DataFrame index must be an instance of DatetimeIndex. " f"Got {type(df)}"
-        )
+
     if not df.index.is_monotonic_increasing:
         raise ValueError(
             "df DateTimeIndex is not monotonically increasing, this will"
@@ -56,7 +54,7 @@ def df_to_combitimetable(df, filename):
         )
 
     df = df.copy()
-    with open(filename, "w") as file:
+    with open(file_path, "w") as file:
         file.write("#1 \n")
         line = ""
         line += f"double table1({df.shape[0]}, {df.shape[1] + 1})\n"
@@ -65,6 +63,7 @@ def df_to_combitimetable(df, filename):
             line += f"\t({i + 1}){col}"
         file.write(f"{line} \n")
 
-        df.index = datetime_to_seconds(df.index)
+        if isinstance(df.index, pd.DatetimeIndex):
+            df.index = datetime_to_seconds(df.index)
 
         file.write(df.to_csv(header=False, sep="\t", lineterminator="\n"))

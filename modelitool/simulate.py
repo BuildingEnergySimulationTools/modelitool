@@ -17,7 +17,7 @@ from corrai.fmu import (
 
 from sklearn.pipeline import Pipeline
 
-from modelitool.combitabconvert import df_to_combitimetable
+from modelitool.combitabconvert import write_combitt_from_df
 
 DEFAULT_SIMULATION_OPTIONS = {
     "startTime": 0,
@@ -79,7 +79,6 @@ class OMModel(Model):
         lmodel: list[str] = None,
     ):
         super().__init__(is_dynamic=True)
-        self.boundary_file_path = None
         self.boundary_table_name = boundary_table_name
         self.output_list = output_list
 
@@ -98,15 +97,6 @@ class OMModel(Model):
         }
         self.model = ModelicaSystem(**model_system_args)
         self.property_dict = self.get_property_dict()
-
-    def set_boundary(self, df: pd.DataFrame):
-        """Set boundary data and update parameters accordingly."""
-        if not self._x.equals(df):
-            new_bounds_path = self._simulation_path / "boundaries.txt"
-            df_to_combitimetable(df, new_bounds_path)
-            full_path = new_bounds_path.resolve().as_posix()
-            self.set_property_dict({f"{self.boundary_table}.fileName": full_path})
-            self._x = df
 
     def simulate(
         self,
@@ -175,7 +165,7 @@ class OMModel(Model):
             boundary_df = simu_property.pop("boundary", boundary_df)
 
         if simulation_options:
-            sim_boundary = simulation_options.pop("boundary", boundary_df)
+            sim_boundary = om_simu_opt.pop("boundary", boundary_df)
 
             if boundary_df is None and sim_boundary is not None:
                 boundary_df = sim_boundary
@@ -200,8 +190,9 @@ class OMModel(Model):
                     "'startTime' and 'stopTime' are outside boundary DataFrame"
                 )
 
-            self.boundary_file_path = self.simulation_dir / "boundaries.txt"
-            df_to_combitimetable(boundary_df, self.boundary_file_path)
+            write_combitt_from_df(boundary_df, self.simulation_dir / "boundaries.txt")
+            full_path = (self.simulation_dir / "boundaries.txt").resolve().as_posix()
+            self.set_property_dict({f"{self.boundary_table_name}.fileName": full_path})
 
         self.model.setSimulationOptions(om_simu_opt)
         output_format = self.model.getSimulationOptions()["outputFormat"]
@@ -239,43 +230,6 @@ class OMModel(Model):
             res.index.freq = res.index.inferred_freq
         else:
             res.index = round(res.index.to_series(), 2)
-
-        # mode = None
-        # ref_year = None
-        # start_date = None
-        #
-        # if simulation_options is not None:
-        #     mode = simulation_options.get("time_index", None)
-        #     ref_year = simulation_options.get("ref_year", None)
-        #     start_date = simulation_options.get("start_date", None)
-        #
-        # if start_date is not None:
-        #     base_date = pd.Timestamp(start_date)
-        #     res.index = base_date + res.index
-        #
-        # elif isinstance(ref_year, int):
-        #     base_date = pd.Timestamp(ref_year, 1, 1)
-        #     res.index = base_date + res.index
-        #
-        # elif mode == "seconds":
-        #     res.index = res.index.total_seconds().astype(int)
-        #
-        # elif mode == "datetime":
-        #     if not self._x.empty:
-        #         base_date = pd.Timestamp(self._x.index[0])
-        #     else:
-        #         year_ref = getattr(self, "default_year", 2024)
-        #         base_date = pd.Timestamp(year_ref, 1, 1)
-        #     res.index = base_date + res.index
-        #
-        # else:
-        #     if not self._x.empty:
-        #         base_date = pd.Timestamp(self._x.index[0])
-        #         res.index = base_date + res.index
-        #     else:
-        #         res.index = res.index.total_seconds().astype(int)
-        #
-        # res.index.name = "time"
 
         if post_process_pipeline is not None:
             res = post_process_pipeline.fit_transform(res)
