@@ -195,6 +195,10 @@ class OMModel(Model):
             self.set_property_dict({f"{self.boundary_table_name}.fileName": full_path})
 
         self.model.setSimulationOptions(om_simu_opt)
+
+        if property_dict is not None:
+            self.set_property_dict(property_dict)
+
         output_format = self.model.getSimulationOptions()["outputFormat"]
         result_file = "res.csv" if output_format == "csv" else "res.mat"
         self.model.simulate(
