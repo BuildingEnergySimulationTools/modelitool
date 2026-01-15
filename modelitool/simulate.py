@@ -102,8 +102,8 @@ class OMModel(Model):
         self,
         property_dict: dict[str, str | int | float] = None,
         simulation_options: dict = None,
-        solver_duplicated_keep: str = "last",
-        post_process_pipeline: Pipeline = None,
+            solver_duplicated_keep: str = "last",
+            post_process_pipeline: Pipeline = None,
         simflags: str = None,
     ) -> pd.DataFrame:
         """
@@ -225,8 +225,6 @@ class OMModel(Model):
 
             res = pd.DataFrame(arr, columns=var_list).set_index("time")
 
-        res = res.loc[~res.index.duplicated(keep=solver_duplicated_keep)]
-
         if isinstance(start, (pd.Timestamp, dt.datetime)):
             res.index = seconds_index_to_datetime_index(res.index, start.year)
             res.index = res.index.round("s")
@@ -235,6 +233,7 @@ class OMModel(Model):
         else:
             res.index = round(res.index.to_series(), 2)
 
+        res = res.loc[~res.index.duplicated(keep=solver_duplicated_keep)]
         if post_process_pipeline is not None:
             res = post_process_pipeline.fit_transform(res)
 
