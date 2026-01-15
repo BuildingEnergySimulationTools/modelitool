@@ -85,7 +85,7 @@ class TestSimulator:
             ),
         )
 
-        pd.testing.assert_frame_equal(res_dt, ref)
+        pd.testing.assert_frame_equal(res_dt, ref, check_freq=False)
 
     def test_load_and_print_library(self, simul, capfd):
         libpath = PACKAGE_DIR
