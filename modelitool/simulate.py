@@ -31,42 +31,81 @@ DEFAULT_SIMULATION_OPTIONS = {
 
 class OMModel(Model):
     """
-    Wrap OpenModelica (via OMPython) in the corrai Model formalism.
+    Wrapper around OpenModelica (via OMPython) implementing the corrai Model API.
+
+    This class encapsulates a Modelica model using ``OMPython.ModelicaSystem``
+    and provides a stable Python interface to:
+
+    - set Modelica parameters (``parameter`` variables),
+    - configure and run simulations with custom simulation options,
+    - retrieve simulation results as pandas DataFrames with a consistent time index.
+
+    A key design constraint is that **Modelica parameters and simulation options
+    are handled through distinct mechanisms**:
+
+    - Model parameters are set using ``setParameters`` (via ``set_property_dict``).
+    - Simulation options (startTime, stopTime, stepSize, solver, etc.) are set
+      using ``setSimulationOptions`` and must NOT be passed as parameters.
 
     Parameters
     ----------
-    model_path : Path | str
-        Path to the Modelica model file.
-    simulation_options : dict, optional
-        Dictionary of simulation options including:
-        ``startTime``, ``stopTime``, ``stepSize``, ``tolerance``,
-        ``solver``, ``outputFormat``.
-        Can also include ``boundary`` (pd.DataFrame) if the model
-        uses a CombiTimeTable.
+    model_path : Path or str
+        Path to the Modelica model file (``.mo``) or to the top-level model
+        when used with ``package_path``.
     output_list : list of str, optional
-        List of variables to record during simulation.
-    simulation_path : Path, optional
-        Directory where simulation files will be written.
-    boundary_table : str or None, optional
-        Name of the CombiTimeTable object in the Modelica model
-        that is used to provide boundary conditions.
-
-        - If a string is provided, boundary data can be passed through
-          ``simulation_options["boundary"]``.
-        - If None (default), no CombiTimeTable will be set and any
-          provided ``boundary`` will be ignored.
+        List of Modelica variables to record during simulation.
+        If None, all available outputs are kept.
+    simulation_dir : Path, optional
+        Directory where simulation files (results, override files, etc.)
+        are written. If None, a temporary directory is created.
+    boundary_table_name : str or None, optional
+        Name of a ``CombiTimeTable`` instance in the Modelica model used to
+        provide boundary conditions. If provided, boundary data can be passed
+        via ``simulation_options["boundary"]``.
     package_path : Path, optional
-        Path to the Modelica package directory (package.mo).
+        Path to a Modelica package directory (containing ``package.mo``).
+        If provided, the model is loaded from the package instead of a single file.
     lmodel : list of str, optional
-        List of Modelica libraries to load.
+        List of Modelica libraries to load before instantiating the model.
+
+    Methods
+    -------
+    simulate(property_dict=None, simulation_options=None, ...)
+        Run a simulation with optional parameter overrides and simulation options.
+        Returns a pandas DataFrame indexed by time.
+
+    set_property_dict(property_dict)
+        Set Modelica parameters (``parameter`` variables only).
+        Simulation options are explicitly filtered out.
+
+    get_property_dict()
+        Return all current Modelica parameters with cleaned values.
+
+    get_property_values(property_list)
+        Return selected Modelica parameter values with cleaned values.
+
+    Time handling
+    -------------
+    - Internally, OpenModelica simulations always run in seconds.
+    - If ``startTime`` is provided as a ``pd.Timestamp`` or ``datetime``,
+      the resulting DataFrame index is converted back to a timezone-aware
+      ``DatetimeIndex`` anchored at the provided start time.
+    - Solver-internal intermediate steps may generate irregular timestamps;
+      duplicated timestamps are handled according to ``solver_duplicated_keep``.
 
     Examples
     --------
-    >>> import pandas as pd
-    >>> from corrai.om import OMModel
-    >>> model = OMModel("MyModel.mo", output_list=["y"], boundary_table="Boundaries")
-    >>> x = pd.DataFrame({"y": [1, 2, 3]}, index=[0, 1, 2])
-    >>> res = model.simulate(simulation_options={"boundary": x, "stepSize": 1})
+    >>> model = OMModel("MyModel.mo", output_list=["y"])
+    >>> model.set_property_dict({"k": 2.0})
+    >>> sim_opt = {
+    ...     "startTime": pd.Timestamp("2025-02-17 00:00:00"),
+    ...     "stopTime": pd.Timestamp("2025-03-17 00:00:00"),
+    ...     "stepSize": pd.Timedelta("1h"),
+    ...     "solver": "dassl",
+    ...     "outputFormat": "csv",
+    ... }
+    >>> res = model.simulate(simulation_options=sim_opt)
+    >>> res.head()
     """
 
     def __init__(
