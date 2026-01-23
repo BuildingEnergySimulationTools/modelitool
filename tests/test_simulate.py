@@ -71,9 +71,8 @@ class TestSimulator:
         assert res_dt.index[0] == pd.Timestamp("2009-02-01 00:00:00", tz="UTC")
 
         # get property value
-        assert simul.get_property_values('x.k') == [["2.0"]]
-        assert simul.get_property_values(['x.k', 'y.k']) == [['2.0'], ['2.0']]
-
+        assert simul.get_property_values("x.k") == [["2.0"]]
+        assert simul.get_property_values(["x.k", "y.k"]) == [["2.0"], ["2.0"]]
 
     def test_simulate_get_results(self, simul):
         simulation_options = {
@@ -145,14 +144,14 @@ class TestSimulator:
             "stepSize": 3600,
             "tolerance": 1e-06,
             "solver": "dassl",
-            "boundary": boundaries_seconds
+            "boundary": boundaries_seconds,
         }
 
         simu = OMModel(
             model_path="TestLib.boundary_test",
             package_path=PACKAGE_DIR / "package.mo",
             lmodel=["Modelica"],
-            boundary_table_name="Boundaries"
+            boundary_table_name="Boundaries",
         )
 
         res = simu.simulate(simulation_options=simulation_options)

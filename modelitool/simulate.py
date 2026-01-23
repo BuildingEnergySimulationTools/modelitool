@@ -141,8 +141,8 @@ class OMModel(Model):
         self,
         property_dict: dict[str, str | int | float] = None,
         simulation_options: dict = None,
-            solver_duplicated_keep: str = "last",
-            post_process_pipeline: Pipeline = None,
+        solver_duplicated_keep: str = "last",
+        post_process_pipeline: Pipeline = None,
         simflags: str = None,
     ) -> pd.DataFrame:
         """
@@ -233,7 +233,6 @@ class OMModel(Model):
             full_path = (self.simulation_dir / "boundaries.txt").resolve().as_posix()
             self.set_property_dict({f"{self.boundary_table_name}.fileName": full_path})
 
-
         if property_dict is not None:
             self.set_property_dict(property_dict)
 
@@ -280,7 +279,7 @@ class OMModel(Model):
         return res
 
     def get_property_values(
-            self, property_list: str | tuple[str, ...] | list[str]
+        self, property_list: str | tuple[str, ...] | list[str]
     ) -> list[list[str | int | float | None]]:
         if isinstance(property_list, str):
             property_list = (property_list,)
@@ -289,10 +288,7 @@ class OMModel(Model):
         for prop in property_list:
             v = self.model.getParameters(prop)
             if isinstance(v, list):
-                values.append([
-                    x.strip() if isinstance(x, str) else x
-                    for x in v
-                ])
+                values.append([x.strip() if isinstance(x, str) else x for x in v])
             else:
                 values.append(v.strip() if isinstance(v, str) else v)
 
@@ -309,15 +305,13 @@ class OMModel(Model):
 
     def get_property_dict(self):
         raw = self.model.getParameters()
-        return {
-            k: (v.strip() if isinstance(v, str) else v)
-            for k, v in raw.items()
-        }
+        return {k: (v.strip() if isinstance(v, str) else v) for k, v in raw.items()}
 
     def set_property_dict(self, property_dict):
         self.model.setParameters(
             [f"{item}={val}\n" for item, val in property_dict.items()]
         )
+
 
 def load_library(lib_path):
     """
