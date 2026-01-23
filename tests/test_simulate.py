@@ -133,34 +133,31 @@ class TestSimulator:
         }
         assert param == expected_param
 
-    # BROKE UNTIL OMPYTHON DOES SOMETHING
-    # https://github.com/OpenModelica/OMPython/pull/400
-    # https://github.com/OpenModelica/OMPython/pull/399
-    # def test_set_boundaries_df(self):
-    #     boundaries_seconds = pd.DataFrame(
-    #         {"x1": [10, 20, 30], "x2": [3, 4, 5]},
-    #         index=[16675200, 16678800, 16682400],
-    #     )
-    #
-    #     simulation_options = {
-    #         "startTime": 16675200,
-    #         "stopTime": 16682400,
-    #         "stepSize": 3600,
-    #         "tolerance": 1e-06,
-    #         "solver": "dassl",
-    #         "boundary": boundaries_seconds
-    #     }
-    #
-    #     simu = OMModel(
-    #         model_path="TestLib.boundary_test",
-    #         package_path=PACKAGE_DIR / "package.mo",
-    #         lmodel=["Modelica"],
-    #         boundary_table_name="Boundaries"
-    #     )
-    #
-    #     res = simu.simulate(simulation_options=simulation_options)
-    #
-    #     x_direct = pd.DataFrame(
-    #         {"Boundaries.y[1]": [100, 200, 300], "Boundaries.y[2]": [30, 40, 50]},
-    #         index=pd.date_range("2009-07-13 00:00:00", periods=3, freq="h"),
-    #     )
+    def test_set_boundaries_df(self):
+        boundaries_seconds = pd.DataFrame(
+            {"x1": [10, 20, 30], "x2": [3, 4, 5]},
+            index=[16675200, 16678800, 16682400],
+        )
+
+        simulation_options = {
+            "startTime": 16675200,
+            "stopTime": 16682400,
+            "stepSize": 3600,
+            "tolerance": 1e-06,
+            "solver": "dassl",
+            "boundary": boundaries_seconds
+        }
+
+        simu = OMModel(
+            model_path="TestLib.boundary_test",
+            package_path=PACKAGE_DIR / "package.mo",
+            lmodel=["Modelica"],
+            boundary_table_name="Boundaries"
+        )
+
+        res = simu.simulate(simulation_options=simulation_options)
+
+        x_direct = pd.DataFrame(
+            {"Boundaries.y[1]": [100, 200, 300], "Boundaries.y[2]": [30, 40, 50]},
+            index=pd.date_range("2009-07-13 00:00:00", periods=3, freq="h"),
+        )
