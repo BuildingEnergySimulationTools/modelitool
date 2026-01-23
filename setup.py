@@ -29,8 +29,8 @@ setup(
     ],
     python_requires=">=3.10",
     install_requires=[
-        "pandas>=1.5.0",
-        "numpy>=1.17.3",
+        "pandas>=2.0.0, <3.0",
+        "numpy>=1.22.4, <2.0",
         "OMPython>=3.5.2",
         "corrai>=1.0.0",
     ],
