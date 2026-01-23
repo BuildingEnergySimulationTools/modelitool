@@ -194,10 +194,11 @@ class OMModel(Model):
             full_path = (self.simulation_dir / "boundaries.txt").resolve().as_posix()
             self.set_property_dict({f"{self.boundary_table_name}.fileName": full_path})
 
-        self.model.setSimulationOptions(om_simu_opt)
 
         if property_dict is not None:
             self.set_property_dict(property_dict)
+
+        self.model.setSimulationOptions(om_simu_opt)
 
         output_format = self.model.getSimulationOptions()["outputFormat"]
         result_file = "res.csv" if output_format == "csv" else "res.mat"
@@ -240,11 +241,23 @@ class OMModel(Model):
         return res
 
     def get_property_values(
-        self, property_list: str | tuple[str, ...] | list[str]
-    ) -> list[str | int | float | None]:
+            self, property_list: str | tuple[str, ...] | list[str]
+    ) -> list[list[str | int | float | None]]:
         if isinstance(property_list, str):
             property_list = (property_list,)
-        return [self.model.getParameters(prop) for prop in property_list]
+
+        values = []
+        for prop in property_list:
+            v = self.model.getParameters(prop)
+            if isinstance(v, list):
+                values.append([
+                    x.strip() if isinstance(x, str) else x
+                    for x in v
+                ])
+            else:
+                values.append(v.strip() if isinstance(v, str) else v)
+
+        return values
 
     # TODO Find a way to get output without simulation
     # def get_available_outputs(self):
@@ -256,13 +269,16 @@ class OMModel(Model):
     #     return list(sols)
 
     def get_property_dict(self):
-        return self.model.getParameters()
+        raw = self.model.getParameters()
+        return {
+            k: (v.strip() if isinstance(v, str) else v)
+            for k, v in raw.items()
+        }
 
     def set_property_dict(self, property_dict):
         self.model.setParameters(
-            [f"{item}={val}" for item, val in property_dict.items()]
+            [f"{item}={val}\n" for item, val in property_dict.items()]
         )
-
 
 def load_library(lib_path):
     """

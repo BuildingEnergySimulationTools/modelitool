@@ -33,7 +33,8 @@ class TestSimulator:
         # with pytest.raises(KeyError):
         #     simul.get_property_values("nonexistent.param")
 
-    def test_set_param_dict(self, simul):
+    def test_set_param_dict_and_simulation_options(self, simul):
+        # test change of parameters
         test_dict = {
             "x.k": 2.0,
             "y.k": 2.0,
@@ -52,6 +53,27 @@ class TestSimulator:
             "res.significantDigits": "2",
             "res.use_numberPort": "true",
         }
+
+        # test change of parameters AND simulations options
+        # because issues were found when both are changed
+        # in overide.txt file
+        res_dt = simul.simulate(
+            simulation_options={
+                "startTime": pd.Timestamp("2009-02-01 00:00:00", tz="UTC"),
+                "stopTime": pd.Timestamp("2009-02-01 00:00:02", tz="UTC"),
+                "stepSize": pd.Timedelta("1s"),
+                "tolerance": 1e-06,
+                "solver": "dassl",
+                "outputFormat": "mat",
+            }
+        )
+
+        assert res_dt.index[0] == pd.Timestamp("2009-02-01 00:00:00", tz="UTC")
+
+        # get property value
+        assert simul.get_property_values('x.k') == [["2.0"]]
+        assert simul.get_property_values(['x.k', 'y.k']) == [['2.0'], ['2.0']]
+
 
     def test_simulate_get_results(self, simul):
         simulation_options = {
