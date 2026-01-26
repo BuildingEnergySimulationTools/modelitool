@@ -47,7 +47,7 @@ def df_to_combitimetable(df, filename):
         raise ValueError(f"df must be an instance of pandas DataFrame. Got {type(df)}")
     if not isinstance(df.index, pd.DatetimeIndex):
         raise ValueError(
-            f"DataFrame index must be an instance of DatetimeIndex. " f"Got {type(df)}"
+            f"DataFrame index must be an instance of DatetimeIndex. Got {type(df)}"
         )
     if not df.index.is_monotonic_increasing:
         raise ValueError(
