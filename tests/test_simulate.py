@@ -46,6 +46,13 @@ class TestSimulator:
         for key in test_dict.keys():
             assert float(test_dict[key]) == float(simul.model.getParameters()[key])
 
+        props = simul.get_property_dict()
+
+        assert props["x.k"] == "2.0"
+        assert props["y.k"] == "2.0"
+        assert props["res.significantDigits"] == "2"
+        assert props["res.use_numberPort"] == "true"
+
         assert simul.get_property_dict() == {
             "x.k": "2.0",
             "x.y": None,
