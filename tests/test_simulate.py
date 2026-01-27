@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+import numpy as np
 import pandas as pd
 
 from modelitool.simulate import OMModel, library_contents, load_library
@@ -133,19 +134,19 @@ class TestSimulator:
         assert param == expected_param
 
     def test_set_boundaries_df(self):
-        boundaries_seconds = pd.DataFrame(
-            {"x1": [10, 20, 30], "x2": [3, 4, 5]},
-            index=[16675200, 16678800, 16682400],
-        )
-
         simulation_options = {
-            "startTime": 16675200,
-            "stopTime": 16682400,
-            "stepSize": 3600,
+            "startTime": pd.Timestamp("2009-07-13 00:00:00"),
+            "stopTime": pd.Timestamp("2009-07-13 02:00:00"),
+            "stepSize": pd.Timedelta("1h"),
             "tolerance": 1e-06,
             "solver": "dassl",
-            "boundary": boundaries_seconds,
+            "outputFormat": "csv",
         }
+
+        x_options = pd.DataFrame(
+            {"Boundaries.y[1]": [10, 20, 30], "Boundaries.y[2]": [3, 4, 5]},
+            index=pd.date_range("2009-07-13 00:00:00", periods=3, freq="h"),
+        )
 
         simu = OMModel(
             model_path="TestLib.boundary_test",
@@ -154,9 +155,16 @@ class TestSimulator:
             boundary_table_name="Boundaries",
         )
 
-        res = simu.simulate(simulation_options=simulation_options)
+        simulation_options_with_boundary = simulation_options.copy()
+        simulation_options_with_boundary["boundary"] = x_options
 
-        x_direct = pd.DataFrame(
-            {"Boundaries.y[1]": [100, 200, 300], "Boundaries.y[2]": [30, 40, 50]},
-            index=pd.date_range("2009-07-13 00:00:00", periods=3, freq="h"),
+        res1 = simu.simulate(simulation_options=simulation_options_with_boundary)
+        res1 = res1.loc[:, ["Boundaries.y[1]", "Boundaries.y[2]"]]
+
+        np.testing.assert_allclose(
+            x_options.to_numpy(),
+            res1.to_numpy(),
+            rtol=1e-3,
         )
+
+        assert all(x_options.index == res1.index)
