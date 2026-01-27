@@ -18,13 +18,15 @@ jobs:
           - { name: 'min', python: '3.10', tox: min }
     steps:
       - name: "Set up OpenModelica Compiler"
-        uses: OpenModelica/setup-openmodelica@v1.0
+        uses: OpenModelica/setup-openmodelica@v1.0.5
         with:
-          version: 'stable'
+          version: '1.25.4'
           packages: |
-            omc
+            'omc'
+            'omsimulator'
           libraries: |
             'Modelica 4.0.0'
+            'Modelica 3.2.3+maint.om'
 
       - run: "omc --version"
       - uses: actions/checkout@v4
