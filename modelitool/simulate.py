@@ -189,6 +189,19 @@ class OMModel(Model):
             for it in ["startTime", "stopTime", "stepSize"]
         )
 
+        def _strip_tz(x):
+            if isinstance(x, pd.Timestamp):
+                return x.tz_localize(None) if x.tz is not None else x
+            if isinstance(x, dt.datetime):
+                return x.replace(tzinfo=None) if x.tzinfo is not None else x
+            return x
+
+        start_tz = start.tz if isinstance(start, pd.Timestamp) \
+            else getattr(start, "tzinfo", None)
+
+        start = _strip_tz(start)
+        stop = _strip_tz(stop)
+
         # Output step cannot be used in ompython
         start_sec, stop_sec, step_sec, _ = parse_simulation_times(
             start, stop, step, step
@@ -267,8 +280,12 @@ class OMModel(Model):
         if isinstance(start, (pd.Timestamp, dt.datetime)):
             res.index = seconds_index_to_datetime_index(res.index, start.year)
             res.index = res.index.round("s")
-            res = res.tz_localize(start.tz)
+
+            if start_tz is not None:
+                res.index = res.index.tz_localize(start_tz)
+
             res.index.freq = res.index.inferred_freq
+
         else:
             res.index = round(res.index.to_series(), 2)
 
@@ -335,13 +352,17 @@ def load_library(lib_path):
 
     omc = OMCSessionZMQ()
 
-    for root, _, files in os.walk(lib_path):
-        for file in files:
-            if file.endswith(".mo"):
-                file_path = os.path.join(root, file)
-                omc.sendExpression(f'loadFile("{file_path}")')
+    modelica_path = lib_path.parent.as_posix()
+    lib_name = lib_path.stem
 
-    print(f"Library '{lib_path.stem}' loaded successfully.")
+    omc.sendExpression(f'setModelicaPath("{modelica_path}")')
+    success = omc.sendExpression(f'loadModel({lib_name})')
+
+    if not success:
+        err = omc.sendExpression("getErrorString()")
+        raise RuntimeError(f"Failed to load Modelica library:\n{err}")
+
+    print(f"Library '{lib_name}' loaded successfully.")
 
 
 def library_contents(library_path):
