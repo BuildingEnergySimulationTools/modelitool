@@ -14,16 +14,19 @@ jobs:
         include:
           - { name: '3.10', python: '3.10', tox: py310 }
           - { name: '3.11', python: '3.11', tox: py311 }
+          - { name: '3.12', python: '3.12', tox: py312 }
           - { name: 'min', python: '3.10', tox: min }
     steps:
       - name: "Set up OpenModelica Compiler"
-        uses: OpenModelica/setup-openmodelica@v1.0
+        uses: OpenModelica/setup-openmodelica@v1.0.5
         with:
-          version: 'stable'
+          version: '1.25.4'
           packages: |
-            omc
+            'omc'
+            'omsimulator'
           libraries: |
             'Modelica 4.0.0'
+            'Modelica 3.2.3+maint.om'
 
       - run: "omc --version"
       - uses: actions/checkout@v4
@@ -47,7 +50,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - name: Install pypa/build
         run: python -m pip install build
       - name: Build a binary wheel and a source tarball
@@ -70,7 +73,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - run: python -m pip install tox
       - run: python -m tox -e lint
   publish-to-pypi:

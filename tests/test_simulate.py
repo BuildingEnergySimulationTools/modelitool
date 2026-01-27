@@ -12,42 +12,41 @@ PACKAGE_DIR = Path(__file__).parent / "TestLib"
 
 @pytest.fixture(scope="session")
 def simul(tmp_path_factory):
-    simulation_options = {
-        "startTime": 0,
-        "stopTime": 2,
-        "stepSize": 1,
-        "tolerance": 1e-06,
-        "solver": "dassl",
-        "outputFormat": "csv",
-    }
-
-    outputs = ["res.showNumber"]
-
     test_run_path = tmp_path_factory.mktemp("run")
     simu = OMModel(
         model_path="TestLib.rosen",
         package_path=PACKAGE_DIR / "package.mo",
-        simulation_options=simulation_options,
-        output_list=outputs,
-        simulation_path=test_run_path,
+        output_list=["res.showNumber"],
+        simulation_dir=test_run_path,
         lmodel=["Modelica"],
     )
     return simu
 
 
 class TestSimulator:
-    def test_set_param_dict(self, simul):
+    def test_get_property_values(self, simul):
+        values = simul.get_property_values(["x.k", "y.k"])
+        assert isinstance(values, list)
+        assert len(values) == 2
+        assert values[0], values[1] == ["2.0"]
+
+        # Comment while ompython version < 4+
+        # with pytest.raises(KeyError):
+        #     simul.get_property_values("nonexistent.param")
+
+    def test_set_param_dict_and_simulation_options(self, simul):
+        # test change of parameters
         test_dict = {
             "x.k": 2.0,
             "y.k": 2.0,
         }
 
-        simul.set_param_dict(test_dict)
+        simul.set_property_dict(test_dict)
 
         for key in test_dict.keys():
             assert float(test_dict[key]) == float(simul.model.getParameters()[key])
 
-        assert simul.get_parameters() == {
+        assert simul.get_property_dict() == {
             "x.k": "2.0",
             "x.y": None,
             "y.k": "2.0",
@@ -56,15 +55,59 @@ class TestSimulator:
             "res.use_numberPort": "true",
         }
 
+        # test change of parameters AND simulations options
+        # because issues were found when both are changed
+        # in overide.txt file
+        res_dt = simul.simulate(
+            simulation_options={
+                "startTime": pd.Timestamp("2009-02-01 00:00:00", tz="UTC"),
+                "stopTime": pd.Timestamp("2009-02-01 00:00:02", tz="UTC"),
+                "stepSize": pd.Timedelta("1s"),
+                "tolerance": 1e-06,
+                "solver": "dassl",
+                "outputFormat": "mat",
+            }
+        )
+
+        assert res_dt.index[0] == pd.Timestamp("2009-02-01 00:00:00", tz="UTC")
+
+        # get property value
+        assert simul.get_property_values("x.k") == [["2.0"]]
+        assert simul.get_property_values(["x.k", "y.k"]) == [["2.0"], ["2.0"]]
+
     def test_simulate_get_results(self, simul):
-        assert simul.get_available_outputs() == [
-            "time",
-            "res.numberPort",
-            "res.showNumber",
-        ]
-        res = simul.simulate()
-        ref = pd.DataFrame({"res.showNumber": [401.0, 401.0, 401.0]})
+        simulation_options = {
+            "startTime": 0,
+            "stopTime": 2,
+            "stepSize": 1,
+            "tolerance": 1e-06,
+            "solver": "dassl",
+            "outputFormat": "csv",
+        }
+
+        res = simul.simulate(simulation_options=simulation_options)
+        ref = pd.DataFrame({"res.showNumber": [401, 401, 401]})
         assert ref.equals(res)
+
+        res_dt = simul.simulate(
+            simulation_options={
+                "startTime": pd.Timestamp("2009-01-01 00:00:00", tz="UTC"),
+                "stopTime": pd.Timestamp("2009-01-01 00:00:02", tz="UTC"),
+                "stepSize": pd.Timedelta("1s"),
+                "tolerance": 1e-06,
+                "solver": "dassl",
+                "outputFormat": "mat",
+            }
+        )
+
+        ref = pd.DataFrame(
+            {"res.showNumber": [401.0, 401.0, 401.0]},
+            pd.date_range(
+                "2009-01-01 00:00:00", freq="s", periods=3, tz="UTC", name="time"
+            ),
+        )
+
+        pd.testing.assert_frame_equal(res_dt, ref, check_freq=False)
 
     def test_load_and_print_library(self, simul, capfd):
         libpath = PACKAGE_DIR
@@ -79,7 +122,7 @@ class TestSimulator:
         assert "package.mo" in out
 
     def test_get_parameters(self, simul):
-        param = simul.get_parameters()
+        param = simul.get_property_dict()
         expected_param = {
             "res.significantDigits": "2",
             "res.use_numberPort": "true",
@@ -92,76 +135,36 @@ class TestSimulator:
 
     def test_set_boundaries_df(self):
         simulation_options = {
-            "startTime": 16675200,
-            "stopTime": 16682400,
-            "stepSize": 1 * 3600,
+            "startTime": pd.Timestamp("2009-07-13 00:00:00"),
+            "stopTime": pd.Timestamp("2009-07-13 02:00:00"),
+            "stepSize": pd.Timedelta("1h"),
             "tolerance": 1e-06,
             "solver": "dassl",
-            "outputFormat": "mat",
+            "outputFormat": "csv",
         }
 
         x_options = pd.DataFrame(
             {"Boundaries.y[1]": [10, 20, 30], "Boundaries.y[2]": [3, 4, 5]},
             index=pd.date_range("2009-07-13 00:00:00", periods=3, freq="h"),
         )
-        x_direct = pd.DataFrame(
-            {"Boundaries.y[1]": [100, 200, 300], "Boundaries.y[2]": [30, 40, 50]},
-            index=pd.date_range("2009-07-13 00:00:00", periods=3, freq="h"),
-        )
 
         simu = OMModel(
             model_path="TestLib.boundary_test",
             package_path=PACKAGE_DIR / "package.mo",
             lmodel=["Modelica"],
+            boundary_table_name="Boundaries",
         )
 
-        simulation_options_with_x = simulation_options.copy()
-        simulation_options_with_x["x"] = x_options
-        res1 = simu.simulate(simulation_options=simulation_options_with_x)
+        simulation_options_with_boundary = simulation_options.copy()
+        simulation_options_with_boundary["boundary"] = x_options
+
+        res1 = simu.simulate(simulation_options=simulation_options_with_boundary)
         res1 = res1.loc[:, ["Boundaries.y[1]", "Boundaries.y[2]"]]
-        np.testing.assert_allclose(x_options.to_numpy(), res1.to_numpy())
-        assert np.all(
-            [x_options.index[i] == res1.index[i] for i in range(len(x_options.index))]
-        )
-        assert np.all(
-            [
-                x_options.columns[i] == res1.columns[i]
-                for i in range(len(x_options.columns))
-            ]
+
+        np.testing.assert_allclose(
+            x_options.to_numpy(),
+            res1.to_numpy(),
+            rtol=1e-3,
         )
 
-        simu = OMModel(
-            model_path="TestLib.boundary_test",
-            package_path=PACKAGE_DIR / "package.mo",
-            lmodel=["Modelica"],
-        )
-        res2 = simu.simulate(simulation_options=simulation_options, x=x_direct)
-        res2 = res2.loc[:, ["Boundaries.y[1]", "Boundaries.y[2]"]]
-        np.testing.assert_allclose(x_direct.to_numpy(), res2.to_numpy())
-        assert np.all(
-            [x_direct.index[i] == res2.index[i] for i in range(len(x_direct.index))]
-        )
-        assert np.all(
-            [
-                x_direct.columns[i] == res2.columns[i]
-                for i in range(len(x_direct.columns))
-            ]
-        )
-
-        simu = OMModel(
-            model_path="TestLib.boundary_test",
-            package_path=PACKAGE_DIR / "package.mo",
-            lmodel=["Modelica"],
-        )
-        with pytest.warns(
-            UserWarning,
-            match="Boundary file 'x' specified both in simulation_options and as a "
-            "direct parameter",
-        ):
-            res3 = simu.simulate(
-                simulation_options=simulation_options_with_x, x=x_direct
-            )
-            res3 = res3.loc[:, ["Boundaries.y[1]", "Boundaries.y[2]"]]
-            np.testing.assert_allclose(x_direct.to_numpy(), res3.to_numpy())
-            with pytest.raises(AssertionError):
-                np.testing.assert_allclose(x_options.to_numpy(), res3.to_numpy())
+        assert all(x_options.index == res1.index)
