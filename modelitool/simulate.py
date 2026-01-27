@@ -196,8 +196,11 @@ class OMModel(Model):
                 return x.replace(tzinfo=None) if x.tzinfo is not None else x
             return x
 
-        start_tz = start.tz if isinstance(start, pd.Timestamp) \
+        start_tz = (
+            start.tz
+            if isinstance(start, pd.Timestamp)
             else getattr(start, "tzinfo", None)
+        )
 
         start = _strip_tz(start)
         stop = _strip_tz(stop)
@@ -356,7 +359,7 @@ def load_library(lib_path):
     lib_name = lib_path.stem
 
     omc.sendExpression(f'setModelicaPath("{modelica_path}")')
-    success = omc.sendExpression(f'loadModel({lib_name})')
+    success = omc.sendExpression(f"loadModel({lib_name})")
 
     if not success:
         err = omc.sendExpression("getErrorString()")
