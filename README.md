@@ -4,7 +4,7 @@
 </p>
 
 [![PyPI](https://img.shields.io/pypi/v/modelitool?label=pypi%20package)](https://pypi.org/project/modelitool/)
-[![Static Badge](https://img.shields.io/badge/python-3.10_%7C_3.11-blue)](https://pypi.org/project/modelitool/)
+[![Static Badge](https://img.shields.io/badge/python-3.10_%7C_3.12-blue)](https://pypi.org/project/modelitool/)
 [![codecov](https://codecov.io/gh/BuildingEnergySimulationTools/modelitool/graph/badge.svg?token=6WYH76SCHQ)](https://codecov.io/gh/BuildingEnergySimulationTools/modelitool)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
