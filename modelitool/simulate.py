@@ -176,8 +176,7 @@ class OMModel(Model):
 
         """
 
-        simu_property = self.property_dict.copy()
-        simu_property.update(dict(property_dict or {}))
+        simu_property = {**self.property_dict, **(property_dict or {})}
 
         simulation_options = {
             **DEFAULT_SIMULATION_OPTIONS,
@@ -247,10 +246,19 @@ class OMModel(Model):
 
             write_combitt_from_df(boundary_df, self.simulation_dir / "boundaries.txt")
             full_path = (self.simulation_dir / "boundaries.txt").resolve().as_posix()
-            self.set_property_dict({f"{self.boundary_table_name}.fileName": full_path})
+            simu_property[f"{self.boundary_table_name}.fileName"] = full_path
 
-        if property_dict is not None:
-            self.set_property_dict(property_dict)
+        override_property = {
+            k: v for k, v in (property_dict or {}).items() if v is not None
+        }
+
+        if boundary_df is not None:
+            override_property[f"{self.boundary_table_name}.fileName"] = full_path
+
+        if override_property:
+            self.model.setParameters(
+                [f"{k}={v}\n" for k, v in override_property.items()]
+            )
 
         self.model.setSimulationOptions(om_simu_opt)
 
@@ -328,6 +336,7 @@ class OMModel(Model):
         return {k: (v.strip() if isinstance(v, str) else v) for k, v in raw.items()}
 
     def set_property_dict(self, property_dict):
+        self.property_dict.update(property_dict)
         self.model.setParameters(
             [f"{item}={val}\n" for item, val in property_dict.items()]
         )
