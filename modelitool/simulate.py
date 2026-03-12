@@ -249,8 +249,7 @@ class OMModel(Model):
             simu_property[f"{self.boundary_table_name}.fileName"] = full_path
 
         override_property = {
-            k: v for k, v in (property_dict or {}).items()
-            if v is not None
+            k: v for k, v in (property_dict or {}).items() if v is not None
         }
 
         if boundary_df is not None:
