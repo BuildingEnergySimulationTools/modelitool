@@ -5,13 +5,13 @@ import pandas as pd
 
 
 def seconds_to_datetime(index_second, ref_year):
-    since = dt.datetime(ref_year, 1, 1, tzinfo=dt.timezone.utc)
+    since = dt.datetime(ref_year, 1, 1, tzinfo=dt.UTC)
     diff_seconds = index_second + since.timestamp()
     return pd.DatetimeIndex(pd.to_datetime(diff_seconds, unit="s"))
 
 
 def datetime_to_seconds(index_datetime):
-    time_start = dt.datetime(index_datetime[0].year, 1, 1, tzinfo=dt.timezone.utc)
+    time_start = dt.datetime(index_datetime[0].year, 1, 1, tzinfo=dt.UTC)
     new_index = index_datetime.to_frame().diff().squeeze()
     new_index.iloc[0] = dt.timedelta(
         seconds=index_datetime[0].timestamp() - time_start.timestamp()
@@ -25,7 +25,7 @@ def get_dymo_time_index(df):
     Return a list containing seconds since the beginning of the Year
     Only use UTC datetime index
     """
-    time_start = dt.datetime(df.index[0].year, 1, 1, tzinfo=dt.timezone.utc)
+    time_start = dt.datetime(df.index[0].year, 1, 1, tzinfo=dt.UTC)
     new_index = df.index.to_frame().diff().squeeze()
     new_index.iloc[0] = dt.timedelta(
         seconds=df.index[0].timestamp() - time_start.timestamp()
